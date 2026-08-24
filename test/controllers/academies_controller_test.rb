@@ -48,4 +48,58 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, approved.name
     assert_not_includes response.body, pending.name
   end
+
+  test "logged out index hides academy athlete counts" do
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved)
+    parent = User.create!(name: "Demo Parent", email: "parent@example.com", password: "password123", role: :parent)
+    parent.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+
+    get academies_path
+
+    assert_response :success
+    assert_includes response.body, academy.name
+    assert_not_includes response.body, "1 athlete"
+  end
+
+  test "logged out show hides registered athlete details" do
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved)
+    parent = User.create!(name: "Demo Parent", email: "parent@example.com", password: "password123", role: :parent)
+    parent.athletes.create!(
+      academy: academy,
+      first_name: "Aarohi",
+      last_name: "Shah",
+      date_of_birth: Date.new(2014, 5, 12),
+      gender: "female",
+      belt: "red"
+    )
+
+    get academy_path(academy)
+
+    assert_response :success
+    assert_includes response.body, academy.name
+    assert_not_includes response.body, "Registered athletes"
+    assert_not_includes response.body, "Aarohi Shah"
+    assert_not_includes response.body, "Red"
+  end
+
+  test "academy manager can see registered athlete details" do
+    owner = User.create!(name: "Academy Owner", email: "owner@example.com", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
+    owner.athletes.create!(
+      academy: academy,
+      first_name: "Aarohi",
+      last_name: "Shah",
+      date_of_birth: Date.new(2014, 5, 12),
+      gender: "female",
+      belt: "red"
+    )
+    sign_in_as owner
+
+    get academy_path(academy)
+
+    assert_response :success
+    assert_includes response.body, "Registered athletes"
+    assert_includes response.body, "Aarohi Shah"
+    assert_includes response.body, "Red"
+  end
 end

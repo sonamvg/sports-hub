@@ -559,6 +559,31 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Checked the running server with `curl -s -L http://127.0.0.1:3000/athletes/new`; result: redirected to general login without `Please sign in before continuing.`.
 - Blank login submit behavior is covered by `SessionsControllerTest`, which verifies the alert renders only after an empty login POST.
 
+## 2026-08-24 - Hide Academy Athlete Details From Public Visitors
+
+### Reference
+- User request: in signed-out view, selecting Academies should not show athlete details.
+
+### Scope Chosen For This Pass
+- Hide athlete counts on the public academy index for logged-out visitors.
+- Hide registered athlete names and belt details on academy detail pages unless the user can manage the academy.
+- Preserve academy owner and super-admin visibility for athlete details.
+
+### Product Decisions
+- Public academy pages should show academy identity and contact information only.
+- Athlete names and belt details are operational/private information for academy managers and admins.
+- Category-level public tournament information remains separate from academy athlete rosters.
+
+### Change Log
+- Updated academy index to render athlete counts only for signed-in users.
+- Updated academy detail to render registered-athlete details only for users who can manage the academy.
+- Added controller tests for logged-out index, logged-out show, and academy-manager show behavior.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 59 runs, 360 assertions, 0 failures, 0 errors, 0 skips.
+- Checked the running server with `curl -s http://127.0.0.1:3000/academies`; result: logged-out academy index rendered academy cards without athlete counts.
+- Checked the running server with `curl -s http://127.0.0.1:3000/academies/1`; result: logged-out academy detail rendered academy information without `Registered athletes`, athlete names, or belt details.
+
 ## 2026-08-24 - Initial GitHub Publish
 
 ### Reference

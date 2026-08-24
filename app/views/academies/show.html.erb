@@ -6,8 +6,14 @@
     <div><dt>Contact</dt><dd><%= [@academy.contact_name, @academy.email, @academy.phone].compact.join(" · ").presence || "Not set" %></dd></div>
     <% if @academy.rejected? && @academy.rejection_reason.present? %><div><dt>Reason</dt><dd><%= @academy.rejection_reason %></dd></div><% end %>
   </dl>
-  <h3>Registered athletes</h3>
-  <% @academy.athletes.order(:first_name).each do |athlete| %><p><%= athlete.full_name %> · <%= athlete.belt&.titleize || "Belt not set" %></p><% end %>
+  <% if can_manage_academy?(@academy) %>
+    <h3>Registered athletes</h3>
+    <% if @academy.athletes.any? %>
+      <% @academy.athletes.order(:first_name).each do |athlete| %><p><%= athlete.full_name %> · <%= athlete.belt&.titleize || "Belt not set" %></p><% end %>
+    <% else %>
+      <p class="muted">No athlete profiles assigned yet.</p>
+    <% end %>
+  <% end %>
   <div class="form-actions">
     <% if can_manage_academy?(@academy) %><%= link_to "Edit academy", edit_academy_path(@academy), class: "primary-button" %><% end %>
     <% if @academy.approved? && can_manage_academy?(@academy) %><%= link_to "Add athlete", new_athlete_path, class: "secondary-button" %><% end %>
