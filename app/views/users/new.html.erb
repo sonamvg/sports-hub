@@ -1,11 +1,14 @@
 <section class="page-shell">
   <div class="container narrow">
     <% organizer_account = @account_type == "organizer" %>
-    <p class="eyebrow"><%= organizer_account ? "ORGANIZER ACCOUNT" : "ATHLETE ACCOUNT" %></p>
-    <h1 class="page-title"><%= organizer_account ? "Create organizer account" : "Join as athlete" %></h1>
+    <% academy_owner_account = @account_type == "academy_owner" %>
+    <p class="eyebrow"><%= organizer_account ? "ORGANIZER ACCOUNT" : (academy_owner_account ? "ACADEMY OWNER ACCOUNT" : "ATHLETE ACCOUNT") %></p>
+    <h1 class="page-title"><%= organizer_account ? "Create organizer account" : (academy_owner_account ? "Create academy owner account" : "Join as athlete") %></h1>
     <p class="page-copy">
       <% if organizer_account %>
         Create an organizer account to publish tournaments, manage categories, and review registrations.
+      <% elsif academy_owner_account %>
+        Create an academy owner account to submit your academy for approval and manage academy details.
       <% else %>
         Create a general athlete or parent account to add athletes and register for tournaments.
       <% end %>
@@ -23,7 +26,7 @@
         <div><%= form.label :password_confirmation %><%= form.password_field :password_confirmation, required: true, autocomplete: "new-password" %></div>
       </div>
       <div class="form-actions">
-        <%= form.submit organizer_account ? "Create organizer account" : "Create athlete account", class: "primary-button button-reset" %>
+        <%= form.submit organizer_account ? "Create organizer account" : (academy_owner_account ? "Create academy owner account" : "Create athlete account"), class: "primary-button button-reset" %>
         <%= link_to "Sign in", login_path(return_to: params[:return_to]), class: "secondary-button" %>
       </div>
     <% end %>

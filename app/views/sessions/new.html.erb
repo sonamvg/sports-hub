@@ -1,11 +1,14 @@
 <section class="page-shell">
   <div class="container narrow">
     <% organizer_flow = params[:return_to] == new_tournament_path %>
+    <% academy_flow = params[:return_to] == new_academy_path %>
     <p class="eyebrow">SIGN IN</p>
     <h1 class="page-title">Welcome</h1>
     <p class="page-copy">
       <% if organizer_flow %>
         Sign in as an organizer to create and manage tournaments.
+      <% elsif academy_flow %>
+        Sign in as an academy owner to submit and manage your academy.
       <% else %>
         Sign in to manage athletes, academies, tournament registrations, and organizer approvals.
       <% end %>
@@ -18,9 +21,11 @@
         <div><%= form.label :password %><%= form.password_field :password, required: true, autocomplete: "current-password" %></div>
       </div>
       <div class="form-actions">
-        <%= form.submit organizer_flow ? "Sign in as organizer" : "Sign in", class: "primary-button button-reset" %>
+        <%= form.submit organizer_flow ? "Sign in as organizer" : (academy_flow ? "Sign in as academy owner" : "Sign in"), class: "primary-button button-reset" %>
         <% if organizer_flow %>
           <%= link_to "Create organizer account", new_user_path(account_type: "organizer", return_to: params[:return_to]), class: "secondary-button" %>
+        <% elsif academy_flow %>
+          <%= link_to "Create academy owner account", new_user_path(account_type: "academy_owner", return_to: params[:return_to]), class: "secondary-button" %>
         <% else %>
           <%= link_to "Join as athlete", new_user_path, class: "secondary-button" %>
         <% end %>

@@ -19,6 +19,16 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Join as athlete"
   end
 
+  test "new session page uses academy owner CTA when registering academy" do
+    get login_path(return_to: new_academy_path)
+
+    assert_response :success
+    assert_includes response.body, "Sign in as an academy owner"
+    assert_includes response.body, "Sign in as academy owner"
+    assert_includes response.body, "Create academy owner account"
+    assert_not_includes response.body, "Join as athlete"
+  end
+
   test "signs in with valid credentials" do
     user = User.create!(name: "Demo Super Admin", email: "admin@example.com", password: "password123", role: :super_admin)
 

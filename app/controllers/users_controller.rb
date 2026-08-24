@@ -21,11 +21,18 @@ class UsersController < ApplicationController
   private
 
   def account_type_param
-    params[:account_type] == "organizer" ? "organizer" : "athlete"
+    return "organizer" if params[:account_type] == "organizer"
+    return "academy_owner" if params[:account_type] == "academy_owner"
+
+    "athlete"
   end
 
   def signup_role
-    @account_type == "organizer" ? :organizer : :parent
+    case @account_type
+    when "organizer" then :organizer
+    when "academy_owner" then :academy_owner
+    else :parent
+    end
   end
 
   def safe_return_path(path)

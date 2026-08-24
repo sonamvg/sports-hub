@@ -584,6 +584,36 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Checked the running server with `curl -s http://127.0.0.1:3000/academies`; result: logged-out academy index rendered academy cards without athlete counts.
 - Checked the running server with `curl -s http://127.0.0.1:3000/academies/1`; result: logged-out academy detail rendered academy information without `Registered athletes`, athlete names, or belt details.
 
+## 2026-08-24 - Academy Registration Signup Flow
+
+### Reference
+- User request: on the homepage, clicking `Register academy` should take users to the register academy flow; currently it feels like the register athlete flow.
+
+### Scope Chosen For This Pass
+- Route logged-out homepage academy CTAs through `login?return_to=/academies/new`.
+- Make the login page academy-aware for academy registration.
+- Add an academy-owner signup mode.
+- Return newly created academy-owner users to the academy registration form.
+
+### Product Decisions
+- Use `account_type=academy_owner` for users entering through the academy registration flow.
+- Default public signup remains the athlete/parent flow.
+- Academy-owner accounts can submit academies for super-admin approval; academy approval rules remain unchanged.
+
+### Change Log
+- Updated homepage `Register academy` and `Submit academy` links for logged-out users.
+- Added academy-owner context to the logged-out header CTA.
+- Added academy-owner context to the login page copy, submit button, and secondary CTA.
+- Extended user signup account-type handling to create `academy_owner` users.
+- Added tests for homepage academy CTA, academy-owner login CTA, academy-owner signup copy, and academy-owner account creation.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 63 runs, 393 assertions, 0 failures, 0 errors, 0 skips.
+- Checked rendered homepage through Rails integration session; result: `Register academy` and `Submit academy` link to `/login?return_to=%2Facademies%2Fnew` for logged-out users.
+- Checked rendered academy login page through Rails integration session; result: academy-owner copy, submit button, and `Create academy owner account` CTA are shown, and `Join as athlete` is not shown.
+- Checked rendered academy-owner signup page through Rails integration session; result: academy-owner heading, hidden `account_type=academy_owner`, and hidden `return_to=/academies/new` are present.
+- Ran `git diff --check`; result: no whitespace errors.
+
 ## 2026-08-24 - Initial GitHub Publish
 
 ### Reference

@@ -23,6 +23,8 @@
             <%= link_to "Sign in", login_path %>
             <% if params[:return_to] == new_tournament_path %>
               <%= link_to "Create organizer account", new_user_path(account_type: "organizer", return_to: params[:return_to]), class: "nav-button" %>
+            <% elsif params[:return_to] == new_academy_path %>
+              <%= link_to "Create academy owner account", new_user_path(account_type: "academy_owner", return_to: params[:return_to]), class: "nav-button" %>
             <% else %>
               <%= link_to "Join as athlete", new_user_path, class: "nav-button" %>
             <% end %>

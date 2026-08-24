@@ -10,6 +10,15 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "READY FOR THE MAT"
   end
 
+  test "homepage register academy links use academy registration login context" do
+    get root_path
+
+    assert_response :success
+    assert_includes response.body, "/login?return_to=%2Facademies%2Fnew"
+    assert_includes response.body, "Register academy"
+    assert_includes response.body, "Submit academy"
+  end
+
   test "homepage shows previous competitions" do
     get root_path
 
