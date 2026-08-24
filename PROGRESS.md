@@ -531,6 +531,34 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Checked the running server with `curl -s http://127.0.0.1:3000/login?return_to=%2Ftournaments%2Fnew`; result: page rendered `Sign in as organizer` and `Create organizer account`, including the header CTA.
 - Checked the running server with `curl -s http://127.0.0.1:3000/users/new?account_type=organizer&return_to=%2Ftournaments%2Fnew`; result: page rendered `ORGANIZER ACCOUNT`, `Create organizer account`, hidden `account_type=organizer`, and preserved `return_to=/tournaments/new`.
 
+## 2026-08-24 - Quiet Protected Page Login Redirects
+
+### Reference
+- User report: `/login?return_to=%2Ftournaments%2Fnew` shows a `Please sign in` error immediately; this should not appear just because the user clicked a protected page. Check the same error on other pages.
+
+### Scope Chosen For This Pass
+- Remove passive `Please sign in before continuing.` flash alerts from protected-page GET redirects.
+- Keep the return path behavior intact.
+- Show `Please sign in before continuing.` only when the login form is submitted without email or password.
+- Add coverage for multiple protected entry points.
+
+### Product Decisions
+- Redirecting a visitor from a protected page to login is normal navigation, not an error state.
+- Blank login submission is a validation state, so it should show an inline alert.
+- Invalid credentials continue to show the existing invalid email/password alert.
+
+### Change Log
+- Updated `ApplicationController#require_user` to redirect without an alert.
+- Added blank login-submit handling in `SessionsController#create`.
+- Added `AuthenticationRedirectsTest` covering new tournament, new athlete, new academy, tournament registration, and organizer registration redirects.
+- Added a session controller test for blank login submission.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 56 runs, 339 assertions, 0 failures, 0 errors, 0 skips.
+- Checked the running server with `curl -s -L http://127.0.0.1:3000/tournaments/new`; result: redirected to organizer login without `Please sign in before continuing.`.
+- Checked the running server with `curl -s -L http://127.0.0.1:3000/athletes/new`; result: redirected to general login without `Please sign in before continuing.`.
+- Blank login submit behavior is covered by `SessionsControllerTest`, which verifies the alert renders only after an empty login POST.
+
 ## 2026-08-24 - Initial GitHub Publish
 
 ### Reference

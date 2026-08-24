@@ -40,6 +40,15 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Join as athlete"
   end
 
+  test "blank sign in submit asks user to sign in before continuing" do
+    post login_path, params: { email: "", password: "", return_to: new_tournament_path }
+
+    assert_response :unprocessable_entity
+    assert_nil session[:user_id]
+    assert_includes response.body, "Please sign in before continuing."
+    assert_includes response.body, 'value="/tournaments/new"'
+  end
+
   test "signs out" do
     user = User.create!(name: "Demo Parent", email: "parent@example.com", password: "password123", role: :parent)
     sign_in_as user

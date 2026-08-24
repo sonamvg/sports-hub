@@ -12,7 +12,7 @@ class ApplicationController < ActionController::Base
   end
 
   def require_user
-    redirect_to login_path(return_to: request.fullpath), alert: "Please sign in before continuing." unless current_user
+    redirect_to login_path(return_to: request.fullpath) unless current_user
   end
 
   def require_super_admin
