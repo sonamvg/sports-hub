@@ -403,6 +403,33 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bin/rails test`; result: 46 runs, 244 assertions, 0 failures, 0 errors, 0 skips.
 - Checked the running server with `curl -s http://127.0.0.1:3000/tournaments`; result: upcoming tournament cards rendered the new `tournament-visual` area and fallback marks.
 
+## 2026-08-24 - Public Tournament Detail Cleanup
+
+### Reference
+- User request: in the logged-out scenario, tournament pages should not show My Athletes or No Athlete Profiles Yet; logged-out visitors should see tournament information only.
+
+### Scope Chosen For This Pass
+- Hide athlete-specific sections and calls to action on tournament detail pages for logged-out visitors.
+- Keep tournament summary and category information public.
+- Preserve athlete registration actions for logged-in users.
+- Hide category management actions from visitors unless the current user can manage the tournament.
+
+### Product Decisions
+- Public tournament pages are informational browsing pages.
+- Registration and athlete-profile actions require a signed-in user context.
+- Categories remain public because they help visitors understand eligibility before deciding to create an account.
+
+### Change Log
+- Wrapped the `My athletes` section behind `current_user`.
+- Hid the top `Register athlete` CTA from logged-out visitors.
+- Hid category `Register` links from logged-out visitors.
+- Hid category `Add` and `Edit` actions unless the user can manage the tournament.
+- Added controller tests for logged-out and logged-in tournament detail behavior.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 48 runs, 266 assertions, 0 failures, 0 errors, 0 skips.
+- Checked the running server with `curl -s http://127.0.0.1:3000/tournaments/1` as a logged-out visitor; result: tournament summary and categories rendered without `My athletes`, `No athlete profiles yet`, athlete registration CTAs, or empty action wrappers.
+
 ## 2026-08-24 - Initial GitHub Publish
 
 ### Reference

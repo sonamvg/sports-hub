@@ -11,17 +11,22 @@
       <h1 class="page-title"><%= @tournament.name %></h1>
       <p class="page-copy"><%= @tournament.description.presence || "Tournament registration and category information." %></p>
     </div>
-    <div class="form-actions">
-      <% if can_manage_tournament?(@tournament) %>
+    <% show_heading_actions = current_user || can_manage_tournament?(@tournament) %>
+    <% if show_heading_actions %>
+      <div class="form-actions">
+        <% if can_manage_tournament?(@tournament) %>
         <%= link_to "Edit tournament", edit_tournament_path(@tournament), class: "secondary-button" %>
         <%= link_to "Set draw", draw_tournament_path(@tournament), class: "secondary-button" %>
-      <% end %>
-      <% if @tournament.accepting_registrations? %>
-        <%= link_to "Register athlete", new_tournament_registration_path(@tournament), class: "primary-button" %>
-      <% else %>
-        <span class="status-pill">Registration not open</span>
-      <% end %>
-    </div>
+        <% end %>
+        <% if current_user %>
+          <% if @tournament.accepting_registrations? %>
+            <%= link_to "Register athlete", new_tournament_registration_path(@tournament), class: "primary-button" %>
+          <% else %>
+            <span class="status-pill">Registration not open</span>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
   </div>
   <div class="detail-card tournament-summary">
     <div><strong>Venue</strong><span><%= [@tournament.venue, @tournament.city, @tournament.state].compact.join(", ") %></span></div>
@@ -33,7 +38,8 @@
     <div><strong>Registration closes</strong><span><%= @tournament.registration_closes_at&.strftime("%d %b %Y, %I:%M %p") || "Not set" %></span></div>
   </div>
 
-  <div class="section-compact">
+  <% if current_user %>
+    <div class="section-compact">
     <div class="page-heading compact-heading">
       <div>
         <h2 class="section-title">My athletes</h2>
@@ -73,12 +79,15 @@
         <%= link_to "Add athlete", new_athlete_path(return_to: tournament_path(@tournament)), class: "primary-button" %>
       </div>
     <% end %>
-  </div>
+    </div>
+  <% end %>
 
   <div class="section-compact">
     <div class="page-heading compact-heading">
       <h2 class="section-title">Categories</h2>
-      <%= link_to "Add category", new_tournament_tournament_category_path(@tournament), class: "primary-button" %>
+      <% if can_manage_tournament?(@tournament) %>
+        <%= link_to "Add category", new_tournament_tournament_category_path(@tournament), class: "primary-button" %>
+      <% end %>
     </div>
     <div class="list-grid">
       <% @categories.each do |category| %>
@@ -86,10 +95,16 @@
           <span class="status-pill"><%= category.event_type.titleize %></span>
           <h2><%= category.name %></h2>
           <p><%= [category.gender&.titleize, category.weight_max && "Up to #{category.weight_max} kg"].compact.join(" · ") %></p>
-          <div class="form-actions">
-            <%= link_to "Edit category", edit_tournament_tournament_category_path(@tournament, category), class: "text-link" %>
-            <%= link_to "Register →", new_tournament_registration_path(@tournament, category_id: category.id), class: "text-link" %>
-          </div>
+          <% if can_manage_tournament?(@tournament) || (current_user && @tournament.accepting_registrations?) %>
+            <div class="form-actions">
+              <% if can_manage_tournament?(@tournament) %>
+                <%= link_to "Edit category", edit_tournament_tournament_category_path(@tournament, category), class: "text-link" %>
+              <% end %>
+              <% if current_user && @tournament.accepting_registrations? %>
+                <%= link_to "Register →", new_tournament_registration_path(@tournament, category_id: category.id), class: "text-link" %>
+              <% end %>
+            </div>
+          <% end %>
         </article>
       <% end %>
     </div>

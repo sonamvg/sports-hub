@@ -136,6 +136,47 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, category.name
   end
 
+  test "logged out show hides athlete-specific registration sections" do
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    delete logout_path
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Pune Invitational"
+    assert_includes response.body, "Categories"
+    assert_not_includes response.body, "My athletes"
+    assert_not_includes response.body, "No athlete profiles yet"
+    assert_not_includes response.body, "Register athlete"
+    assert_not_includes response.body, "Register →"
+    assert_not_includes response.body, "Add athlete"
+  end
+
+  test "logged in show keeps athlete registration actions" do
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "My athletes"
+    assert_includes response.body, "No athlete profiles yet"
+    assert_includes response.body, "Register athlete"
+  end
+
   test "show renders tournament breadcrumbs" do
     tournament = Tournament.create!(
       name: "Pune Invitational",
