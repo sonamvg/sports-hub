@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Sports Hub</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container nav">
+        <%= link_to root_path, class: "brand" do %>SPORTS <span>HUB</span><% end %>
+        <nav>
+          <%= link_to "Tournaments", tournaments_path %>
+          <%= link_to "Athletes", athletes_path %>
+          <%= link_to "Academies", academies_path %>
+          <%= link_to "Organizer", organizer_registrations_path %>
+          <% if current_user %>
+            <span class="status-pill"><%= current_user.role.humanize %></span>
+            <%= button_to "Sign out", logout_path, method: :delete, class: "link-button" %>
+          <% else %>
+            <%= link_to "Sign in", login_path %>
+            <%= link_to "Create account", new_user_path, class: "nav-button" %>
+          <% end %>
+        </nav>
+      </div>
+    </header>
+
+    <%= render "shared/flash" %>
+    <%= yield %>
+  </body>
+</html>

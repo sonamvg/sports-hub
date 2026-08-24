@@ -1,0 +1,24 @@
+<section class="page-shell"><div class="container narrow"><p class="eyebrow">REGISTRATION</p><h1 class="page-title">Register for <%= @tournament.name %></h1><p class="page-copy">Choose an athlete and competition category. The organizer will review the entry before it is confirmed.</p>
+<%= form_with model: [@tournament, @registration], class: "form-card" do |form| %>
+  <%= render "shared/errors", record: @registration %>
+  <% if @athletes.empty? %>
+    <div class="inline-empty-state">
+      <strong>No athlete profiles yet</strong>
+      <p>Add an athlete profile first, then come back here to finish the registration.</p>
+      <%= link_to "Add athlete", new_athlete_path(return_to: request.fullpath), class: "primary-button" %>
+    </div>
+  <% end %>
+  <div class="form-grid">
+    <div>
+      <%= form.label :athlete_id, "Athlete" %>
+      <%= form.collection_select :athlete_id, @athletes, :id, :full_name, prompt: "Choose athlete" %>
+      <% if @athletes.any? %>
+        <p class="field-hint"><%= link_to "Add another athlete", new_athlete_path(return_to: request.fullpath), class: "text-link" %></p>
+      <% end %>
+    </div>
+    <div><%= form.label :tournament_category_id, "Category" %><%= form.collection_select :tournament_category_id, @categories, :id, :name, prompt: "Choose category" %></div>
+    <div><%= form.label :registered_weight, "Current weight (kg)" %><%= form.number_field :registered_weight, step: 0.1, min: 1 %></div>
+  </div>
+  <div class="form-actions"><%= form.submit "Submit registration", class: "primary-button button-reset" %><%= link_to "Cancel", tournament_path(@tournament), class: "secondary-button" %></div>
+<% end %>
+</div></section>

@@ -1,0 +1,55 @@
+class Tournament < ApplicationRecord
+  before_validation :normalize_fields
+
+  belongs_to :organizer, class_name: "User"
+  has_many :tournament_categories, dependent: :destroy
+  has_many :registrations, dependent: :destroy
+
+  enum :status, {
+    draft: 0,
+    registration_open: 1,
+    registration_closed: 2,
+    in_progress: 3,
+    completed: 4,
+    cancelled: 5,
+    ready_for_review: 6,
+    scheduled: 7,
+    registration_paused: 8,
+    draw_scheduling: 9,
+    archived: 10
+  }, default: :draft
+
+  validates :name, :start_date, :end_date, presence: true
+  validates :name, length: { minimum: 3, maximum: 120 }, allow_blank: true
+  validates :slug, uniqueness: true, allow_blank: true
+  validate :end_date_not_before_start_date
+  validate :registration_window_chronology
+
+  def accepting_registrations?(at: Time.current)
+    registration_open? &&
+      (registration_opens_at.blank? || registration_opens_at <= at) &&
+      (registration_closes_at.blank? || registration_closes_at >= at)
+  end
+
+  private
+
+  def normalize_fields
+    self.name = name.to_s.squish.presence
+    self.slug = slug.presence
+  end
+
+  def end_date_not_before_start_date
+    return if start_date.blank? || end_date.blank?
+    errors.add(:end_date, "cannot be before start date") if end_date < start_date
+  end
+
+  def registration_window_chronology
+    if registration_opens_at.present? && registration_closes_at.present? && registration_opens_at >= registration_closes_at
+      errors.add(:registration_closes_at, "must be after registration opens at")
+    end
+
+    if registration_closes_at.present? && start_date.present? && registration_closes_at.to_date > start_date
+      errors.add(:registration_closes_at, "cannot be after the event start date")
+    end
+  end
+end

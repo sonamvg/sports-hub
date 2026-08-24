@@ -1,0 +1,20 @@
+<%= form_with model: academy, class: "form-card" do |form| %>
+  <%= render "shared/errors", record: academy %>
+  <% unless academy.approved? %>
+    <div class="inline-empty-state">
+      <strong>Super admin approval required</strong>
+      <p>After approval, the academy owner can manage the academy profile and assign athletes to it.</p>
+    </div>
+  <% end %>
+  <div class="form-grid two-col">
+    <div class="full"><%= form.label :name %><%= form.text_field :name, required: true %></div>
+    <div><%= form.label :registration_number %><%= form.text_field :registration_number %></div>
+    <div><%= form.label :contact_name %><%= form.text_field :contact_name %></div>
+    <div><%= form.label :city %><%= form.text_field :city, required: true %></div>
+    <div><%= form.label :state %><%= form.text_field :state %></div>
+    <div><%= form.label :country %><%= form.text_field :country, value: academy.country.presence || "India" %></div>
+    <div><%= form.label :phone %><%= form.telephone_field :phone %></div>
+    <div class="full"><%= form.label :email %><%= form.email_field :email %></div>
+  </div>
+  <div class="form-actions"><%= form.submit class: "primary-button button-reset" %><%= link_to "Cancel", academies_path, class: "secondary-button" %></div>
+<% end %>

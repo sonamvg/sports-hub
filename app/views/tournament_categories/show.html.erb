@@ -1,0 +1,19 @@
+<section class="page-shell">
+  <div class="container narrow">
+    <p class="eyebrow">CATEGORY</p>
+    <h1 class="page-title"><%= @category.name %></h1>
+
+    <div class="detail-card">
+      <p><strong>Event:</strong> <%= @category.event_type.titleize %></p>
+      <p><strong>Gender:</strong> <%= @category.gender&.titleize || "Open" %></p>
+      <p><strong>Age:</strong> <%= [@category.age_min, @category.age_max].compact.join("–").presence || "Open" %></p>
+      <p><strong>Weight:</strong> <%= [@category.weight_min && "From #{@category.weight_min} kg", @category.weight_max && "up to #{@category.weight_max} kg"].compact.join(", ").presence || "Open" %></p>
+      <p><strong>Belt:</strong> <%= [@category.belt_min&.titleize, @category.belt_max&.titleize].compact.join("–").presence || "Open" %></p>
+
+      <div class="form-actions">
+        <%= link_to "Edit category", edit_tournament_tournament_category_path(@tournament, @category), class: "secondary-button" %>
+        <%= link_to "Register athlete", new_tournament_registration_path(@tournament, category_id: @category.id), class: "primary-button" %>
+      </div>
+    </div>
+  </div>
+</section>

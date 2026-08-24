@@ -1,0 +1,13 @@
+<section class="page-shell">
+  <div class="container narrow">
+    <p class="eyebrow">DRAW</p>
+    <h1 class="page-title"><%= @tournament.name %></h1>
+    <div class="detail-card">
+      <p class="page-copy">Draw setup will live here. For now, organizers can use this placeholder after creating a tournament while registration and approval flows mature.</p>
+      <div class="form-actions">
+        <%= link_to "Back to tournament", tournament_path(@tournament), class: "primary-button" %>
+        <%= link_to "Review registrations", organizer_registrations_path, class: "secondary-button" %>
+      </div>
+    </div>
+  </div>
+</section>

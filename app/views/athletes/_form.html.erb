@@ -1,0 +1,18 @@
+<%= form_with model: athlete, class: "form-card" do |form| %>
+  <%= render "shared/errors", record: athlete %>
+  <%= hidden_field_tag :return_to, @return_to if @return_to.present? %>
+  <div class="form-grid two-col">
+    <div><%= form.label :first_name %><%= form.text_field :first_name, required: true %></div>
+    <div><%= form.label :last_name %><%= form.text_field :last_name, required: true %></div>
+    <div><%= form.label :date_of_birth %><%= form.date_field :date_of_birth, required: true %></div>
+    <div><%= form.label :gender %><%= form.select :gender, Athlete::GENDERS.map { |gender| [gender.titleize, gender] }, include_blank: "Select gender" %></div>
+    <div><%= form.label :belt %><%= form.select :belt, Athlete::BELTS.map { |belt| [belt.titleize, belt] }, include_blank: "Select belt" %></div>
+    <div><%= form.label :weight, "Current weight (kg)" %><%= form.number_field :weight, step: 0.1, min: 1 %></div>
+    <div class="full"><%= form.label :academy_id, "Approved academy" %><%= form.collection_select :academy_id, @available_academies, :id, :name, include_blank: "No academy yet" %></div>
+    <div><%= form.label :association_id, "Association ID" %><%= form.text_field :association_id %></div>
+    <div><%= form.label :city %><%= form.text_field :city %></div>
+    <div><%= form.label :state %><%= form.text_field :state %></div>
+    <div><%= form.label :country %><%= form.text_field :country, value: athlete.country.presence || "India" %></div>
+  </div>
+  <div class="form-actions"><%= form.submit class: "primary-button button-reset" %><%= link_to "Cancel", @return_to.presence || athletes_path, class: "secondary-button" %></div>
+<% end %>

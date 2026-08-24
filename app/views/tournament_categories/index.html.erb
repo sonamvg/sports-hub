@@ -1,0 +1,21 @@
+<section class="page-shell">
+  <div class="container">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">CATEGORIES</p>
+        <h1 class="page-title"><%= @tournament.name %></h1>
+      </div>
+      <%= link_to "Add category", new_tournament_tournament_category_path(@tournament), class: "primary-button" %>
+    </div>
+
+    <div class="list-grid">
+      <% @categories.each do |category| %>
+        <article class="entity-card">
+          <h2><%= category.name %></h2>
+          <p><%= category.event_type.titleize %></p>
+          <%= link_to "View →", tournament_tournament_category_path(@tournament, category), class: "text-link" %>
+        </article>
+      <% end %>
+    </div>
+  </div>
+</section>

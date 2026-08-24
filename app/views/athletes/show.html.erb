@@ -1,0 +1,13 @@
+<section class="page-shell"><div class="container narrow">
+  <p class="eyebrow">ATHLETE PROFILE</p><h1 class="page-title"><%= @athlete.full_name %></h1>
+  <div class="detail-card">
+    <dl class="detail-list">
+      <div><dt>Academy</dt><dd><%= @athlete.academy&.name || "Not selected" %></dd></div>
+      <div><dt>Date of birth</dt><dd><%= @athlete.date_of_birth.strftime("%d %B %Y") %></dd></div>
+      <div><dt>Gender</dt><dd><%= @athlete.gender.titleize %></dd></div>
+      <div><dt>Belt</dt><dd><%= @athlete.belt&.titleize || "Not set" %></dd></div>
+      <div><dt>Weight</dt><dd><%= @athlete.weight ? "#{@athlete.weight} kg" : "Not set" %></dd></div>
+    </dl>
+    <div class="form-actions"><%= link_to "Edit profile", edit_athlete_path(@athlete), class: "primary-button" %><%= link_to "Find tournaments", tournaments_path, class: "secondary-button" %></div>
+  </div>
+</div></section>

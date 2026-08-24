@@ -1,0 +1,65 @@
+<%= form_with model: tournament, class: "form-card" do |form| %>
+  <%= render "shared/errors", record: tournament %>
+
+  <div class="form-grid two-col">
+    <div class="full">
+      <%= form.label :name %>
+      <%= form.text_field :name, required: true %>
+    </div>
+
+    <div class="full">
+      <%= form.label :description %>
+      <%= form.text_area :description, rows: 4 %>
+    </div>
+
+    <div>
+      <%= form.label :venue %>
+      <%= form.text_field :venue %>
+    </div>
+
+    <div>
+      <%= form.label :city %>
+      <%= form.text_field :city %>
+    </div>
+
+    <div>
+      <%= form.label :state %>
+      <%= form.text_field :state %>
+    </div>
+
+    <div>
+      <%= form.label :slug %>
+      <%= form.text_field :slug %>
+    </div>
+
+    <div>
+      <%= form.label :start_date %>
+      <%= form.date_field :start_date, required: true %>
+    </div>
+
+    <div>
+      <%= form.label :end_date %>
+      <%= form.date_field :end_date, required: true %>
+    </div>
+
+    <div>
+      <%= form.label :registration_opens_at %>
+      <%= form.datetime_local_field :registration_opens_at %>
+    </div>
+
+    <div>
+      <%= form.label :registration_closes_at %>
+      <%= form.datetime_local_field :registration_closes_at %>
+    </div>
+
+    <div class="full">
+      <%= form.label :status %>
+      <%= form.select :status, Tournament.statuses.keys.map { |status| [status.humanize, status] } %>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <%= form.submit tournament.persisted? ? "Update tournament" : "Create tournament", class: "primary-button button-reset" %>
+    <%= link_to "Cancel", tournament.persisted? ? tournament_path(tournament) : tournaments_path, class: "secondary-button" %>
+  </div>
+<% end %>

@@ -1,0 +1,28 @@
+<section class="page-shell">
+  <div class="container">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">COMPETITIONS</p>
+        <h1 class="page-title">Upcoming tournaments</h1>
+        <p class="page-copy">Find a tournament, review its categories and register an athlete.</p>
+      </div>
+      <%= link_to "Create tournament", new_tournament_path, class: "primary-button" %>
+    </div>
+
+    <div class="list-grid">
+      <% @tournaments.each do |tournament| %>
+        <article class="entity-card tournament-card">
+          <span class="status-pill status-<%= tournament.status %>"><%= tournament.status.humanize %></span>
+          <h2><%= tournament.name %></h2>
+          <p><%= [tournament.venue, tournament.city].compact.join(" · ") %></p>
+          <div class="entity-meta">
+            <span><strong>Starts</strong><%= tournament.start_date.strftime("%d %b %Y") %></span>
+            <span><strong>Organizer</strong><%= tournament.organizer.name %></span>
+            <span><strong>Categories</strong><%= tournament.tournament_categories.count %></span>
+          </div>
+          <%= link_to "View tournament →", tournament_path(tournament), class: "text-link" %>
+        </article>
+      <% end %>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,90 @@
+<section class="page-shell"><div class="container">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">TOURNAMENT</p>
+      <h1 class="page-title"><%= @tournament.name %></h1>
+      <p class="page-copy"><%= @tournament.description.presence || "Tournament registration and category information." %></p>
+    </div>
+    <div class="form-actions">
+      <% if can_manage_tournament?(@tournament) %>
+        <%= link_to "Edit tournament", edit_tournament_path(@tournament), class: "secondary-button" %>
+        <%= link_to "Set draw", draw_tournament_path(@tournament), class: "secondary-button" %>
+      <% end %>
+      <% if @tournament.accepting_registrations? %>
+        <%= link_to "Register athlete", new_tournament_registration_path(@tournament), class: "primary-button" %>
+      <% else %>
+        <span class="status-pill">Registration not open</span>
+      <% end %>
+    </div>
+  </div>
+  <div class="detail-card tournament-summary">
+    <div><strong>Venue</strong><span><%= [@tournament.venue, @tournament.city, @tournament.state].compact.join(", ") %></span></div>
+    <div><strong>Dates</strong><span><%= @tournament.start_date.strftime("%d %b") %> – <%= @tournament.end_date.strftime("%d %b %Y") %></span></div>
+    <div><strong>Status</strong><span><%= @tournament.status.humanize %></span></div>
+    <div><strong>Organizer</strong><span><%= @tournament.organizer.name %></span></div>
+    <div><strong>Registration opens</strong><span><%= @tournament.registration_opens_at&.strftime("%d %b %Y, %I:%M %p") || "Not set" %></span></div>
+    <div><strong>Registration closes</strong><span><%= @tournament.registration_closes_at&.strftime("%d %b %Y, %I:%M %p") || "Not set" %></span></div>
+  </div>
+
+  <div class="section-compact">
+    <div class="page-heading compact-heading">
+      <div>
+        <h2 class="section-title">My athletes</h2>
+        <p class="page-copy">Athlete profiles available for this tournament registration.</p>
+      </div>
+      <%= link_to "Add athlete", new_athlete_path(return_to: tournament_path(@tournament)), class: "primary-button" %>
+    </div>
+
+    <% if @athletes.any? %>
+      <div class="list-grid">
+        <% @athletes.each do |athlete| %>
+          <% registration = @registrations_by_athlete_id[athlete.id] %>
+          <article class="entity-card">
+            <span class="status-pill <%= registration ? "status-#{registration.status}" : "" %>">
+              <%= registration ? registration.status.humanize : "Not registered" %>
+            </span>
+            <h2><%= athlete.full_name %></h2>
+            <p><%= [athlete.academy&.name, athlete.belt&.titleize, athlete.weight && "#{athlete.weight} kg"].compact.join(" · ") %></p>
+            <% if registration %>
+              <div class="entity-meta">
+                <span><strong>Category</strong><%= registration.tournament_category.name %></span>
+              </div>
+            <% end %>
+            <div class="form-actions">
+              <%= link_to "View profile", athlete_path(athlete), class: "text-link" %>
+              <% if @tournament.accepting_registrations? && registration.blank? %>
+                <%= link_to "Register →", new_tournament_registration_path(@tournament, athlete_id: athlete.id), class: "text-link" %>
+              <% end %>
+            </div>
+          </article>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="inline-empty-state">
+        <strong>No athlete profiles yet</strong>
+        <p>Add an athlete profile to make tournament registration faster and more consistent.</p>
+        <%= link_to "Add athlete", new_athlete_path(return_to: tournament_path(@tournament)), class: "primary-button" %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="section-compact">
+    <div class="page-heading compact-heading">
+      <h2 class="section-title">Categories</h2>
+      <%= link_to "Add category", new_tournament_tournament_category_path(@tournament), class: "primary-button" %>
+    </div>
+    <div class="list-grid">
+      <% @categories.each do |category| %>
+        <article class="entity-card">
+          <span class="status-pill"><%= category.event_type.titleize %></span>
+          <h2><%= category.name %></h2>
+          <p><%= [category.gender&.titleize, category.weight_max && "Up to #{category.weight_max} kg"].compact.join(" · ") %></p>
+          <div class="form-actions">
+            <%= link_to "Edit category", edit_tournament_tournament_category_path(@tournament, category), class: "text-link" %>
+            <%= link_to "Register →", new_tournament_registration_path(@tournament, category_id: category.id), class: "text-link" %>
+          </div>
+        </article>
+      <% end %>
+    </div>
+  </div>
+</div></section>

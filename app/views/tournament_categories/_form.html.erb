@@ -1,0 +1,55 @@
+<%= form_with model: [tournament, category], class: "form-card" do |form| %>
+  <%= render "shared/errors", record: category %>
+
+  <div class="form-grid two-col">
+    <div class="full">
+      <%= label_tag :generated_category_name, "Generated name" %>
+      <%= text_field_tag :generated_category_name, category.generated_name, readonly: true %>
+    </div>
+
+    <div>
+      <%= form.label :event_type %>
+      <%= form.select :event_type, [["Kyorugi", "kyorugi"], ["Poomsae", "poomsae"], ["Para", "para"]], include_blank: "Select event", required: true %>
+    </div>
+
+    <div>
+      <%= form.label :gender %>
+      <%= form.select :gender, [["Female", "female"], ["Male", "male"], ["Mixed", "mixed"]], include_blank: "Open" %>
+    </div>
+
+    <div>
+      <%= form.label :age_min, "Minimum age" %>
+      <%= form.number_field :age_min, min: 1 %>
+    </div>
+
+    <div>
+      <%= form.label :age_max, "Maximum age" %>
+      <%= form.number_field :age_max, min: 1 %>
+    </div>
+
+    <div>
+      <%= form.label :weight_min, "Minimum weight (kg)" %>
+      <%= form.number_field :weight_min, step: 0.1, min: 1 %>
+    </div>
+
+    <div>
+      <%= form.label :weight_max, "Maximum weight (kg)" %>
+      <%= form.number_field :weight_max, step: 0.1, min: 1 %>
+    </div>
+
+    <div>
+      <%= form.label :belt_min, "Minimum belt" %>
+      <%= form.select :belt_min, ["white", "yellow", "green", "blue", "red", "black"], include_blank: "Open" %>
+    </div>
+
+    <div>
+      <%= form.label :belt_max, "Maximum belt" %>
+      <%= form.select :belt_max, ["white", "yellow", "green", "blue", "red", "black"], include_blank: "Open" %>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <%= form.submit category.persisted? ? "Update category" : "Create category", class: "primary-button button-reset" %>
+    <%= link_to "Cancel", category.persisted? ? tournament_tournament_category_path(tournament, category) : tournament_path(tournament), class: "secondary-button" %>
+  </div>
+<% end %>

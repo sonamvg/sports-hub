@@ -1,0 +1,61 @@
+<main>
+  <section class="hero">
+    <div class="container hero-grid">
+      <div>
+        <p class="eyebrow">ONE PLATFORM. EVERY COMPETITION.</p>
+        <h1>Train. Compete.<br><span>Grow.</span></h1>
+        <p class="hero-copy">A simple platform for athletes, parents, academies and organizers to discover tournaments, register athletes and manage competition journeys.</p>
+        <div class="hero-actions">
+          <a class="primary-button" href="<%= tournaments_path %>">Find competitions</a>
+          <a class="secondary-button" href="<%= current_user ? new_athlete_path : login_path(return_to: new_athlete_path) %>">Register an athlete</a>
+          <a class="secondary-button" href="<%= new_academy_path %>">Register academy</a>
+        </div>
+      </div>
+      <div class="hero-card">
+        <div class="belt-mark">🥋</div>
+        <p class="small-label">PLATFORM ROLES</p>
+        <div class="flow-list">
+          <span>Visitor</span><b>→</b><span>Athlete</span><b>→</b><span>Academy owner</span><b>→</b><span>Organizer</span><b>→</b><span>Super admin</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="competitions">
+    <div class="container">
+      <p class="eyebrow">COMPETITIONS</p>
+      <h2>Everything starts with the tournament.</h2>
+      <div class="cards">
+        <article class="card"><span class="card-number">01</span><h3>Browse</h3><p>Public visitors can view approved academies and tournaments before creating any profile.</p></article>
+        <article class="card"><span class="card-number">02</span><h3>Register</h3><p>Academies submit for approval, then academy owners can manage athletes and tournament entries.</p></article>
+        <article class="card"><span class="card-number">03</span><h3>Operate</h3><p>Organizers create tournaments, review registrations, and prepare draws for event day.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="dark-section" id="how-it-works">
+    <div class="container">
+      <p class="eyebrow light">THE JOURNEY</p>
+      <h2>Built around the athlete.</h2>
+      <div class="journey">
+        <div><strong>01</strong><span>Create account</span></div>
+        <div><strong>02</strong><span>Add athlete</span></div>
+        <div><strong>03</strong><span>Join or register academy</span></div>
+        <div><strong>04</strong><span>Super admin approves academy</span></div>
+        <div><strong>05</strong><span>Choose tournament</span></div>
+        <div><strong>06</strong><span>Submit registration</span></div>
+        <div><strong>07</strong><span>Organizer approval and draw setup</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="get-started">
+    <div class="container cta">
+      <div><p class="eyebrow">SPORTS HUB</p><h2>Your competition journey, in one place.</h2></div>
+      <%= link_to "Create athlete profile", current_user ? new_athlete_path : login_path(return_to: new_athlete_path), class: "primary-button" %>
+      <%= link_to "Submit academy", new_academy_path, class: "secondary-button" %>
+    </div>
+  </section>
+</main>
+
+<footer><div class="container footer-inner"><span>Sports Hub</span><span>Built for athletes, academies and organizers.</span></div></footer>

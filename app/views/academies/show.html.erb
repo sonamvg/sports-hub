@@ -1,0 +1,17 @@
+<section class="page-shell"><div class="container narrow"><p class="eyebrow">ACADEMY</p><h1 class="page-title"><%= @academy.name %></h1><div class="detail-card">
+  <span class="status-pill status-<%= @academy.status %>"><%= @academy.status.humanize %></span>
+  <p class="page-copy"><%= [@academy.city, @academy.state, @academy.country].compact.join(", ") %></p>
+  <dl class="detail-list">
+    <div><dt>Owner</dt><dd><%= @academy.owner&.name || "Not assigned" %></dd></div>
+    <div><dt>Contact</dt><dd><%= [@academy.contact_name, @academy.email, @academy.phone].compact.join(" · ").presence || "Not set" %></dd></div>
+    <% if @academy.rejected? && @academy.rejection_reason.present? %><div><dt>Reason</dt><dd><%= @academy.rejection_reason %></dd></div><% end %>
+  </dl>
+  <h3>Registered athletes</h3>
+  <% @academy.athletes.order(:first_name).each do |athlete| %><p><%= athlete.full_name %> · <%= athlete.belt&.titleize || "Belt not set" %></p><% end %>
+  <div class="form-actions">
+    <% if can_manage_academy?(@academy) %><%= link_to "Edit academy", edit_academy_path(@academy), class: "primary-button" %><% end %>
+    <% if @academy.approved? && can_manage_academy?(@academy) %><%= link_to "Add athlete", new_athlete_path, class: "secondary-button" %><% end %>
+    <% if super_admin? && @academy.pending? %><%= button_to "Approve academy", approve_academy_path(@academy), method: :patch, class: "approve-button" %><%= button_to "Reject academy", reject_academy_path(@academy), method: :patch, class: "reject-button" %><% end %>
+    <%= link_to "Back", academies_path, class: "secondary-button" %>
+  </div>
+</div></div></section>
