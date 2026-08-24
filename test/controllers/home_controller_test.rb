@@ -1,6 +1,15 @@
 require "test_helper"
 
 class HomeControllerTest < ActionDispatch::IntegrationTest
+  test "homepage shows black belt hero photo" do
+    get root_path
+
+    assert_response :success
+    assert_includes response.body, "black-belt-dobok"
+    assert_includes response.body, "Close-up of a black belt tied over a white taekwondo uniform"
+    assert_includes response.body, "READY FOR THE MAT"
+  end
+
   test "homepage shows previous competitions" do
     get root_path
 

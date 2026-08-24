@@ -476,6 +476,34 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bin/rails test`; result: 50 runs, 280 assertions, 0 failures, 0 errors, 0 skips.
 - Checked the running server with `curl -s -L http://127.0.0.1:3000/tournaments/new`; result: logged-out create-tournament flow renders the login page with `Welcome` and preserves `return_to=/tournaments/new`.
 
+## 2026-08-24 - Homepage Hero Photo
+
+### Reference
+- User request: replace the black image/card on the homepage right side with something better, such as a close-up photo of a black belt on the uniform.
+
+### Scope Chosen For This Pass
+- Generate a local black-belt/dobok close-up image.
+- Store the generated image as a Rails asset.
+- Replace the old black role-flow card with a photographic hero card.
+- Keep a concise caption overlay that supports the product story.
+
+### Product Decisions
+- Use a generated local image asset instead of a remote third-party image URL to avoid broken image links or licensing ambiguity.
+- Remove the emoji belt marker from the hero card because the photo carries the visual signal more professionally.
+- Keep the image decorative but accessible with descriptive alt text.
+
+### Change Log
+- Added optimized local image asset `app/assets/images/black-belt-dobok.jpg`.
+- Replaced homepage hero-card markup with a hero photo card.
+- Added responsive CSS for the photo, overlay, and caption.
+- Added a homepage controller test that asserts the hero image and alt text render.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 51 runs, 287 assertions, 0 failures, 0 errors, 0 skips.
+- Optimized the generated image from a 2.1 MB PNG to a 271 KB JPEG.
+- Restarted the local Rails server so Propshaft could pick up the new `app/assets/images` directory.
+- Checked the running server with `curl -s http://127.0.0.1:3000/`; result: homepage rendered the fingerprinted `black-belt-dobok` JPEG, descriptive alt text, and `READY FOR THE MAT` caption.
+
 ## 2026-08-24 - Initial GitHub Publish
 
 ### Reference
