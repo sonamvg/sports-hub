@@ -31,6 +31,13 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 .page-shell { min-height:70vh; padding:72px 0 100px; background:#fff; }
 .page-shell.organizer-page { background:#f7f7f5; }
 .narrow { max-width:780px; }
+.breadcrumbs { margin-bottom:28px; color:var(--muted); font-size:13px; }
+.breadcrumbs ol { list-style:none; display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:0; margin:0; }
+.breadcrumbs li { display:flex; align-items:center; gap:8px; min-width:0; }
+.breadcrumbs li:not(:last-child)::after { content:"/"; color:#a0a3a8; }
+.breadcrumbs a { color:var(--muted); font-weight:800; }
+.breadcrumbs a:hover { color:var(--red); text-decoration:underline; }
+.breadcrumbs [aria-current="page"] { color:var(--ink); font-weight:800; }
 .page-heading { display:flex; justify-content:space-between; align-items:flex-end; gap:30px; margin-bottom:48px; }
 .compact-heading { margin-bottom:24px; }
 .page-title { font-size:clamp(42px,6vw,72px); line-height:.95; letter-spacing:-.055em; margin:0 0 18px; }

@@ -1,4 +1,13 @@
-<section class="page-shell"><div class="container narrow"><p class="eyebrow">REGISTRATION</p><h1 class="page-title">Register for <%= @tournament.name %></h1><p class="page-copy">Choose an athlete and competition category. The organizer will review the entry before it is confirmed.</p>
+<section class="page-shell"><div class="container narrow">
+<%= render "shared/breadcrumbs", items: [
+  { label: "Home", path: root_path },
+  { label: "Tournaments", path: tournaments_path },
+  { label: @tournament.name, path: tournament_path(@tournament) },
+  { label: "Registrations", path: tournament_registrations_path(@tournament) },
+  { label: "New" }
+] %>
+
+<p class="eyebrow">REGISTRATION</p><h1 class="page-title">Register for <%= @tournament.name %></h1><p class="page-copy">Choose an athlete and competition category. The organizer will review the entry before it is confirmed.</p>
 <%= form_with model: [@tournament, @registration], class: "form-card" do |form| %>
   <%= render "shared/errors", record: @registration %>
   <% if @athletes.empty? %>

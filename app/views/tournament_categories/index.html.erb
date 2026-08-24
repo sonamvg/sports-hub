@@ -1,5 +1,12 @@
 <section class="page-shell">
   <div class="container">
+    <%= render "shared/breadcrumbs", items: [
+      { label: "Home", path: root_path },
+      { label: "Tournaments", path: tournaments_path },
+      { label: @tournament.name, path: tournament_path(@tournament) },
+      { label: "Categories" }
+    ] %>
+
     <div class="page-heading">
       <div>
         <p class="eyebrow">CATEGORIES</p>

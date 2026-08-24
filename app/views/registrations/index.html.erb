@@ -1,3 +1,11 @@
-<section class="page-shell"><div class="container"><div class="page-heading"><div><p class="eyebrow">MY REGISTRATIONS</p><h1 class="page-title"><%= @tournament.name %></h1></div><%= link_to "New registration", new_tournament_registration_path(@tournament), class: "primary-button" %></div>
+<section class="page-shell"><div class="container">
+<%= render "shared/breadcrumbs", items: [
+  { label: "Home", path: root_path },
+  { label: "Tournaments", path: tournaments_path },
+  { label: @tournament.name, path: tournament_path(@tournament) },
+  { label: "Registrations" }
+] %>
+
+<div class="page-heading"><div><p class="eyebrow">MY REGISTRATIONS</p><h1 class="page-title"><%= @tournament.name %></h1></div><%= link_to "New registration", new_tournament_registration_path(@tournament), class: "primary-button" %></div>
 <div class="list-grid"><% @registrations.each do |registration| %><article class="entity-card"><span class="status-pill status-<%= registration.status %>"><%= registration.status.humanize %></span><h2><%= registration.athlete.full_name %></h2><p><%= registration.tournament_category.name %></p><p class="muted">Submitted <%= registration.created_at.strftime("%d %b %Y") %></p></article><% end %></div>
 </div></section>

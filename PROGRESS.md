@@ -226,6 +226,31 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Checked the rendered homepage HTML; result: `<title>Sports Hub</title>`, header brand `SPORTS HUB`, and footer `Sports Hub` are present.
 - Confirmed the session cookie name changed to `_sports_hub_session`.
 
+## 2026-08-24 - Tournament Breadcrumb Navigation
+
+### Reference
+- User request: add breadcrumbs for the tournament pages.
+
+### Scope Chosen For This Pass
+- Add a shared breadcrumb component.
+- Apply breadcrumbs to tournament index, show, new, edit, draw, nested category pages, and nested registration pages.
+- Keep breadcrumbs read-only navigation and use existing generated tournament/category names.
+
+### Product Decisions
+- Breadcrumbs start at Home, then Tournaments, then the current tournament when applicable.
+- Category and registration pages stay nested under the tournament to reinforce tournament context.
+- The current page breadcrumb is plain text with `aria-current="page"` for accessibility.
+
+### Change Log
+- Added `app/views/shared/_breadcrumbs.html.erb`.
+- Added breadcrumb styling in `app/assets/stylesheets/application.css`.
+- Added breadcrumb trails across tournament, tournament category, and tournament registration views.
+- Added a tournament controller test that asserts tournament show pages render breadcrumb navigation.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 41 runs, 193 assertions, 0 failures, 0 errors, 0 skips.
+- Checked the running server with `curl -s http://127.0.0.1:3000/tournaments`; result: tournament index rendered breadcrumb navigation with `aria-label="Breadcrumb"`.
+
 ## 2026-08-24 - Initial GitHub Publish
 
 ### Reference

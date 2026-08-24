@@ -1,5 +1,10 @@
 <section class="page-shell">
   <div class="container">
+    <%= render "shared/breadcrumbs", items: [
+      { label: "Home", path: root_path },
+      { label: "Tournaments" }
+    ] %>
+
     <div class="page-heading">
       <div>
         <p class="eyebrow">COMPETITIONS</p>

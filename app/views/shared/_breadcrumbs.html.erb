@@ -1,0 +1,16 @@
+<% if local_assigns[:items].present? %>
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <% items.each_with_index do |item, index| %>
+        <% current = index == items.length - 1 %>
+        <li>
+          <% if item[:path].present? && !current %>
+            <%= link_to item[:label], item[:path] %>
+          <% else %>
+            <%= content_tag(:span, item[:label], current ? { aria: { current: "page" } } : {}) %>
+          <% end %>
+        </li>
+      <% end %>
+    </ol>
+  </nav>
+<% end %>

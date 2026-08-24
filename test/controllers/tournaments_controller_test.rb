@@ -113,4 +113,21 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Approved"
     assert_includes response.body, category.name
   end
+
+  test "show renders tournament breadcrumbs" do
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, 'aria-label="Breadcrumb"'
+    assert_includes response.body, "Home"
+    assert_includes response.body, "Tournaments"
+    assert_includes response.body, "Pune Invitational"
+  end
 end
