@@ -56,4 +56,35 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to athlete_path(Athlete.order(:created_at).last)
   end
+
+  test "normal user cannot view another user's athlete profile" do
+    other_user = User.create!(name: "Other Parent", email: "other-parent@example.test", password: "password123", role: :parent)
+    athlete = other_user.athletes.create!(
+      first_name: "Anaya",
+      last_name: "Iyer",
+      date_of_birth: Date.new(2016, 9, 22),
+      gender: "female"
+    )
+
+    get athlete_path(athlete)
+
+    assert_response :not_found
+  end
+
+  test "super admin can view another user's athlete profile" do
+    other_user = User.create!(name: "Other Parent", email: "other-parent@example.test", password: "password123", role: :parent)
+    athlete = other_user.athletes.create!(
+      first_name: "Anaya",
+      last_name: "Iyer",
+      date_of_birth: Date.new(2016, 9, 22),
+      gender: "female"
+    )
+    super_admin = User.create!(name: "Super Admin", email: "admin@example.test", password: "password123", role: :super_admin)
+    sign_in_as super_admin
+
+    get athlete_path(athlete)
+
+    assert_response :success
+    assert_includes response.body, "Anaya Iyer"
+  end
 end

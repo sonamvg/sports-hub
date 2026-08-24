@@ -47,7 +47,13 @@ class AthletesController < ApplicationController
   private
 
   def set_athlete
-    @athlete = current_user.athletes.find(params[:id])
+    @athlete = visible_athletes.find(params[:id])
+  end
+
+  def visible_athletes
+    return Athlete.all if super_admin?
+
+    current_user.athletes
   end
 
   def athlete_params

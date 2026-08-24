@@ -249,3 +249,26 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Initial push attempt failed because GitHub rejected `.github/workflows/ci.yml` without OAuth `workflow` scope.
 - Removed `.github/workflows/ci.yml`, amended the initial commit, and pushed `main` to `https://github.com/sonamvg/sports-hub.git`.
 - Pushed commit: `c667b8a0d0a67eecf5792a94b41cac6571a0fac4`.
+
+## 2026-08-24 - Super Admin Athlete Profile Access Fix
+
+### Reference
+- User report: `/athletes/2` throws an error on the View Athlete page.
+
+### Root Cause
+- `AthletesController#set_athlete` always used `current_user.athletes.find(params[:id])`.
+- That was correct for normal users but wrong for super admins, because the athlete index lets super admins see all athletes while the show action still only allowed records owned by the current super-admin user.
+
+### Scope Chosen For This Pass
+- Preserve normal user isolation for athlete profiles.
+- Allow super admins to view/edit/delete all athlete profiles through the existing athlete controller.
+- Add controller tests for both access paths.
+
+### Change Log
+- Added `AthletesController#visible_athletes`.
+- Updated `set_athlete` to use `Athlete.all` for super admins and `current_user.athletes` for normal users.
+- Added tests proving normal users cannot view another user's athlete and super admins can.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 40 runs, 184 assertions, 0 failures, 0 errors, 0 skips.
+- Performed live HTTP verification: logged in as `admin@example.com` and requested `/athletes/2`; result: `200 OK` and athlete profile content rendered.
