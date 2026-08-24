@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_23_000100) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_24_000100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -90,6 +90,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_23_000100) do
     t.datetime "created_at", null: false
     t.text "description"
     t.date "end_date", null: false
+    t.string "logo_url"
     t.string "name", null: false
     t.bigint "organizer_id", null: false
     t.datetime "registration_closes_at"
@@ -100,6 +101,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_23_000100) do
     t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
     t.string "venue"
+    t.string "website_url"
     t.index ["organizer_id"], name: "index_tournaments_on_organizer_id"
     t.index ["slug"], name: "index_tournaments_on_slug", unique: true
   end

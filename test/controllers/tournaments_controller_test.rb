@@ -16,7 +16,9 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
           state: "Maharashtra",
           start_date: "2026-12-05",
           end_date: "2026-12-06",
-          status: "registration_open"
+          status: "registration_open",
+          website_url: "https://example.com/pune-invitational",
+          logo_url: "https://example.com/pune-logo.png"
         }
       }
     end
@@ -25,6 +27,8 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to tournament_path(tournament)
     assert_equal @organizer, tournament.organizer
     assert_equal "registration_open", tournament.status
+    assert_equal "https://example.com/pune-invitational", tournament.website_url
+    assert_equal "https://example.com/pune-logo.png", tournament.logo_url
   end
 
   test "renders errors when tournament is invalid" do
@@ -34,6 +38,24 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_includes response.body, "End date cannot be before start date"
+  end
+
+  test "renders errors when tournament branding urls are invalid" do
+    assert_no_difference("Tournament.count") do
+      post tournaments_path, params: {
+        tournament: {
+          name: "Pune Invitational",
+          start_date: "2026-12-05",
+          end_date: "2026-12-06",
+          website_url: "not-a-url",
+          logo_url: "ftp://example.com/logo.png"
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Website url must be a valid http or https URL"
+    assert_includes response.body, "Logo url must be a valid http or https URL"
   end
 
   test "updates tournament" do
@@ -129,5 +151,23 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Home"
     assert_includes response.body, "Tournaments"
     assert_includes response.body, "Pune Invitational"
+  end
+
+  test "index renders tournament logos and website links" do
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6),
+      website_url: "https://example.com/pune-invitational",
+      logo_url: "https://example.com/pune-logo.png"
+    )
+
+    get tournaments_path
+
+    assert_response :success
+    assert_includes response.body, "#{tournament.name} logo"
+    assert_includes response.body, "https://example.com/pune-logo.png"
+    assert_includes response.body, "https://example.com/pune-invitational"
   end
 end

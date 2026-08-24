@@ -13,6 +13,17 @@
     </div>
 
     <div>
+      <%= form.label :website_url, "Tournament website" %>
+      <%= form.url_field :website_url, placeholder: "https://example.com/tournament" %>
+    </div>
+
+    <div>
+      <%= form.label :logo_url, "Logo or image URL" %>
+      <%= form.url_field :logo_url, placeholder: "https://example.com/logo.png" %>
+      <p class="field-hint">Use an image from the tournament website or organizer media kit.</p>
+    </div>
+
+    <div>
       <%= form.label :venue %>
       <%= form.text_field :venue %>
     </div>

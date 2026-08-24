@@ -22,6 +22,7 @@ class Tournament < ApplicationRecord
   validates :name, :start_date, :end_date, presence: true
   validates :name, length: { minimum: 3, maximum: 120 }, allow_blank: true
   validates :slug, uniqueness: true, allow_blank: true
+  validates :website_url, :logo_url, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid http or https URL" }, allow_blank: true
   validate :end_date_not_before_start_date
   validate :registration_window_chronology
 
@@ -36,6 +37,8 @@ class Tournament < ApplicationRecord
   def normalize_fields
     self.name = name.to_s.squish.presence
     self.slug = slug.presence
+    self.website_url = website_url.to_s.squish.presence
+    self.logo_url = logo_url.to_s.squish.presence
   end
 
   def end_date_not_before_start_date

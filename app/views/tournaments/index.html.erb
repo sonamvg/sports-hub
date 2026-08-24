@@ -17,6 +17,13 @@
     <div class="list-grid">
       <% @tournaments.each do |tournament| %>
         <article class="entity-card tournament-card">
+          <div class="tournament-visual">
+            <% if tournament.logo_url.present? %>
+              <%= image_tag tournament.logo_url, alt: "#{tournament.name} logo", loading: "lazy" %>
+            <% else %>
+              <span><%= tournament.name.to_s.first&.upcase || "T" %></span>
+            <% end %>
+          </div>
           <span class="status-pill status-<%= tournament.status %>"><%= tournament.status.humanize %></span>
           <h2><%= tournament.name %></h2>
           <p><%= [tournament.venue, tournament.city].compact.join(" · ") %></p>
@@ -25,7 +32,12 @@
             <span><strong>Organizer</strong><%= tournament.organizer.name %></span>
             <span><strong>Categories</strong><%= tournament.tournament_categories.count %></span>
           </div>
-          <%= link_to "View tournament →", tournament_path(tournament), class: "text-link" %>
+          <div class="card-links">
+            <%= link_to "View tournament →", tournament_path(tournament), class: "text-link" %>
+            <% if tournament.website_url.present? %>
+              <%= link_to "Website", tournament.website_url, class: "text-link muted-link", target: "_blank", rel: "noopener" %>
+            <% end %>
+          </div>
         </article>
       <% end %>
     </div>

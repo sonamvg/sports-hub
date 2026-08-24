@@ -373,6 +373,36 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bin/rails test`; result: 44 runs, 228 assertions, 0 failures, 0 errors, 0 skips.
 - Checked the running server with `curl -s http://127.0.0.1:3000/`; result: homepage rendered `TAEKWONDO BLOGS`, `YOUTUBE PICKS`, blog links, and YouTube links.
 
+## 2026-08-24 - Upcoming Tournament Branding
+
+### Reference
+- User request: make the upcoming tournament section more attractive and add images or logos from tournament websites.
+
+### Scope Chosen For This Pass
+- Add optional tournament website and logo/image URL fields.
+- Render logos/images on upcoming tournament cards when organizers provide them.
+- Add a clean generated fallback mark when a tournament has no logo URL.
+- Show a tournament website link from listing and detail pages when present.
+
+### Product Decisions
+- Store organizer-provided URLs instead of copying third-party images into the app.
+- Accept only `http` and `https` URLs for tournament website and logo fields.
+- Keep the fallback visual local and generated from the tournament name so empty/logo-less tournaments still look intentional.
+
+### Change Log
+- Added migration `20260824000100_add_branding_to_tournaments`.
+- Added `website_url` and `logo_url` normalization and validation to `Tournament`.
+- Permitted branding fields in tournament create/update params.
+- Added website/logo fields to the tournament form.
+- Updated upcoming tournament cards with a visual header, optional logo image, website link, and responsive fallback.
+- Added website link output to tournament detail summary.
+- Added controller tests for branding URL persistence, validation, and listing output.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: migration added `website_url` and `logo_url` to tournaments successfully.
+- Ran `mise exec -- bin/rails test`; result: 46 runs, 244 assertions, 0 failures, 0 errors, 0 skips.
+- Checked the running server with `curl -s http://127.0.0.1:3000/tournaments`; result: upcoming tournament cards rendered the new `tournament-visual` area and fallback marks.
+
 ## 2026-08-24 - Initial GitHub Publish
 
 ### Reference

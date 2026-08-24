@@ -74,6 +74,12 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 .entity-card h2 { font-size:25px; letter-spacing:-.03em; margin:18px 0 8px; }
 .entity-card p { color:var(--muted); line-height:1.55; margin:0 0 12px; }
 .entity-card .text-link { margin-top:auto; }
+.tournament-card { position:relative; overflow:hidden; padding-top:0; }
+.tournament-visual { width:calc(100% + 52px); height:150px; margin:0 -26px 22px; background:linear-gradient(135deg,#111318 0%,#2f333b 55%,#e21d2f 100%); display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--line); }
+.tournament-visual img { width:100%; height:100%; object-fit:contain; padding:24px; background:#f7f7f5; }
+.tournament-visual span { color:white; font-size:64px; font-weight:900; line-height:1; }
+.card-links { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:auto; }
+.muted-link { color:var(--muted); }
 .entity-meta { display:flex; gap:30px; margin:18px 0 22px; }
 .entity-meta span { display:flex; flex-direction:column; gap:5px; font-size:13px; color:var(--muted); }
 .entity-meta strong { color:var(--ink); text-transform:uppercase; letter-spacing:.08em; font-size:10px; }
