@@ -272,6 +272,39 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bin/rails test`; result: 41 runs, 193 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails db:seed`; result: completed successfully with no seed records defined.
 
+## 2026-08-24 - Homepage Previous Competitions
+
+### Reference
+- User request: remove the homepage competition section and add previous competitions from 2025, including links to event homepages where possible.
+
+### Research Sources
+- USA Taekwondo: `https://www.usatkd.org/2025-u-s-open-taekwondo-championship`
+- USA Taekwondo: `https://www.usatkd.org/2025-u-s-taekwondo-national-championships`
+- World Taekwondo results: `https://results.worldtaekwondo.org/competitions`
+- World Taekwondo event page: `https://www.worldtaekwondo.org/competition/view.html?mcd=U05&nid=142108&sc=in`
+- Wuxi local government event article: `https://en.wuxi.gov.cn/2025-10/22/c_1134215.htm`
+- Nairobi 2025 event site: `https://www.kenyau21wtchampionship2025.com/`
+
+### Scope Chosen For This Pass
+- Replace the homepage “COMPETITIONS” workflow cards with a “PREVIOUS COMPETITIONS” section.
+- Use curated static homepage content for previous events instead of database-backed tournament records.
+- Include official or event-adjacent links for each listed competition.
+
+### Product Decisions
+- The section is a public credibility/reference area, not part of the app’s active tournament registration data.
+- Links are labeled “Event page” because some official sources are result/event pages rather than standalone homepages.
+- Listed events include a mix of U.S. and international 2025 taekwondo competitions.
+
+### Change Log
+- Added `@previous_competitions` to `HomeController#index`.
+- Replaced the homepage competitions workflow cards with previous-competition cards.
+- Added responsive styling for the previous-competitions grid.
+- Added a homepage controller test that asserts the previous-competitions section and links render.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 42 runs, 202 assertions, 0 failures, 0 errors, 0 skips.
+- Checked the running server with `curl -s http://127.0.0.1:3000/`; result: homepage rendered the `PREVIOUS COMPETITIONS` section with 2025 event cards and external event links.
+
 ## 2026-08-24 - Initial GitHub Publish
 
 ### Reference

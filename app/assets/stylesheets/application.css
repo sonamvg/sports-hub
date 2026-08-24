@@ -22,10 +22,17 @@ h2 { font-size:clamp(34px,5vw,58px); margin:0 0 32px; letter-spacing:-.04em; }
 .belt-mark { font-size:74px; margin-bottom:auto; }.small-label { font-size:11px; color:#aaa; letter-spacing:.15em; font-weight:bold; }
 .flow-list { display:flex; gap:10px; flex-wrap:wrap; align-items:center; line-height:1.8; }.flow-list span { font-weight:700; }.flow-list b { color:var(--red); }
 .section { padding:110px 0; }.cards { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }.card { border-top:3px solid var(--ink); padding:26px 4px; }.card-number { color:var(--red); font-size:12px; font-weight:bold; }.card h3 { font-size:26px; margin:20px 0 10px; }.card p { color:var(--muted); line-height:1.6; }
+.section-heading { display:flex; justify-content:space-between; align-items:flex-end; gap:30px; margin-bottom:42px; }
+.section-heading h2 { max-width:820px; margin-bottom:0; }
+.previous-competitions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
+.competition-card { border-top:3px solid var(--ink); border-bottom:1px solid var(--line); padding:24px 4px 20px; min-height:250px; display:flex; flex-direction:column; justify-content:space-between; gap:24px; }
+.competition-card h3 { font-size:24px; line-height:1.12; letter-spacing:-.03em; margin:18px 0 12px; }
+.competition-card p { color:var(--muted); line-height:1.55; margin:0; }
+.competition-card-footer { display:flex; justify-content:space-between; align-items:center; gap:16px; color:var(--muted); font-size:13px; font-weight:800; }
 .dark-section { background:var(--ink); color:white; padding:110px 0; }.eyebrow.light { color:#ff5b68; }.journey { border-top:1px solid #383b42; }.journey div { display:grid; grid-template-columns:80px 1fr; padding:24px 0; border-bottom:1px solid #383b42; align-items:center; }.journey strong { color:var(--red); }.journey span { font-size:22px; }
 .cta { display:flex; justify-content:space-between; align-items:end; gap:30px; }.cta h2 { margin-bottom:0; max-width:720px; }
 footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); font-size:13px; }.footer-inner { display:flex; justify-content:space-between; gap:20px; }
-@media (max-width: 800px) { nav a:not(.nav-button) { display:none; }.hero-grid { grid-template-columns:1fr; padding:70px 0; }.hero-card { min-height:280px; }.cards { grid-template-columns:1fr; }.cta { align-items:flex-start; flex-direction:column; }.section,.dark-section { padding:75px 0; } }
+@media (max-width: 800px) { nav a:not(.nav-button) { display:none; }.hero-grid { grid-template-columns:1fr; padding:70px 0; }.hero-card { min-height:280px; }.cards,.previous-competitions { grid-template-columns:1fr; }.section-heading,.cta { align-items:flex-start; flex-direction:column; }.section,.dark-section { padding:75px 0; } }
 
 /* Application screens */
 .page-shell { min-height:70vh; padding:72px 0 100px; background:#fff; }

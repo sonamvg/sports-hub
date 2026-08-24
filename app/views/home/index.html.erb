@@ -21,14 +21,30 @@
     </div>
   </section>
 
-  <section class="section" id="competitions">
+  <section class="section" id="previous-competitions">
     <div class="container">
-      <p class="eyebrow">COMPETITIONS</p>
-      <h2>Everything starts with the tournament.</h2>
-      <div class="cards">
-        <article class="card"><span class="card-number">01</span><h3>Browse</h3><p>Public visitors can view approved academies and tournaments before creating any profile.</p></article>
-        <article class="card"><span class="card-number">02</span><h3>Register</h3><p>Academies submit for approval, then academy owners can manage athletes and tournament entries.</p></article>
-        <article class="card"><span class="card-number">03</span><h3>Operate</h3><p>Organizers create tournaments, review registrations, and prepare draws for event day.</p></article>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">PREVIOUS COMPETITIONS</p>
+          <h2>Recent tournaments from the wider taekwondo calendar.</h2>
+        </div>
+        <%= link_to "View upcoming", tournaments_path, class: "secondary-button" %>
+      </div>
+
+      <div class="previous-competitions">
+        <% @previous_competitions.each do |competition| %>
+          <article class="competition-card">
+            <div>
+              <span class="small-label"><%= competition[:organizer] %></span>
+              <h3><%= competition[:name] %></h3>
+              <p><%= competition[:location] %></p>
+            </div>
+            <div class="competition-card-footer">
+              <span><%= competition[:dates] %></span>
+              <%= link_to "Event page", competition[:url], class: "text-link", target: "_blank", rel: "noopener" %>
+            </div>
+          </article>
+        <% end %>
       </div>
     </div>
   </section>
