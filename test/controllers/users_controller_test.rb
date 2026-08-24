@@ -1,6 +1,15 @@
 require "test_helper"
 
 class UsersControllerTest < ActionDispatch::IntegrationTest
+  test "new user page explains athlete account role" do
+    get new_user_path
+
+    assert_response :success
+    assert_includes response.body, "Join as athlete"
+    assert_includes response.body, "Create athlete account"
+    assert_includes response.body, "general athlete or parent account"
+  end
+
   test "creates general user account and signs in" do
     assert_difference("User.count", 1) do
       post users_path, params: {

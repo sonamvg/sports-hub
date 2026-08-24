@@ -19,6 +19,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_nil session[:user_id]
     assert_includes response.body, "Invalid email or password."
+    assert_includes response.body, "Join as athlete"
   end
 
   test "signs out" do

@@ -1,8 +1,8 @@
 <section class="page-shell">
   <div class="container narrow">
-    <p class="eyebrow">ACCOUNT</p>
-    <h1 class="page-title">Create account</h1>
-    <p class="page-copy">Create a general user account to add athletes and register for tournaments.</p>
+    <p class="eyebrow">ATHLETE ACCOUNT</p>
+    <h1 class="page-title">Join as athlete</h1>
+    <p class="page-copy">Create a general athlete or parent account to add athletes and register for tournaments.</p>
 
     <%= form_with model: @user, class: "form-card" do |form| %>
       <%= render "shared/errors", record: @user %>
@@ -14,7 +14,7 @@
         <div><%= form.label :password_confirmation %><%= form.password_field :password_confirmation, required: true, autocomplete: "new-password" %></div>
       </div>
       <div class="form-actions">
-        <%= form.submit "Create account", class: "primary-button button-reset" %>
+        <%= form.submit "Create athlete account", class: "primary-button button-reset" %>
         <%= link_to "Sign in", login_path, class: "secondary-button" %>
       </div>
     <% end %>

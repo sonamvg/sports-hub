@@ -430,6 +430,32 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bin/rails test`; result: 48 runs, 266 assertions, 0 failures, 0 errors, 0 skips.
 - Checked the running server with `curl -s http://127.0.0.1:3000/tournaments/1` as a logged-out visitor; result: tournament summary and categories rendered without `My athletes`, `No athlete profiles yet`, athlete registration CTAs, or empty action wrappers.
 
+## 2026-08-24 - Clarify Public Signup CTA
+
+### Reference
+- User concern: the homepage/header “Create account” button feels ambiguous.
+
+### Scope Chosen For This Pass
+- Rename the logged-out navigation signup CTA.
+- Clarify the signup page heading, supporting copy, and submit button.
+- Keep the underlying signup role unchanged: new self-service users are general parent/athlete-flow users.
+
+### Product Decisions
+- Use “Join as athlete” for the public CTA because it describes the main self-service account path.
+- Use “Create athlete account” on the form submit button so users understand what they are creating.
+- Do not expose organizer, academy owner, or super admin account creation through this generic signup flow.
+
+### Change Log
+- Changed logged-out nav CTA from `Create account` to `Join as athlete`.
+- Changed login-page secondary CTA to `Join as athlete`.
+- Updated signup page copy from generic account language to athlete/parent account language.
+- Added controller tests for signup-page copy and login-page CTA copy.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 49 runs, 275 assertions, 0 failures, 0 errors, 0 skips.
+- Checked the running server with `curl -s http://127.0.0.1:3000/`; result: logged-out header renders `Join as athlete`.
+- Checked the running server with `curl -s http://127.0.0.1:3000/users/new`; result: signup page renders `ATHLETE ACCOUNT`, `Join as athlete`, and `Create athlete account`.
+
 ## 2026-08-24 - Initial GitHub Publish
 
 ### Reference
