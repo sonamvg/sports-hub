@@ -456,6 +456,26 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Checked the running server with `curl -s http://127.0.0.1:3000/`; result: logged-out header renders `Join as athlete`.
 - Checked the running server with `curl -s http://127.0.0.1:3000/users/new`; result: signup page renders `ATHLETE ACCOUNT`, `Join as athlete`, and `Create athlete account`.
 
+## 2026-08-24 - Neutral Login Heading
+
+### Reference
+- User request: when creating a tournament and reaching the login page, it should say “Welcome”, not “Welcome back”.
+
+### Scope Chosen For This Pass
+- Update the login page heading from `Welcome back` to `Welcome`.
+- Add a controller test to prevent the old wording from returning.
+
+### Product Decisions
+- Use neutral wording because the login page is reached by both returning users and new users exploring protected actions such as creating a tournament.
+
+### Change Log
+- Updated `app/views/sessions/new.html.erb`.
+- Added a session controller test for the neutral login heading.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 50 runs, 280 assertions, 0 failures, 0 errors, 0 skips.
+- Checked the running server with `curl -s -L http://127.0.0.1:3000/tournaments/new`; result: logged-out create-tournament flow renders the login page with `Welcome` and preserves `return_to=/tournaments/new`.
+
 ## 2026-08-24 - Initial GitHub Publish
 
 ### Reference

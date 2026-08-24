@@ -1,6 +1,14 @@
 require "test_helper"
 
 class SessionsControllerTest < ActionDispatch::IntegrationTest
+  test "new session page uses neutral welcome heading" do
+    get login_path
+
+    assert_response :success
+    assert_includes response.body, "Welcome"
+    assert_not_includes response.body, "Welcome back"
+  end
+
   test "signs in with valid credentials" do
     user = User.create!(name: "Demo Super Admin", email: "admin@example.com", password: "password123", role: :super_admin)
 
