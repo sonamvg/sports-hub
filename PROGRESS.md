@@ -504,6 +504,33 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Restarted the local Rails server so Propshaft could pick up the new `app/assets/images` directory.
 - Checked the running server with `curl -s http://127.0.0.1:3000/`; result: homepage rendered the fingerprinted `black-belt-dobok` JPEG, descriptive alt text, and `READY FOR THE MAT` caption.
 
+## 2026-08-24 - Organizer Signup CTA For Tournament Creation
+
+### Reference
+- User request: on `/login?return_to=%2Ftournaments%2Fnew`, show organizer-focused options instead of `Join as athlete`; users should be able to sign in as organizer or create an organizer account.
+
+### Scope Chosen For This Pass
+- Make the login page context-aware when the return path is tournament creation.
+- Show organizer-focused login copy and button text for tournament creation.
+- Add an organizer signup mode that creates `organizer` users and returns them to tournament creation.
+- Preserve the existing athlete/parent signup wording and role for normal public signup.
+
+### Product Decisions
+- Use `account_type=organizer` as the explicit public signup mode for tournament organizers.
+- Default signup remains the general athlete/parent account to avoid accidentally creating elevated roles from the normal header CTA.
+- Keep return paths restricted to same-site absolute paths.
+
+### Change Log
+- Updated `SessionsController` view behavior for `return_to=/tournaments/new`.
+- Added account-type handling to `UsersController`.
+- Added organizer-specific signup copy and hidden account type handling.
+- Added tests for organizer login CTA, organizer signup page copy, and organizer account creation.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 54 runs, 313 assertions, 0 failures, 0 errors, 0 skips.
+- Checked the running server with `curl -s http://127.0.0.1:3000/login?return_to=%2Ftournaments%2Fnew`; result: page rendered `Sign in as organizer` and `Create organizer account`, including the header CTA.
+- Checked the running server with `curl -s http://127.0.0.1:3000/users/new?account_type=organizer&return_to=%2Ftournaments%2Fnew`; result: page rendered `ORGANIZER ACCOUNT`, `Create organizer account`, hidden `account_type=organizer`, and preserved `return_to=/tournaments/new`.
+
 ## 2026-08-24 - Initial GitHub Publish
 
 ### Reference

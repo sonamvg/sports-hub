@@ -1,11 +1,20 @@
 <section class="page-shell">
   <div class="container narrow">
-    <p class="eyebrow">ATHLETE ACCOUNT</p>
-    <h1 class="page-title">Join as athlete</h1>
-    <p class="page-copy">Create a general athlete or parent account to add athletes and register for tournaments.</p>
+    <% organizer_account = @account_type == "organizer" %>
+    <p class="eyebrow"><%= organizer_account ? "ORGANIZER ACCOUNT" : "ATHLETE ACCOUNT" %></p>
+    <h1 class="page-title"><%= organizer_account ? "Create organizer account" : "Join as athlete" %></h1>
+    <p class="page-copy">
+      <% if organizer_account %>
+        Create an organizer account to publish tournaments, manage categories, and review registrations.
+      <% else %>
+        Create a general athlete or parent account to add athletes and register for tournaments.
+      <% end %>
+    </p>
 
     <%= form_with model: @user, class: "form-card" do |form| %>
       <%= render "shared/errors", record: @user %>
+      <%= hidden_field_tag :account_type, @account_type %>
+      <%= hidden_field_tag :return_to, params[:return_to] if params[:return_to].present? %>
       <div class="form-grid two-col">
         <div><%= form.label :name %><%= form.text_field :name, required: true, autocomplete: "name" %></div>
         <div><%= form.label :phone %><%= form.telephone_field :phone, autocomplete: "tel" %></div>
@@ -14,8 +23,8 @@
         <div><%= form.label :password_confirmation %><%= form.password_field :password_confirmation, required: true, autocomplete: "new-password" %></div>
       </div>
       <div class="form-actions">
-        <%= form.submit "Create athlete account", class: "primary-button button-reset" %>
-        <%= link_to "Sign in", login_path, class: "secondary-button" %>
+        <%= form.submit organizer_account ? "Create organizer account" : "Create athlete account", class: "primary-button button-reset" %>
+        <%= link_to "Sign in", login_path(return_to: params[:return_to]), class: "secondary-button" %>
       </div>
     <% end %>
   </div>

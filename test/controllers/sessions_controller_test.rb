@@ -9,6 +9,16 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Welcome back"
   end
 
+  test "new session page uses organizer CTA when creating tournament" do
+    get login_path(return_to: new_tournament_path)
+
+    assert_response :success
+    assert_includes response.body, "Sign in as an organizer"
+    assert_includes response.body, "Sign in as organizer"
+    assert_includes response.body, "Create organizer account"
+    assert_not_includes response.body, "Join as athlete"
+  end
+
   test "signs in with valid credentials" do
     user = User.create!(name: "Demo Super Admin", email: "admin@example.com", password: "password123", role: :super_admin)
 

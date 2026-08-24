@@ -21,7 +21,11 @@
             <%= button_to "Sign out", logout_path, method: :delete, class: "link-button" %>
           <% else %>
             <%= link_to "Sign in", login_path %>
-            <%= link_to "Join as athlete", new_user_path, class: "nav-button" %>
+            <% if params[:return_to] == new_tournament_path %>
+              <%= link_to "Create organizer account", new_user_path(account_type: "organizer", return_to: params[:return_to]), class: "nav-button" %>
+            <% else %>
+              <%= link_to "Join as athlete", new_user_path, class: "nav-button" %>
+            <% end %>
           <% end %>
         </nav>
       </div>

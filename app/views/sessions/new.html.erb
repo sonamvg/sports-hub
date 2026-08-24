@@ -1,8 +1,15 @@
 <section class="page-shell">
   <div class="container narrow">
+    <% organizer_flow = params[:return_to] == new_tournament_path %>
     <p class="eyebrow">SIGN IN</p>
     <h1 class="page-title">Welcome</h1>
-    <p class="page-copy">Sign in to manage athletes, academies, tournament registrations, and organizer approvals.</p>
+    <p class="page-copy">
+      <% if organizer_flow %>
+        Sign in as an organizer to create and manage tournaments.
+      <% else %>
+        Sign in to manage athletes, academies, tournament registrations, and organizer approvals.
+      <% end %>
+    </p>
 
     <%= form_with url: login_path, class: "form-card" do |form| %>
       <%= hidden_field_tag :return_to, params[:return_to] if params[:return_to].present? %>
@@ -11,8 +18,12 @@
         <div><%= form.label :password %><%= form.password_field :password, required: true, autocomplete: "current-password" %></div>
       </div>
       <div class="form-actions">
-        <%= form.submit "Sign in", class: "primary-button button-reset" %>
-        <%= link_to "Join as athlete", new_user_path, class: "secondary-button" %>
+        <%= form.submit organizer_flow ? "Sign in as organizer" : "Sign in", class: "primary-button button-reset" %>
+        <% if organizer_flow %>
+          <%= link_to "Create organizer account", new_user_path(account_type: "organizer", return_to: params[:return_to]), class: "secondary-button" %>
+        <% else %>
+          <%= link_to "Join as athlete", new_user_path, class: "secondary-button" %>
+        <% end %>
       </div>
     <% end %>
   </div>
