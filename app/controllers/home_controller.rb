@@ -87,5 +87,66 @@ class HomeController < ApplicationController
         }
       ]
     }
+
+    @taekwondo_blogs = [
+      {
+        title: "Traditional Taekwondo Ramblings",
+        note: "Deep dives into Kukki Taekwondo history, traditions, practical applications, and training ideas.",
+        url: "http://jungdokwan-taekwondo.blogspot.com/"
+      },
+      {
+        title: "Little Black Belt",
+        note: "Personal reflections, training stories, and martial arts lessons from a long-time taekwondo practitioner.",
+        url: "https://littleblackbelt.com/"
+      },
+      {
+        title: "SportsEdTV Taekwondo",
+        note: "Instruction-focused taekwondo articles for athletes and coaches looking for practical training guidance.",
+        url: "https://sportsedtv.com/blog/category/taekwondo/"
+      },
+      {
+        title: "British Taekwondo News",
+        note: "National governing body updates, safeguarding information, events, and member news from the United Kingdom.",
+        url: "https://www.britishtaekwondo.org.uk/news/"
+      },
+      {
+        title: "Grit & Glory Taekwondo Blog",
+        note: "Parent-friendly articles about child development, first classes, belt progression, and youth confidence.",
+        url: "https://ggtkd.com/blog"
+      },
+      {
+        title: "Sun Lee Taekwondo Blog",
+        note: "Academy-written pieces on respect, character development, competition teams, and life on the mat.",
+        url: "https://sunleetaekwondo.com/blogs/news"
+      }
+    ]
+
+    @taekwondo_videos = [
+      {
+        title: "413 R32 Men 80kg USA NICKOLAS C A ROU CRISTESCU M A",
+        note: "World Taekwondo channel top video, listed around 1.19M views by vidIQ.",
+        url: "https://www.youtube.com/results?search_query=413+R32+Men+80kg+USA+NICKOLAS+C+A+ROU+CRISTESCU+M+A"
+      },
+      {
+        title: "232 SF M 80kg USA NICKOLAS Carl alan ITA ALESSIO Simone | Paris 2022 World Taekwondo Grand-Prix",
+        note: "World Taekwondo channel top video, listed around 765K views by vidIQ.",
+        url: "https://www.youtube.com/results?search_query=232+SF+M+80kg+USA+NICKOLAS+Carl+alan+ITA+ALESSIO+Simone+Paris+2022+World+Taekwondo+Grand-Prix"
+      },
+      {
+        title: "307 R32 M 80kg TPE HUANG Y USA NICKOLAS C",
+        note: "World Taekwondo channel top video, listed around 488K views by vidIQ.",
+        url: "https://www.youtube.com/results?search_query=307+R32+M+80kg+TPE+HUANG+Y+USA+NICKOLAS+C"
+      },
+      {
+        title: "233 M-58kg F JENDOUBI Mohamed khalil TUN vs JANG Jun KOR | Rome 2022 World Taekwondo GP",
+        note: "World Taekwondo channel top video, listed around 335K views by vidIQ.",
+        url: "https://www.youtube.com/results?search_query=233+M-58kg+F+JENDOUBI+Mohamed+khalil+TUN+vs+JANG+Jun+KOR+Rome+2022+World+Taekwondo+GP"
+      },
+      {
+        title: "523 W-49kg QF KANG Bora KOR vs WONGPATTANAKIT Panipak THA | Guadalajara 2022 WT Championships",
+        note: "World Taekwondo channel top video, listed around 334K views by vidIQ.",
+        url: "https://www.youtube.com/results?search_query=523+W-49kg+QF+KANG+Bora+KOR+vs+WONGPATTANAKIT+Panipak+THA+Guadalajara+2022+WT+Championships"
+      }
+    ]
   end
 end

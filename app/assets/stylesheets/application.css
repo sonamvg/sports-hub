@@ -29,6 +29,17 @@ h2 { font-size:clamp(34px,5vw,58px); margin:0 0 32px; letter-spacing:-.04em; }
 .competition-card h3 { font-size:24px; line-height:1.12; letter-spacing:-.03em; margin:18px 0 12px; }
 .competition-card p { color:var(--muted); line-height:1.55; margin:0; }
 .competition-card-footer { display:flex; justify-content:space-between; align-items:center; gap:16px; color:var(--muted); font-size:13px; font-weight:800; }
+.resource-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
+.resource-card { border:1px solid var(--line); padding:26px; min-height:250px; display:flex; flex-direction:column; align-items:flex-start; }
+.resource-card h3 { font-size:24px; line-height:1.12; letter-spacing:-.03em; margin:0 0 12px; }
+.resource-card p { color:var(--muted); line-height:1.55; margin:0 0 18px; }
+.resource-card .text-link { margin-top:auto; }
+.resource-section-alt { background:#f7f7f5; }
+.video-list { border-top:1px solid var(--line); }
+.video-row { display:grid; grid-template-columns:64px 1fr auto; align-items:center; gap:24px; padding:24px 0; border-bottom:1px solid var(--line); }
+.video-row > span { color:var(--red); font-size:12px; font-weight:900; letter-spacing:.12em; }
+.video-row h3 { font-size:22px; line-height:1.2; letter-spacing:-.03em; margin:0 0 8px; }
+.video-row p { color:var(--muted); line-height:1.5; margin:0; }
 .dark-section { background:var(--ink); color:white; padding:110px 0; }.eyebrow.light { color:#ff5b68; }
 .news-board { display:grid; grid-template-columns:1fr 1fr; gap:34px; margin-top:42px; }
 .news-column { border-top:1px solid #383b42; }
@@ -39,7 +50,7 @@ h2 { font-size:clamp(34px,5vw,58px); margin:0 0 32px; letter-spacing:-.04em; }
 .light-link { color:#ff5b68; }
 .cta { display:flex; justify-content:space-between; align-items:end; gap:30px; }.cta h2 { margin-bottom:0; max-width:720px; }
 footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); font-size:13px; }.footer-inner { display:flex; justify-content:space-between; gap:20px; }
-@media (max-width: 800px) { nav a:not(.nav-button) { display:none; }.hero-grid { grid-template-columns:1fr; padding:70px 0; }.hero-card { min-height:280px; }.cards,.previous-competitions { grid-template-columns:1fr; }.section-heading,.cta { align-items:flex-start; flex-direction:column; }.section,.dark-section { padding:75px 0; } }
+@media (max-width: 800px) { nav a:not(.nav-button) { display:none; }.hero-grid { grid-template-columns:1fr; padding:70px 0; }.hero-card { min-height:280px; }.cards,.previous-competitions,.resource-grid { grid-template-columns:1fr; }.section-heading,.cta { align-items:flex-start; flex-direction:column; }.video-row { grid-template-columns:1fr; align-items:flex-start; }.section,.dark-section { padding:75px 0; } }
 
 /* Application screens */
 .page-shell { min-height:70vh; padding:72px 0 100px; background:#fff; }

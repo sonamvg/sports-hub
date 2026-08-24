@@ -338,6 +338,41 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bin/rails test`; result: 43 runs, 215 assertions, 0 failures, 0 errors, 0 skips.
 - Checked the running server with `curl -s http://127.0.0.1:3000/`; result: homepage rendered `SPORTS NEWS`, Domestic and International columns, and no `THE JOURNEY` label.
 
+## 2026-08-24 - Homepage Blogs And YouTube Picks
+
+### Reference
+- User request: add a blogs section with taekwondo blogs, then add YouTube links for a few widely seen taekwondo videos.
+
+### Research Sources
+- Feedspot taekwondo blog roundup: `https://bloggers.feedspot.com/taekwondo_blogs/`
+- Traditional Taekwondo Ramblings: `http://jungdokwan-taekwondo.blogspot.com/`
+- Little Black Belt: `https://littleblackbelt.com/`
+- SportsEdTV Taekwondo blog category: `https://sportsedtv.com/blog/category/taekwondo/`
+- British Taekwondo news: `https://www.britishtaekwondo.org.uk/news/`
+- Grit & Glory Taekwondo blog: `https://ggtkd.com/blog`
+- Sun Lee Taekwondo blog: `https://sunleetaekwondo.com/blogs/news`
+- vidIQ World Taekwondo YouTube stats/top videos: `https://vidiq.com/youtube-stats/channel/UCHp-A--zKubjgaa5ZQClk9g/`
+
+### Scope Chosen For This Pass
+- Add a curated `TAEKWONDO BLOGS` homepage section after Sports News.
+- Add a `YOUTUBE PICKS` homepage section after the blog section.
+- Use static curated links in `HomeController#index` rather than database-backed content.
+
+### Product Decisions
+- Blog links include a mix of practitioner writing, coaching/instruction content, governing-body updates, and parent-friendly articles.
+- YouTube picks use exact-title YouTube search links for World Taekwondo videos that vidIQ lists among the channel's most-viewed videos. This avoids hard-coding uncertain video IDs while still taking users directly to relevant YouTube results.
+- Video copy includes approximate view-count context from the current vidIQ listing.
+
+### Change Log
+- Added `@taekwondo_blogs` and `@taekwondo_videos` to `HomeController#index`.
+- Added homepage sections for taekwondo blogs and YouTube video picks.
+- Added responsive resource-card and video-list styling.
+- Added a homepage controller test that asserts both new sections render.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 44 runs, 228 assertions, 0 failures, 0 errors, 0 skips.
+- Checked the running server with `curl -s http://127.0.0.1:3000/`; result: homepage rendered `TAEKWONDO BLOGS`, `YOUTUBE PICKS`, blog links, and YouTube links.
+
 ## 2026-08-24 - Initial GitHub Publish
 
 ### Reference

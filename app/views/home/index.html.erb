@@ -71,6 +71,51 @@
     </div>
   </section>
 
+  <section class="section" id="taekwondo-blogs">
+    <div class="container">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">TAEKWONDO BLOGS</p>
+          <h2>Good reading for athletes, parents, coaches and organizers.</h2>
+        </div>
+      </div>
+
+      <div class="resource-grid">
+        <% @taekwondo_blogs.each do |blog| %>
+          <article class="resource-card">
+            <h3><%= blog[:title] %></h3>
+            <p><%= blog[:note] %></p>
+            <%= link_to "Read blog", blog[:url], class: "text-link", target: "_blank", rel: "noopener" %>
+          </article>
+        <% end %>
+      </div>
+    </div>
+  </section>
+
+  <section class="section resource-section-alt" id="taekwondo-videos">
+    <div class="container">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">YOUTUBE PICKS</p>
+          <h2>Widely watched taekwondo videos to study and share.</h2>
+        </div>
+      </div>
+
+      <div class="video-list">
+        <% @taekwondo_videos.each_with_index do |video, index| %>
+          <article class="video-row">
+            <span><%= format("%02d", index + 1) %></span>
+            <div>
+              <h3><%= video[:title] %></h3>
+              <p><%= video[:note] %></p>
+            </div>
+            <%= link_to "Open YouTube", video[:url], class: "text-link", target: "_blank", rel: "noopener" %>
+          </article>
+        <% end %>
+      </div>
+    </div>
+  </section>
+
   <section class="section" id="get-started">
     <div class="container cta">
       <div><p class="eyebrow">SPORTS HUB</p><h2>Your competition journey, in one place.</h2></div>

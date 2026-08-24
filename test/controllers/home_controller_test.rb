@@ -22,4 +22,16 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "World Taekwondo Grand Prix calendar continues"
     assert_not_includes response.body, "THE JOURNEY"
   end
+
+  test "homepage shows taekwondo blogs and youtube links" do
+    get root_path
+
+    assert_response :success
+    assert_includes response.body, "TAEKWONDO BLOGS"
+    assert_includes response.body, "Traditional Taekwondo Ramblings"
+    assert_includes response.body, "SportsEdTV Taekwondo"
+    assert_includes response.body, "YOUTUBE PICKS"
+    assert_includes response.body, "Open YouTube"
+    assert_includes response.body, "https://www.youtube.com/results?search_query=413+R32+Men+80kg+USA+NICKOLAS+C+A+ROU+CRISTESCU+M+A"
+  end
 end
