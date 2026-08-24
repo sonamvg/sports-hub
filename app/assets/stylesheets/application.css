@@ -29,7 +29,14 @@ h2 { font-size:clamp(34px,5vw,58px); margin:0 0 32px; letter-spacing:-.04em; }
 .competition-card h3 { font-size:24px; line-height:1.12; letter-spacing:-.03em; margin:18px 0 12px; }
 .competition-card p { color:var(--muted); line-height:1.55; margin:0; }
 .competition-card-footer { display:flex; justify-content:space-between; align-items:center; gap:16px; color:var(--muted); font-size:13px; font-weight:800; }
-.dark-section { background:var(--ink); color:white; padding:110px 0; }.eyebrow.light { color:#ff5b68; }.journey { border-top:1px solid #383b42; }.journey div { display:grid; grid-template-columns:80px 1fr; padding:24px 0; border-bottom:1px solid #383b42; align-items:center; }.journey strong { color:var(--red); }.journey span { font-size:22px; }
+.dark-section { background:var(--ink); color:white; padding:110px 0; }.eyebrow.light { color:#ff5b68; }
+.news-board { display:grid; grid-template-columns:1fr 1fr; gap:34px; margin-top:42px; }
+.news-column { border-top:1px solid #383b42; }
+.news-column h3 { font-size:32px; letter-spacing:-.03em; margin:24px 0; }
+.news-note { border-bottom:1px solid #383b42; padding:24px 0; }
+.news-note h4 { font-size:22px; line-height:1.2; margin:14px 0 10px; }
+.news-note p { color:#c5c7cc; line-height:1.6; margin:0 0 14px; }
+.light-link { color:#ff5b68; }
 .cta { display:flex; justify-content:space-between; align-items:end; gap:30px; }.cta h2 { margin-bottom:0; max-width:720px; }
 footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); font-size:13px; }.footer-inner { display:flex; justify-content:space-between; gap:20px; }
 @media (max-width: 800px) { nav a:not(.nav-button) { display:none; }.hero-grid { grid-template-columns:1fr; padding:70px 0; }.hero-card { min-height:280px; }.cards,.previous-competitions { grid-template-columns:1fr; }.section-heading,.cta { align-items:flex-start; flex-direction:column; }.section,.dark-section { padding:75px 0; } }
@@ -108,7 +115,7 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
   .approval-row { grid-template-columns:1fr; }
 }
 @media (max-width:650px) {
-  .list-grid,.form-grid.two-col,.tournament-summary { grid-template-columns:1fr; }
+  .list-grid,.form-grid.two-col,.tournament-summary,.news-board { grid-template-columns:1fr; }
   .form-grid .full { grid-column:auto; }
   .entity-meta { flex-direction:column; gap:10px; }
   .detail-list div { grid-template-columns:1fr; gap:5px; }

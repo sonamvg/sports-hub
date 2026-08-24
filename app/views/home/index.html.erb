@@ -49,18 +49,24 @@
     </div>
   </section>
 
-  <section class="dark-section" id="how-it-works">
+  <section class="dark-section" id="sports-news">
     <div class="container">
-      <p class="eyebrow light">THE JOURNEY</p>
-      <h2>Built around the athlete.</h2>
-      <div class="journey">
-        <div><strong>01</strong><span>Create account</span></div>
-        <div><strong>02</strong><span>Add athlete</span></div>
-        <div><strong>03</strong><span>Join or register academy</span></div>
-        <div><strong>04</strong><span>Super admin approves academy</span></div>
-        <div><strong>05</strong><span>Choose tournament</span></div>
-        <div><strong>06</strong><span>Submit registration</span></div>
-        <div><strong>07</strong><span>Organizer approval and draw setup</span></div>
+      <p class="eyebrow light">SPORTS NEWS</p>
+      <h2>Domestic and international notes to watch.</h2>
+      <div class="news-board">
+        <% @sports_news.each do |scope, items| %>
+          <section class="news-column">
+            <h3><%= scope.to_s.titleize %></h3>
+            <% items.each do |item| %>
+              <article class="news-note">
+                <span class="small-label"><%= item[:source] %></span>
+                <h4><%= item[:title] %></h4>
+                <p><%= item[:note] %></p>
+                <%= link_to "Read source", item[:url], class: "text-link light-link", target: "_blank", rel: "noopener" %>
+              </article>
+            <% end %>
+          </section>
+        <% end %>
       </div>
     </div>
   </section>

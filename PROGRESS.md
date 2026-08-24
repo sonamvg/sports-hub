@@ -305,6 +305,39 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bin/rails test`; result: 42 runs, 202 assertions, 0 failures, 0 errors, 0 skips.
 - Checked the running server with `curl -s http://127.0.0.1:3000/`; result: homepage rendered the `PREVIOUS COMPETITIONS` section with 2025 event cards and external event links.
 
+## 2026-08-24 - Homepage Sports News Notes
+
+### Reference
+- User request: remove the homepage journey section and add sports news notes for domestic and international items.
+
+### Research Sources
+- Press Information Bureau: `https://www.pib.gov.in/PressReleasePage.aspx?PRID=2292439&lang=1&reg=48`
+- Sports Authority of India news archive: `https://sportsauthorityofindia.gov.in/sai_new/news-archive`
+- Taekwon-do Association of India events: `https://www.itfindia.org.in/events`
+- World Taekwondo Grand Prix results calendar: `https://results.worldtaekwondo.org/competitions?type=gp`
+- World Taekwondo competitions calendar: `https://results.worldtaekwondo.org/competitions`
+- World Taekwondo news: `https://www.worldtaekwondo.org/wtnews/view.html?mcd=C02&nid=142224`
+
+### Scope Chosen For This Pass
+- Remove the homepage “THE JOURNEY” section from the rendered page.
+- Add a “SPORTS NEWS” section in the same homepage position.
+- Split notes into Domestic and International columns with source links.
+
+### Product Decisions
+- News notes are curated static homepage content, not database-backed records.
+- Domestic notes focus on India-facing sports-development and taekwondo calendar sources.
+- International notes focus on World Taekwondo event calendars and host updates.
+
+### Change Log
+- Added `@sports_news` to `HomeController#index`.
+- Replaced the journey view markup with domestic/international sports-news notes.
+- Replaced unused journey styling with responsive news-board styles.
+- Added a homepage controller test that confirms the news section renders and the old journey label is absent.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 43 runs, 215 assertions, 0 failures, 0 errors, 0 skips.
+- Checked the running server with `curl -s http://127.0.0.1:3000/`; result: homepage rendered `SPORTS NEWS`, Domestic and International columns, and no `THE JOURNEY` label.
+
 ## 2026-08-24 - Initial GitHub Publish
 
 ### Reference

@@ -44,5 +44,48 @@ class HomeController < ApplicationController
         url: "https://www.kenyau21wtchampionship2025.com/"
       }
     ]
+
+    @sports_news = {
+      domestic: [
+        {
+          title: "Khelo India and federation support expanded",
+          note: "India approved a revamped Khelo India Scheme and enhanced assistance to National Sports Federations for the 2026-27 to 2030-31 cycle.",
+          source: "PIB",
+          url: "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2292439&lang=1&reg=48"
+        },
+        {
+          title: "SAI selection and training notices stay active",
+          note: "Sports Authority of India continues publishing athlete selection trials, training-centre notices, and performance-support updates across sports.",
+          source: "Sports Authority of India",
+          url: "https://sportsauthorityofindia.gov.in/sai_new/news-archive"
+        },
+        {
+          title: "Domestic taekwondo calendar remains busy",
+          note: "The Taekwon-do Association of India event calendar lists state, national, seminar, grading, and international participation opportunities.",
+          source: "TAI",
+          url: "https://www.itfindia.org.in/events"
+        }
+      ],
+      international: [
+        {
+          title: "World Taekwondo Grand Prix calendar continues",
+          note: "World Taekwondo results list the 2026 Grand Prix sequence, including Rome, Muju, Paris, and the Astana Grand Prix Final.",
+          source: "World Taekwondo",
+          url: "https://results.worldtaekwondo.org/competitions?type=gp"
+        },
+        {
+          title: "International event results are published globally",
+          note: "The World Taekwondo competition tracker lists open championships, continental events, ranking events, and major international tournaments.",
+          source: "World Taekwondo Results",
+          url: "https://results.worldtaekwondo.org/competitions"
+        },
+        {
+          title: "Upcoming hosts set through 2027",
+          note: "World Taekwondo announced hosts for future Grand Prix, junior, cadet, poomsae, and women’s open events through 2027.",
+          source: "World Taekwondo News",
+          url: "https://www.worldtaekwondo.org/wtnews/view.html?mcd=C02&nid=142224"
+        }
+      ]
+    }
   end
 end
