@@ -246,4 +246,6 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Removed `.github/workflows/ci.yml` before the successful remote push.
 
 ### Verification Log
-- Pending: amend the initial commit and push to GitHub.
+- Initial push attempt failed because GitHub rejected `.github/workflows/ci.yml` without OAuth `workflow` scope.
+- Removed `.github/workflows/ci.yml`, amended the initial commit, and pushed `main` to `https://github.com/sonamvg/sports-hub.git`.
+- Pushed commit: `c667b8a0d0a67eecf5792a94b41cac6571a0fac4`.
