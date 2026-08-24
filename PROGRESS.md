@@ -251,6 +251,27 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bin/rails test`; result: 41 runs, 193 assertions, 0 failures, 0 errors, 0 skips.
 - Checked the running server with `curl -s http://127.0.0.1:3000/tournaments`; result: tournament index rendered breadcrumb navigation with `aria-label="Breadcrumb"`.
 
+## 2026-08-24 - Remove Seed Data
+
+### Reference
+- User request: remove all seed data.
+
+### Scope Chosen For This Pass
+- Remove application seed definitions from `db/seeds.rb`.
+- Keep an explicit note that the app intentionally ships with no seed data.
+- Do not delete existing development database records in this pass because that is a destructive local data wipe.
+
+### Product Decisions
+- Shared and production environments should start clean by default.
+- Demo records should be created through separate local-only scripts or console sessions when needed, not through the canonical seed file.
+
+### Change Log
+- Replaced the demo seed data in `db/seeds.rb` with a short no-seed-data note.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 41 runs, 193 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails db:seed`; result: completed successfully with no seed records defined.
+
 ## 2026-08-24 - Initial GitHub Publish
 
 ### Reference
