@@ -5,6 +5,12 @@ Rails.application.routes.draw do
   post "login", to: "sessions#create"
   delete "logout", to: "sessions#destroy"
   resources :users, only: %i[new create]
+  resources :organizers, only: %i[index] do
+    member do
+      patch :approve
+      patch :reject
+    end
+  end
 
   resources :athletes
   resources :academies do

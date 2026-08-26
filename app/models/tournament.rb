@@ -4,6 +4,8 @@ class Tournament < ApplicationRecord
   belongs_to :organizer, class_name: "User"
   has_many :tournament_categories, dependent: :destroy
   has_many :registrations, dependent: :destroy
+  has_many :tournament_organizers, dependent: :destroy
+  has_many :organizer_users, through: :tournament_organizers, source: :user
 
   enum :status, {
     draft: 0,
@@ -26,10 +28,18 @@ class Tournament < ApplicationRecord
   validate :end_date_not_before_start_date
   validate :registration_window_chronology
 
+  after_create :add_creator_as_super_organizer
+
   def accepting_registrations?(at: Time.current)
     registration_open? &&
       (registration_opens_at.blank? || registration_opens_at <= at) &&
       (registration_closes_at.blank? || registration_closes_at >= at)
+  end
+
+  def managed_by?(user)
+    return false unless user
+
+    organizer_id == user.id || tournament_organizers.exists?(user_id: user.id)
   end
 
   private
@@ -53,6 +63,13 @@ class Tournament < ApplicationRecord
 
     if registration_closes_at.present? && start_date.present? && registration_closes_at.to_date > start_date
       errors.add(:registration_closes_at, "cannot be after the event start date")
+    end
+  end
+
+  def add_creator_as_super_organizer
+    tournament_organizers.find_or_create_by!(user: organizer) do |membership|
+      membership.role = :super_organizer
+      membership.added_by = organizer
     end
   end
 end

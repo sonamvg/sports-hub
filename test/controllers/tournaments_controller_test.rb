@@ -7,6 +7,8 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "creates tournament" do
+    collaborator = User.create!(name: "Second Organizer", email: "second-organizer@example.test", password: "password123", role: :organizer)
+
     assert_difference("Tournament.count", 1) do
       post tournaments_path, params: {
         tournament: {
@@ -18,7 +20,8 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
           end_date: "2026-12-06",
           status: "registration_open",
           website_url: "https://example.com/pune-invitational",
-          logo_url: "https://example.com/pune-logo.png"
+          logo_url: "https://example.com/pune-logo.png",
+          organizer_user_ids: [collaborator.id]
         }
       }
     end
@@ -29,6 +32,26 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "registration_open", tournament.status
     assert_equal "https://example.com/pune-invitational", tournament.website_url
     assert_equal "https://example.com/pune-logo.png", tournament.logo_url
+    assert_equal @organizer, tournament.tournament_organizers.super_organizer.sole.user
+    assert_includes tournament.organizer_users, collaborator
+  end
+
+  test "pending organizer cannot create tournament" do
+    pending = User.create!(name: "Pending Organizer", email: "pending-organizer@example.test", password: "password123", role: :organizer, organizer_status: :pending)
+    sign_in_as pending
+
+    assert_no_difference("Tournament.count") do
+      post tournaments_path, params: {
+        tournament: {
+          name: "Pending Open",
+          start_date: "2026-12-05",
+          end_date: "2026-12-06"
+        }
+      }
+    end
+
+    assert_redirected_to organizers_path
+    assert_equal "Super admin verification is required before creating tournaments.", flash[:alert]
   end
 
   test "renders errors when tournament is invalid" do
@@ -59,6 +82,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "updates tournament" do
+    collaborator = User.create!(name: "Second Organizer", email: "second-organizer-update@example.test", password: "password123", role: :organizer)
     tournament = Tournament.create!(
       name: "Pune Invitational",
       organizer: @organizer,
@@ -74,7 +98,8 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
         state: "Maharashtra",
         start_date: "2026-12-07",
         end_date: "2026-12-08",
-        status: "registration_open"
+        status: "registration_open",
+        organizer_user_ids: [collaborator.id]
       }
     }
 
@@ -84,6 +109,24 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Balewadi Sports Complex", tournament.venue
     assert_equal Date.new(2026, 12, 7), tournament.start_date
     assert_equal "registration_open", tournament.status
+    assert_includes tournament.organizer_users, collaborator
+  end
+
+  test "tournament collaborator can edit tournament" do
+    collaborator = User.create!(name: "Collaborator", email: "collaborator@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    tournament.tournament_organizers.create!(user: collaborator, added_by: @organizer)
+    sign_in_as collaborator
+
+    get edit_tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Edit tournament"
   end
 
   test "renders errors when update is invalid" do

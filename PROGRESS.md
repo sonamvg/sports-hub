@@ -2,6 +2,43 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-26 - Organizer Verification And Tournament Organizer Roles
+
+### Reference
+- User request: support multiple organizer roles. Organizer signups should create normal organizer requests, super admins should verify organizers, the creator of a tournament should become the super organizer for that tournament, creators should be able to add other organizers while creating/editing tournaments, and the signed-out Organizer page should invite event organizers while listing verified organizers with photos and events.
+
+### Scope Chosen For This Pass
+- Add organizer verification state to user accounts.
+- Keep organizer signup public, but require super-admin verification before tournament creation.
+- Add per-tournament organizer membership records so each tournament can have a super organizer and collaborator organizers.
+- Add a public `/organizers` directory for signed-out users.
+- Preserve the existing signed-in organizer registration-approval workflow.
+
+### Product Decisions
+- `User#role` remains the account role; organizer accounts now also have `organizer_status`.
+- Existing organizer records default to `verified` so old test/development data keeps working.
+- New organizer signups are explicitly created as `pending` and redirect to the organizer directory with a verification message instead of going directly to tournament creation.
+- Tournament creators remain stored in `tournaments.organizer_id` and are also mirrored into `tournament_organizers` as `super_organizer`.
+- Other organizers are stored in `tournament_organizers` as `collaborator`.
+- Only verified organizer users are selectable as tournament collaborators.
+- Organizer cards use `profile_photo_url` when provided and fall back to initials so the public directory always has a visible identity element.
+
+### Change Log
+- Added user organizer review fields: `organizer_status`, review timestamps, reviewer reference, and `profile_photo_url`.
+- Added `TournamentOrganizer` model and `tournament_organizers` table with `super_organizer` and `collaborator` roles.
+- Added public `OrganizersController#index` plus super-admin `approve` and `reject` actions.
+- Added public organizer directory view with event-minded CTA, pending-review table for super admins, verified organizer cards, photos/initials, and organized-event names.
+- Updated top navigation so signed-out users go to `/organizers`; signed-in users keep the existing organizer registration approvals page.
+- Updated organizer signup to include optional profile photo URL, create pending organizer accounts, and show verification-focused copy.
+- Updated tournament create/edit to let managers add other verified organizers.
+- Updated tournament management checks so tournament collaborators can manage tournament details and organizer registration approvals.
+- Updated tournament show to label the creator as `Super organizer` and list all organizers.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: new organizer review and tournament organizer tables/columns applied successfully.
+- Ran `mise exec -- bin/rails test`; result: 68 runs, 436 assertions, 0 failures, 0 errors, 0 skips.
+- Checked rendered `/organizers` through Rails integration session; result: HTTP 200, event-minded CTA present, and `Register as organizer` CTA present.
+
 ## 2026-08-19 - Requirements-Based Tournament Flow Improvement
 
 ### Reference

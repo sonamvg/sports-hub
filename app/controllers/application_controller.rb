@@ -32,6 +32,6 @@ class ApplicationController < ActionController::Base
   def can_manage_tournament?(tournament)
     return false unless current_user
 
-    super_admin? || tournament.organizer_id == current_user.id
+    super_admin? || tournament.managed_by?(current_user)
   end
 end

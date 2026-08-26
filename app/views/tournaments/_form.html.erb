@@ -67,6 +67,12 @@
       <%= form.label :status %>
       <%= form.select :status, Tournament.statuses.keys.map { |status| [status.humanize, status] } %>
     </div>
+
+    <div class="full">
+      <%= form.label :organizer_user_ids, "Other organizers" %>
+      <%= form.collection_select :organizer_user_ids, @available_organizers.reject { |organizer| organizer.id == current_user.id }, :id, :name, {}, multiple: true %>
+      <p class="field-hint">Only verified organizers can be added. The creator remains the super organizer for this tournament.</p>
+    </div>
   </div>
 
   <div class="form-actions">

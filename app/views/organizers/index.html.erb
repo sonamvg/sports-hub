@@ -1,0 +1,61 @@
+<section class="page-shell organizer-directory-page">
+  <div class="container">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">ORGANIZERS</p>
+        <h1 class="page-title">Event organizers</h1>
+        <p class="page-copy">Have an event in mind? Register yourself as an organizer. Super admins verify organizer accounts before they can create tournaments.</p>
+      </div>
+      <%= link_to "Register as organizer", login_path(return_to: new_tournament_path), class: "primary-button" %>
+    </div>
+
+    <% if super_admin? && @pending_organizers.any? %>
+      <div class="section-compact">
+        <div class="page-heading compact-heading">
+          <div>
+            <h2 class="section-title">Pending verification</h2>
+            <p class="page-copy">Review new organizer requests before they can publish tournaments.</p>
+          </div>
+        </div>
+        <div class="approval-table">
+          <% @pending_organizers.each do |organizer| %>
+            <div class="approval-row">
+              <div>
+                <strong><%= organizer.name %></strong>
+                <span><%= organizer.email %></span>
+              </div>
+              <span class="status-pill status-pending"><%= organizer.organizer_status.humanize %></span>
+              <div class="row-actions">
+                <%= button_to "Verify", approve_organizer_path(organizer), method: :patch, class: "approve-button" %>
+                <%= button_to "Reject", reject_organizer_path(organizer), method: :patch, class: "reject-button" %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="list-grid organizer-grid">
+      <% @verified_organizers.each do |organizer| %>
+        <% events = organizer.organizer_event_names %>
+        <article class="entity-card organizer-card">
+          <div class="organizer-photo">
+            <% if organizer.profile_photo_url.present? %>
+              <%= image_tag organizer.profile_photo_url, alt: "#{organizer.name} photo" %>
+            <% else %>
+              <span><%= organizer.initials %></span>
+            <% end %>
+          </div>
+          <span class="status-pill status-approved">Verified organizer</span>
+          <h2><%= organizer.name %></h2>
+          <p><%= events.any? ? "#{events.size} event#{'s' unless events.one?} organized" : "No published events yet" %></p>
+          <% if events.any? %>
+            <div class="entity-meta organizer-events">
+              <span><strong>Events</strong><%= events.first(3).join(" · ") %></span>
+            </div>
+          <% end %>
+        </article>
+      <% end %>
+    </div>
+  </div>
+</section>

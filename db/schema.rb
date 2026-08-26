@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_24_000100) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_26_000200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -85,6 +85,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_24_000100) do
     t.index ["tournament_id"], name: "index_tournament_categories_on_tournament_id"
   end
 
+  create_table "tournament_organizers", force: :cascade do |t|
+    t.bigint "added_by_id"
+    t.datetime "created_at", null: false
+    t.integer "role", default: 0, null: false
+    t.bigint "tournament_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["added_by_id"], name: "index_tournament_organizers_on_added_by_id"
+    t.index ["tournament_id", "user_id"], name: "index_tournament_organizers_on_tournament_id_and_user_id", unique: true
+    t.index ["tournament_id"], name: "index_tournament_organizers_on_tournament_id"
+    t.index ["user_id"], name: "index_tournament_organizers_on_user_id"
+  end
+
   create_table "tournaments", force: :cascade do |t|
     t.string "city"
     t.datetime "created_at", null: false
@@ -110,11 +123,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_24_000100) do
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.string "name", null: false
+    t.datetime "organizer_approved_at"
+    t.datetime "organizer_rejected_at"
+    t.bigint "organizer_reviewed_by_id"
+    t.integer "organizer_status", default: 0, null: false
     t.string "password_digest", null: false
     t.string "phone"
+    t.string "profile_photo_url"
     t.integer "role", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["organizer_reviewed_by_id"], name: "index_users_on_organizer_reviewed_by_id"
   end
 
   add_foreign_key "academies", "users", column: "owner_id"
@@ -124,5 +143,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_24_000100) do
   add_foreign_key "registrations", "tournament_categories"
   add_foreign_key "registrations", "tournaments"
   add_foreign_key "tournament_categories", "tournaments"
+  add_foreign_key "tournament_organizers", "tournaments"
+  add_foreign_key "tournament_organizers", "users"
+  add_foreign_key "tournament_organizers", "users", column: "added_by_id"
   add_foreign_key "tournaments", "users", column: "organizer_id"
+  add_foreign_key "users", "users", column: "organizer_reviewed_by_id"
 end

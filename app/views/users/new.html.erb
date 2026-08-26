@@ -6,7 +6,7 @@
     <h1 class="page-title"><%= organizer_account ? "Create organizer account" : (academy_owner_account ? "Create academy owner account" : "Join as athlete") %></h1>
     <p class="page-copy">
       <% if organizer_account %>
-        Create an organizer account to publish tournaments, manage categories, and review registrations.
+        Create an organizer account. A super admin will verify it before you can publish tournaments, manage categories, or review registrations.
       <% elsif academy_owner_account %>
         Create an academy owner account to submit your academy for approval and manage academy details.
       <% else %>
@@ -21,6 +21,13 @@
       <div class="form-grid two-col">
         <div><%= form.label :name %><%= form.text_field :name, required: true, autocomplete: "name" %></div>
         <div><%= form.label :phone %><%= form.telephone_field :phone, autocomplete: "tel" %></div>
+        <% if organizer_account %>
+          <div class="full">
+            <%= form.label :profile_photo_url, "Profile photo URL" %>
+            <%= form.url_field :profile_photo_url, placeholder: "https://example.com/photo.jpg" %>
+            <p class="field-hint">Optional. This appears on the public organizer directory after verification.</p>
+          </div>
+        <% end %>
         <div class="full"><%= form.label :email %><%= form.email_field :email, required: true, autocomplete: "email" %></div>
         <div><%= form.label :password %><%= form.password_field :password, required: true, autocomplete: "new-password" %></div>
         <div><%= form.label :password_confirmation %><%= form.password_field :password_confirmation, required: true, autocomplete: "new-password" %></div>

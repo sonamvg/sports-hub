@@ -16,8 +16,9 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "ORGANIZER ACCOUNT"
     assert_includes response.body, "Create organizer account"
-    assert_includes response.body, "publish tournaments"
+    assert_includes response.body, "super admin will verify"
     assert_includes response.body, 'value="organizer"'
+    assert_includes response.body, "Profile photo URL"
   end
 
   test "new user page explains academy owner account role" do
@@ -48,7 +49,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to tournaments_path
   end
 
-  test "creates organizer account and returns to tournament creation" do
+  test "creates pending organizer account and sends it to verification" do
     assert_difference("User.count", 1) do
       post users_path, params: {
         account_type: "organizer",
@@ -56,6 +57,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
         user: {
           name: "New Organizer",
           email: "new-organizer@example.com",
+          profile_photo_url: "https://example.com/organizer.jpg",
           password: "password123",
           password_confirmation: "password123"
         }
@@ -64,8 +66,11 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
 
     user = User.order(:created_at).last
     assert_predicate user, :organizer?
+    assert_predicate user, :organizer_pending?
+    assert_equal "https://example.com/organizer.jpg", user.profile_photo_url
     assert_equal user.id, session[:user_id]
-    assert_redirected_to new_tournament_path
+    assert_redirected_to organizers_path
+    assert_equal "Organizer account created and sent to super admin for verification.", flash[:notice]
   end
 
   test "creates academy owner account and returns to academy registration" do

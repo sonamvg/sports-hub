@@ -24,7 +24,13 @@ module Organizer
     def visible_registrations
       return Registration.all if super_admin?
 
-      Registration.joins(:tournament).where(tournaments: { organizer_id: current_user.id })
+      tournament_ids = Tournament
+        .left_joins(:tournament_organizers)
+        .where("tournaments.organizer_id = :user_id OR tournament_organizers.user_id = :user_id", user_id: current_user.id)
+        .distinct
+        .select(:id)
+
+      Registration.where(tournament_id: tournament_ids)
     end
 
     def set_registration
