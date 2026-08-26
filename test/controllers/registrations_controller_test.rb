@@ -76,7 +76,7 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Add athlete"
   end
 
-  test "registration create saves draft selections without receipt" do
+  test "registration form does not show save and pay later option" do
     athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     tournament = Tournament.create!(
       name: "Pune Invitational",
@@ -89,9 +89,14 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     )
     category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
 
-    assert_difference("Registration.draft.count", 1) do
+    get new_tournament_registration_path(tournament)
+
+    assert_response :success
+    assert_not_includes response.body, "Save and pay later"
+    assert_includes response.body, "Submit registration"
+
+    assert_no_difference("Registration.count") do
       post tournament_registrations_path(tournament), params: {
-        commit: "Save and pay later",
         registration: {
           athlete_id: athlete.id,
           tournament_category_ids: [category.id],
@@ -100,8 +105,8 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to tournament_registrations_path(tournament)
-    assert_not_predicate Registration.order(:created_at).last.payment_receipt, :attached?
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Payment receipt must be uploaded"
   end
 
   test "registration form resets category picker when academy owner changes athlete" do

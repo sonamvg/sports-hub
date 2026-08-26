@@ -2,6 +2,31 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-26 - Remove Athlete Pay-Later Registration
+
+### Reference
+- User request: remove the `Save and pay later` option.
+
+### Scope Chosen For This Pass
+- Remove the pay-later button from tournament registration.
+- Stop creating new `draft` registrations from the athlete/academy-owner registration form.
+- Keep the existing `draft` registration status in code for compatibility with any existing rows and current organiser/tournament filters.
+
+### Product Decisions
+- Every tournament registration submission now requires a payment receipt.
+- Multi-category registration still creates one pending registration per selected category once the receipt is uploaded.
+- Existing draft rows remain hidden from organiser queues; removing the enum/database state would require a separate data cleanup pass.
+
+### Change Log
+- Removed `Save and pay later` submit button from the registration form.
+- Removed controller branching that created `draft` registrations based on submit button text.
+- Updated registration copy to instruct users to pay, upload receipt, and submit.
+- Updated registration tests to assert pay-later is absent and receipt remains mandatory.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/registrations_controller_test.rb`; result: 7 runs, 66 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 97 runs, 757 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-26 - Reset Category Selection On Athlete Change
 
 ### Reference

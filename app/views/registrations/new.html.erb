@@ -7,7 +7,7 @@
   { label: "New" }
 ] %>
 
-<p class="eyebrow">REGISTRATION</p><h1 class="page-title">Register for <%= @tournament.name %></h1><p class="page-copy">Choose an athlete and one or more categories. You can save the selection and return after making payment.</p>
+<p class="eyebrow">REGISTRATION</p><h1 class="page-title">Register for <%= @tournament.name %></h1><p class="page-copy">Choose an athlete and one or more categories, make payment, upload the receipt, and submit for organiser review.</p>
 <% if @tournament.registration_closed_for_weight_check? && @tournament.late_registration_allowed_for?(current_user) %>
   <div class="inline-notice">Registration is closed. As super organiser, you can manually add athletes until draw setup starts.</div>
 <% end %>
@@ -50,7 +50,7 @@
           <span>Do you want to add more categories?</span>
         </label>
       </div>
-      <p class="field-hint">Select every category this athlete wants to enter. Saved drafts are preselected when you return.</p>
+      <p class="field-hint">Select every category this athlete wants to enter.</p>
     </div>
     <div class="registration-total full" data-registration-total data-currency="<%= @tournament.currency.presence || "INR" %>">
       <strong>Total amount to pay</strong>
@@ -77,7 +77,6 @@
     </div>
   </div>
   <div class="form-actions">
-    <%= form.submit "Save and pay later", class: "secondary-button button-reset", formnovalidate: true %>
     <%= form.submit "Submit registration", class: "primary-button button-reset" %>
     <%= link_to "Cancel", tournament_path(@tournament), class: "secondary-button" %>
   </div>

@@ -19,11 +19,9 @@ class RegistrationsController < ApplicationController
     @registration = @tournament.registrations.build
     @athlete = manageable_athletes.find_by(id: registration_params[:athlete_id])
     @selected_category_ids = Array(registration_params[:tournament_category_ids]).reject(&:blank?)
-    submit_registration = params[:commit] != "Save and pay later"
 
-    if save_category_registrations(submit_registration: submit_registration)
-      notice = submit_registration ? "Registration submitted to tournament organizers for approval." : "Selection saved. Upload payment receipt when you are ready to submit."
-      redirect_to tournament_registrations_path(@tournament), notice: notice
+    if save_category_registrations
+      redirect_to tournament_registrations_path(@tournament), notice: "Registration submitted to tournament organizers for approval."
     else
       set_registration_collections
       render :new, status: :unprocessable_entity
@@ -64,9 +62,9 @@ class RegistrationsController < ApplicationController
     ids.uniq
   end
 
-  def save_category_registrations(submit_registration:)
+  def save_category_registrations
     @registration.athlete = @athlete
-    validate_registration_selection(submit_registration)
+    validate_registration_selection
     return false if @registration.errors.any?
 
     Registration.transaction do
@@ -74,10 +72,10 @@ class RegistrationsController < ApplicationController
         category = @tournament.tournament_categories.find(category_id)
         registration = @tournament.registrations.find_or_initialize_by(athlete: @athlete, tournament_category: category)
         registration.registered_weight = registration_params[:registered_weight].presence || @athlete.weight
-        registration.status = submit_registration ? :pending : :draft
+        registration.status = :pending
         registration.fee_amount = category.effective_registration_fee
         registration.fee_currency = @tournament.currency.presence || "INR"
-        attach_payment_receipt(registration) if submit_registration
+        attach_payment_receipt(registration)
         registration.save!
       end
     end
@@ -87,10 +85,9 @@ class RegistrationsController < ApplicationController
     false
   end
 
-  def validate_registration_selection(submit_registration)
+  def validate_registration_selection
     @registration.errors.add(:athlete, "must be selected") if @athlete.blank?
     @registration.errors.add(:tournament_category, "must include at least one category") if @selected_category_ids.blank?
-    return unless submit_registration
 
     @registration.errors.add(:payment_receipt, "must be uploaded") if registration_params[:payment_receipt].blank?
   end
