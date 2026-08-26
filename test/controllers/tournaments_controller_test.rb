@@ -6,6 +6,37 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     sign_in_as @organizer
   end
 
+  test "new tournament form includes required setup fields" do
+    get new_tournament_path
+
+    assert_response :success
+    [
+      "Tournament name",
+      "Tournament level",
+      "Organising organisation",
+      "Start date",
+      "End date",
+      "Registration opens at",
+      "Registration closes at",
+      "Time zone",
+      "Venue",
+      "Primary contact",
+      "Competition formats",
+      "Basic eligibility",
+      "Category generation",
+      "Registration capacity",
+      "Fee",
+      "Currency",
+      "Required documents",
+      "Refund policy",
+      "Banner or hero image URL",
+      "Save as Draft",
+      "Publish"
+    ].each do |label|
+      assert_includes response.body, label
+    end
+  end
+
   test "creates tournament" do
     collaborator = User.create!(name: "Second Organizer", email: "second-organizer@example.test", password: "password123", role: :organizer)
 
@@ -18,6 +49,23 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
           state: "Maharashtra",
           start_date: "2026-12-05",
           end_date: "2026-12-06",
+          tournament_level: "State",
+          organizing_organization: "Maharashtra Taekwondo Association",
+          time_zone: "Mumbai",
+          registration_opens_at: "2026-10-01T09:00",
+          registration_closes_at: "2026-11-25T18:00",
+          primary_contact_name: "Event Desk",
+          primary_contact_email: "events@example.com",
+          primary_contact_phone: "9876543210",
+          competition_formats: "Kyorugi, Poomsae",
+          eligibility_summary: "Red belt and above",
+          category_generation_method: "Auto-generate from eligibility rules",
+          registration_capacity: 400,
+          registration_fee: "1500.00",
+          currency: "inr",
+          required_documents: "Age proof, association ID",
+          refund_policy: "Refunds close 7 days before event",
+          banner_image_url: "https://example.com/banner.jpg",
           status: "registration_open",
           website_url: "https://example.com/pune-invitational",
           logo_url: "https://example.com/pune-logo.png",
@@ -32,8 +80,50 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "registration_open", tournament.status
     assert_equal "https://example.com/pune-invitational", tournament.website_url
     assert_equal "https://example.com/pune-logo.png", tournament.logo_url
+    assert_equal "State", tournament.tournament_level
+    assert_equal "Maharashtra Taekwondo Association", tournament.organizing_organization
+    assert_equal "Mumbai", tournament.time_zone
+    assert_equal "events@example.com", tournament.primary_contact_email
+    assert_equal "Kyorugi, Poomsae", tournament.competition_formats
+    assert_equal "Auto-generate from eligibility rules", tournament.category_generation_method
+    assert_equal 400, tournament.registration_capacity
+    assert_equal BigDecimal("1500.0"), tournament.registration_fee
+    assert_equal "INR", tournament.currency
+    assert_equal "https://example.com/banner.jpg", tournament.banner_image_url
     assert_equal @organizer, tournament.tournament_organizers.super_organizer.sole.user
     assert_includes tournament.organizer_users, collaborator
+  end
+
+  test "publish button moves draft tournament to scheduled" do
+    assert_difference("Tournament.count", 1) do
+      post tournaments_path, params: {
+        commit: "Publish",
+        tournament: {
+          name: "Pune Invitational",
+          start_date: "2026-12-05",
+          end_date: "2026-12-06",
+          status: "draft"
+        }
+      }
+    end
+
+    assert_predicate Tournament.order(:created_at).last, :scheduled?
+  end
+
+  test "save as draft button keeps tournament in draft" do
+    assert_difference("Tournament.count", 1) do
+      post tournaments_path, params: {
+        commit: "Save as Draft",
+        tournament: {
+          name: "Draft Invitational",
+          start_date: "2026-12-05",
+          end_date: "2026-12-06",
+          status: "registration_open"
+        }
+      }
+    end
+
+    assert_predicate Tournament.order(:created_at).last, :draft?
   end
 
   test "pending organizer cannot create tournament" do
@@ -194,7 +284,10 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       organizer: @organizer,
       status: :registration_open,
       start_date: Date.new(2026, 12, 5),
-      end_date: Date.new(2026, 12, 6)
+      end_date: Date.new(2026, 12, 6),
+      primary_contact_name: "Event Desk",
+      primary_contact_email: "private-contact@example.com",
+      primary_contact_phone: "9876543210"
     )
     tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
     delete logout_path
@@ -211,6 +304,8 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Register athlete"
     assert_not_includes response.body, "Register →"
     assert_not_includes response.body, "Add athlete"
+    assert_not_includes response.body, "private-contact@example.com"
+    assert_not_includes response.body, "9876543210"
   end
 
   test "logged in show keeps athlete registration actions" do

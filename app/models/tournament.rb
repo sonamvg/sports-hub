@@ -24,7 +24,10 @@ class Tournament < ApplicationRecord
   validates :name, :start_date, :end_date, presence: true
   validates :name, length: { minimum: 3, maximum: 120 }, allow_blank: true
   validates :slug, uniqueness: true, allow_blank: true
-  validates :website_url, :logo_url, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid http or https URL" }, allow_blank: true
+  validates :website_url, :logo_url, :banner_image_url, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid http or https URL" }, allow_blank: true
+  validates :primary_contact_email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
+  validates :registration_capacity, numericality: { only_integer: true, greater_than: 0 }, allow_blank: true
+  validates :registration_fee, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   validate :end_date_not_before_start_date
   validate :registration_window_chronology
 
@@ -49,6 +52,19 @@ class Tournament < ApplicationRecord
     self.slug = slug.presence
     self.website_url = website_url.to_s.squish.presence
     self.logo_url = logo_url.to_s.squish.presence
+    self.banner_image_url = banner_image_url.to_s.squish.presence
+    self.tournament_level = tournament_level.to_s.squish.presence
+    self.organizing_organization = organizing_organization.to_s.squish.presence
+    self.time_zone = time_zone.to_s.squish.presence
+    self.primary_contact_name = primary_contact_name.to_s.squish.presence
+    self.primary_contact_email = primary_contact_email.to_s.downcase.squish.presence
+    self.primary_contact_phone = primary_contact_phone.to_s.squish.presence
+    self.competition_formats = competition_formats.to_s.squish.presence
+    self.eligibility_summary = eligibility_summary.to_s.squish.presence
+    self.category_generation_method = category_generation_method.to_s.squish.presence
+    self.currency = currency.to_s.upcase.squish.presence
+    self.required_documents = required_documents.to_s.squish.presence
+    self.refund_policy = refund_policy.to_s.squish.presence
   end
 
   def end_date_not_before_start_date

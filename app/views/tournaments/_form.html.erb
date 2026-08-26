@@ -2,9 +2,23 @@
   <%= render "shared/errors", record: tournament %>
 
   <div class="form-grid two-col">
-    <div class="full">
-      <%= form.label :name %>
+    <div class="full form-section-heading">
+      <h2>Tournament basics</h2>
+    </div>
+
+    <div>
+      <%= form.label :name, "Tournament name" %>
       <%= form.text_field :name, required: true %>
+    </div>
+
+    <div>
+      <%= form.label :tournament_level, "Tournament level" %>
+      <%= form.select :tournament_level, ["Local", "District", "State", "Regional", "National", "International"], { include_blank: "Select level" }, required: true %>
+    </div>
+
+    <div class="full">
+      <%= form.label :organizing_organization, "Organising organisation" %>
+      <%= form.text_field :organizing_organization, required: true, placeholder: "Academy, association, federation, or event company" %>
     </div>
 
     <div class="full">
@@ -23,24 +37,34 @@
       <p class="field-hint">Use an image from the tournament website or organizer media kit.</p>
     </div>
 
+    <div class="full">
+      <%= form.label :banner_image_url, "Banner or hero image URL" %>
+      <%= form.url_field :banner_image_url, placeholder: "https://example.com/banner.jpg" %>
+      <p class="field-hint">This can be used for tournament promotion pages and listing artwork.</p>
+    </div>
+
+    <div class="full form-section-heading">
+      <h2>Schedule and location</h2>
+    </div>
+
     <div>
       <%= form.label :venue %>
-      <%= form.text_field :venue %>
+      <%= form.text_field :venue, required: true %>
     </div>
 
     <div>
       <%= form.label :city %>
-      <%= form.text_field :city %>
+      <%= form.text_field :city, required: true %>
     </div>
 
     <div>
       <%= form.label :state %>
-      <%= form.text_field :state %>
+      <%= form.text_field :state, required: true %>
     </div>
 
     <div>
-      <%= form.label :slug %>
-      <%= form.text_field :slug %>
+      <%= form.label :time_zone, "Time zone" %>
+      <%= form.time_zone_select :time_zone, ActiveSupport::TimeZone.all, { include_blank: "Select time zone" }, required: true %>
     </div>
 
     <div>
@@ -55,17 +79,92 @@
 
     <div>
       <%= form.label :registration_opens_at %>
-      <%= form.datetime_local_field :registration_opens_at %>
+      <%= form.datetime_local_field :registration_opens_at, required: true %>
     </div>
 
     <div>
       <%= form.label :registration_closes_at %>
-      <%= form.datetime_local_field :registration_closes_at %>
+      <%= form.datetime_local_field :registration_closes_at, required: true %>
+    </div>
+
+    <div class="full form-section-heading">
+      <h2>Registration setup</h2>
+    </div>
+
+    <div>
+      <%= form.label :registration_capacity, "Registration capacity" %>
+      <%= form.number_field :registration_capacity, required: true, min: 1, step: 1, placeholder: "Maximum entries" %>
+    </div>
+
+    <div>
+      <%= form.label :registration_fee, "Fee" %>
+      <%= form.number_field :registration_fee, required: true, min: 0, step: "0.01", placeholder: "0.00" %>
+    </div>
+
+    <div>
+      <%= form.label :currency %>
+      <%= form.text_field :currency, required: true, maxlength: 3, placeholder: "INR" %>
+    </div>
+
+    <div>
+      <%= form.label :category_generation_method, "Category generation" %>
+      <%= form.select :category_generation_method, [
+        "Auto-generate from eligibility rules",
+        "Copy from previous tournament",
+        "Manual categories",
+        "Import categories"
+      ], { include_blank: "Select category generation method" }, required: true %>
+    </div>
+
+    <div class="full">
+      <%= form.label :competition_formats, "Competition formats" %>
+      <%= form.text_area :competition_formats, required: true, rows: 3, placeholder: "Kyorugi, Poomsae, Team Poomsae, Para Taekwondo" %>
+      <p class="field-hint">List every format this tournament will support.</p>
+    </div>
+
+    <div class="full">
+      <%= form.label :eligibility_summary, "Basic eligibility" %>
+      <%= form.text_area :eligibility_summary, required: true, rows: 3, placeholder: "Age bands, belt requirements, academy/federation membership, ranking requirements" %>
+    </div>
+
+    <div class="full">
+      <%= form.label :required_documents, "Required documents" %>
+      <%= form.text_area :required_documents, required: true, rows: 3, placeholder: "Age proof, association ID, medical clearance, academy approval" %>
+    </div>
+
+    <div class="full">
+      <%= form.label :refund_policy, "Refund policy" %>
+      <%= form.text_area :refund_policy, required: true, rows: 3, placeholder: "Refund deadlines, deductions, no-refund conditions" %>
+    </div>
+
+    <div class="full form-section-heading">
+      <h2>Contacts and publishing</h2>
+    </div>
+
+    <div>
+      <%= form.label :primary_contact_name, "Primary contact" %>
+      <%= form.text_field :primary_contact_name, required: true, autocomplete: "name" %>
+    </div>
+
+    <div>
+      <%= form.label :primary_contact_email, "Primary contact email" %>
+      <%= form.email_field :primary_contact_email, required: true, autocomplete: "email" %>
+    </div>
+
+    <div>
+      <%= form.label :primary_contact_phone, "Primary contact mobile" %>
+      <%= form.telephone_field :primary_contact_phone, required: true, autocomplete: "tel" %>
+    </div>
+
+    <div>
+      <%= form.label :slug %>
+      <%= form.text_field :slug %>
     </div>
 
     <div class="full">
       <%= form.label :status %>
       <%= form.select :status, Tournament.statuses.keys.map { |status| [status.humanize, status] } %>
+      <p class="field-hint">Use the action buttons below for common draft or publish flows.</p>
     </div>
 
     <div class="full">
@@ -76,7 +175,8 @@
   </div>
 
   <div class="form-actions">
-    <%= form.submit tournament.persisted? ? "Update tournament" : "Create tournament", class: "primary-button button-reset" %>
+    <%= form.submit "Save as Draft", class: "secondary-button button-reset", formnovalidate: true %>
+    <%= form.submit "Publish", class: "primary-button button-reset" %>
     <%= link_to "Cancel", tournament.persisted? ? tournament_path(tournament) : tournaments_path, class: "secondary-button" %>
   </div>
 <% end %>

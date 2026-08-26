@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_26_061200) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_26_070000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -127,19 +127,34 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_061200) do
   end
 
   create_table "tournaments", force: :cascade do |t|
+    t.string "banner_image_url"
+    t.string "category_generation_method"
     t.string "city"
+    t.text "competition_formats"
     t.datetime "created_at", null: false
+    t.string "currency"
     t.text "description"
+    t.text "eligibility_summary"
     t.date "end_date", null: false
     t.string "logo_url"
     t.string "name", null: false
     t.bigint "organizer_id", null: false
+    t.string "organizing_organization"
+    t.string "primary_contact_email"
+    t.string "primary_contact_name"
+    t.string "primary_contact_phone"
+    t.text "refund_policy"
+    t.integer "registration_capacity"
     t.datetime "registration_closes_at"
+    t.decimal "registration_fee", precision: 10, scale: 2
     t.datetime "registration_opens_at"
+    t.text "required_documents"
     t.string "slug"
     t.date "start_date", null: false
     t.string "state"
     t.integer "status", default: 0, null: false
+    t.string "time_zone"
+    t.string "tournament_level"
     t.datetime "updated_at", null: false
     t.string "venue"
     t.string "website_url"

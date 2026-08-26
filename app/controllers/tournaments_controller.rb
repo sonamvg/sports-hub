@@ -10,12 +10,13 @@ class TournamentsController < ApplicationController
   end
 
   def new
-    @tournament = Tournament.new(status: :draft)
+    @tournament = Tournament.new(status: :draft, time_zone: Time.zone.name, currency: "INR", category_generation_method: "Auto-generate from eligibility rules")
   end
 
   def create
     @tournament = Tournament.new(tournament_params)
     @tournament.organizer = current_user
+    apply_submit_intent(@tournament)
 
     if @tournament.save
       sync_tournament_organizers
@@ -36,7 +37,9 @@ class TournamentsController < ApplicationController
   def draw; end
 
   def update
-    if @tournament.update(tournament_params)
+    @tournament.assign_attributes(tournament_params)
+    apply_submit_intent(@tournament)
+    if @tournament.save
       sync_tournament_organizers
       redirect_to @tournament, notice: "Tournament updated."
     else
@@ -84,7 +87,16 @@ class TournamentsController < ApplicationController
   def tournament_params
     params.require(:tournament).permit(
       :name, :slug, :description, :venue, :city, :state, :start_date, :end_date,
-      :registration_opens_at, :registration_closes_at, :status, :website_url, :logo_url
+      :registration_opens_at, :registration_closes_at, :status, :website_url, :logo_url,
+      :tournament_level, :organizing_organization, :time_zone, :primary_contact_name,
+      :primary_contact_email, :primary_contact_phone, :competition_formats,
+      :eligibility_summary, :category_generation_method, :registration_capacity,
+      :registration_fee, :currency, :required_documents, :refund_policy, :banner_image_url
     )
+  end
+
+  def apply_submit_intent(tournament)
+    tournament.status = :draft if params[:commit] == "Save as Draft"
+    tournament.status = :scheduled if params[:commit] == "Publish" && tournament.draft?
   end
 end

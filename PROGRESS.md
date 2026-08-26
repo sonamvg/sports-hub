@@ -2,6 +2,39 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-26 - Expanded Add Tournament Setup Flow
+
+### Reference
+- User request: review the Add Tournament flow and make sure these fields are available: tournament name and level, organising organisation, start/end dates, registration opening/closing dates, time zone, venue/location, primary contact, competition formats, basic eligibility, category generation, registration capacity, fee/currency, required documents, refund policy, Save as Draft and Publish actions, and a banner/image field.
+
+### Scope Chosen For This Pass
+- Add missing tournament setup fields as first-class database columns.
+- Reorganize the tournament form into setup sections so organizers can complete the event configuration in one flow.
+- Mark setup fields as required for browser-level publish validation while allowing incomplete drafts.
+- Keep primary contact details editable by organizers without exposing the contact email/phone on public tournament pages.
+- Preserve existing category creation as a separate detailed flow after the tournament shell exists.
+
+### Product Decisions
+- `logo_url` remains available for logo/media-kit images; `banner_image_url` was added for larger tournament artwork.
+- `competition_formats`, `eligibility_summary`, `required_documents`, and `refund_policy` are stored as text because they may vary by tournament and are not yet normalized into separate policy/rules tables.
+- `category_generation_method` captures how categories will be created, while actual categories still live in `tournament_categories`.
+- `Save as Draft` forces `draft` status. `Publish` moves a draft tournament to `scheduled`.
+- `Save as Draft` uses `formnovalidate` so organisers can save incomplete work; `Publish` runs browser required-field checks for the setup checklist.
+- Primary contact name/email/phone is collected in the form but not shown publicly to avoid exposing personal contact data.
+
+### Change Log
+- Added tournament fields for level, organising organisation, time zone, primary contact, competition formats, eligibility, category-generation method, registration capacity, fee, currency, required documents, refund policy, and banner image URL.
+- Added validations for banner URL, primary contact email format, registration capacity, and registration fee.
+- Expanded the tournament form into Basics, Schedule and location, Registration setup, and Contacts and publishing sections.
+- Added `Save as Draft` and `Publish` submit buttons, with required form fields enforced for Publish.
+- Updated tournament detail page to show non-sensitive event setup details, capacity, fee, formats, eligibility, category-generation method, required documents, and refund policy.
+- Added tests for the expanded form labels, saved setup fields, draft/publish submit intents, and public hiding of primary contact email/phone.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: tournament setup field migration applied successfully.
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/models/tournament_test.rb`; result: 19 runs, 169 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 72 runs, 526 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-26 - Organizer Registration Verification Fields
 
 ### Reference
