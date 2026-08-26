@@ -23,7 +23,7 @@
   <div class="form-grid">
     <div>
       <%= form.label :athlete_id, "Athlete" %>
-      <%= form.collection_select :athlete_id, @athletes, :id, :full_name, prompt: "Choose athlete" %>
+      <%= form.collection_select :athlete_id, @athletes, :id, :full_name, { prompt: "Choose athlete" }, data: { athlete_select: true } %>
       <% if @athletes.any? %>
         <p class="field-hint"><%= link_to "Add another athlete", new_athlete_path(return_to: request.fullpath), class: "text-link" %></p>
       <% end %>
@@ -123,6 +123,13 @@
   });
 
   document.addEventListener("change", function(event) {
+    const athleteSelect = event.target.closest("[data-athlete-select]");
+    if (!athleteSelect) return;
+
+    document.querySelectorAll("[data-category-picker]").forEach(resetCategoryPicker);
+  });
+
+  document.addEventListener("change", function(event) {
     const picker = event.target.closest("[data-category-picker]");
     if (picker) updateRegistrationTotal(picker);
   });
@@ -143,5 +150,19 @@
     }, 0);
 
     totalAmount.textContent = currency + " " + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(total);
+  }
+
+  function resetCategoryPicker(picker) {
+    const rows = Array.from(picker.querySelectorAll("[data-category-row]"));
+    rows.slice(1).forEach(function(row) { row.remove(); });
+
+    const firstRow = picker.querySelector("[data-category-row]");
+    const firstSelect = firstRow.querySelector("select");
+    const removeButton = firstRow.querySelector("[data-remove-category]");
+    const addMoreWrapper = picker.querySelector("[data-add-more-wrapper]");
+    firstSelect.value = "";
+    removeButton.hidden = true;
+    addMoreWrapper.hidden = true;
+    updateRegistrationTotal(picker);
   }
 </script>

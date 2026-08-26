@@ -104,6 +104,34 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_not_predicate Registration.order(:created_at).last.payment_receipt, :attached?
   end
 
+  test "registration form resets category picker when academy owner changes athlete" do
+    owner = User.create!(name: "Academy Owner", email: "reset-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Owned Academy", city: "Pune", status: :approved, owner: owner)
+    first_user = User.create!(name: "First Athlete", email: "first-reset-athlete@example.test", password: "password123", role: :athlete)
+    second_user = User.create!(name: "Second Athlete", email: "second-reset-athlete@example.test", password: "password123", role: :athlete)
+    first_athlete = first_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    second_user.athletes.create!(academy: academy, first_name: "Vihaan", last_name: "Mehta", date_of_birth: Date.new(2014, 5, 12), gender: "male")
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6),
+      registration_opens_at: 1.day.ago,
+      registration_closes_at: 1.day.from_now
+    )
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    tournament.registrations.create!(athlete: first_athlete, tournament_category: category, status: :draft)
+    sign_in_as owner
+
+    get new_tournament_registration_path(tournament, athlete_id: first_athlete.id)
+
+    assert_response :success
+    assert_includes response.body, "data-athlete-select"
+    assert_includes response.body, "resetCategoryPicker"
+    assert_includes response.body, "selected=\"selected\" value=\"#{category.id}\""
+  end
+
   test "registration create requires receipt when submitting multiple categories" do
     athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     tournament = Tournament.create!(

@@ -2,6 +2,28 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-26 - Reset Category Selection On Athlete Change
+
+### Reference
+- User request: as an academy owner, if I change athlete, previous selection of categories must be reset.
+
+### Scope Chosen For This Pass
+- Reset the visible category picker immediately when the athlete dropdown changes on the registration form.
+- Keep existing saved draft category preselection only for the athlete currently selected when the page loads.
+
+### Product Decisions
+- Changing athlete clears all category dropdown rows, hides the add-more checkbox, hides the delete button on the remaining empty row, and resets the payable total to zero.
+- The reset behavior applies to academy-owner registration and athlete self-registration because both use the same registration form.
+
+### Change Log
+- Added a `data-athlete-select` marker to the athlete dropdown.
+- Added JavaScript reset behavior for category rows and registration total when the athlete changes.
+- Added a regression test asserting the reset hook is rendered and draft categories still preselect for the active athlete.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/registrations_controller_test.rb`; result: 7 runs, 63 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 97 runs, 754 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-26 - Per-Category Fees And Secure Payment Display
 
 ### Reference
