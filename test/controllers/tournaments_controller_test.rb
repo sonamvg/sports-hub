@@ -288,8 +288,8 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       end_date: Date.new(2026, 12, 6)
     )
     category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
-    tournament.registrations.create!(athlete: athlete, tournament_category: category, registered_weight: 39.5, status: :approved)
-    tournament.registrations.create!(athlete: other_athlete, tournament_category: category, registered_weight: 45, status: :pending)
+    tournament.registrations.create!(athlete: athlete, tournament_category: category, registered_weight: 39.5, status: :approved, payment_receipt: payment_receipt_upload)
+    tournament.registrations.create!(athlete: other_athlete, tournament_category: category, registered_weight: 45, status: :pending, payment_receipt: payment_receipt_upload)
     sign_in_as parent
 
     get tournament_path(tournament)
@@ -322,7 +322,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       end_date: Date.new(2026, 12, 6)
     )
     category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
-    tournament.registrations.create!(athlete: athlete, tournament_category: category, registered_weight: 39.5, status: :approved)
+    tournament.registrations.create!(athlete: athlete, tournament_category: category, registered_weight: 39.5, status: :approved, payment_receipt: payment_receipt_upload)
 
     get tournament_path(tournament)
 

@@ -2,6 +2,40 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-26 - Registration Receipt Review And Action Logs
+
+### Reference
+- User request: when an athlete registers for an event, show the athlete at the top of the organizer review list with accept/deny actions. Any organizer for the tournament should be able to accept or deny the athlete. Keep a log of what action was taken for which athlete and by whom, visible only to super admins. Accepted athletes should appear lower than pending athletes, denied athletes after accepted ones. Athlete registration should include a receipt photo upload, visible to organizers before accepting or rejecting.
+
+### Scope Chosen For This Pass
+- Require a payment receipt upload during athlete tournament registration.
+- Show receipt links in organizer review list and registration detail review.
+- Sort organizer review list by status priority: pending, approved, rejected, then other statuses.
+- Preserve existing tournament-organizer permission behavior so any assigned organizer can accept/deny registrations for their tournaments.
+- Add a registration action log visible only to super admins.
+
+### Product Decisions
+- Receipt uploads are stored as `Registration#payment_receipt` with Active Storage.
+- Receipt upload is required at the model level, so organizer review always has a document to inspect.
+- Organizer-facing action labels use `Accept` and `Deny`.
+- Logs record actor, action, previous status, new status, and timestamp.
+- Action logs are intentionally hidden from normal organizers and visible only to super admins on the registration review page.
+
+### Change Log
+- Added `registration_action_logs` table and `RegistrationActionLog` model.
+- Added `Registration#payment_receipt` attachment and required receipt validation.
+- Added `Registration#review!` to update status, set `verified_at`, and create an action log.
+- Updated athlete registration form with required `Payment receipt photo` upload.
+- Updated organizer review list to show pending registrations first, followed by approved and rejected registrations.
+- Updated organizer review list/detail pages with receipt links and accept/deny actions.
+- Added super-admin-only action log section to organizer registration detail page.
+- Added tests for receipt requirement, receipt storage, review ordering, accept/deny logging, and super-admin-only log visibility.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: registration action log migration applied successfully.
+- Ran `mise exec -- bin/rails test test/controllers/registrations_controller_test.rb test/controllers/organizer_registrations_controller_test.rb test/controllers/tournaments_controller_test.rb test/models/registration_test.rb`; result: 27 runs, 273 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 79 runs, 613 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-26 - Tournament Detail Placeholders And Registered Athletes List
 
 ### Reference

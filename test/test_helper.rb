@@ -14,6 +14,10 @@ module AuthenticationTestHelper
   def tournament_image_upload
     Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/tournament-image.png"), "image/png")
   end
+
+  def payment_receipt_upload
+    Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/payment-receipt.png"), "image/png")
+  end
 end
 
 class ActionDispatch::IntegrationTest

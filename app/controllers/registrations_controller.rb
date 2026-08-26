@@ -42,6 +42,6 @@ class RegistrationsController < ApplicationController
   end
 
   def registration_params
-    params.require(:registration).permit(:athlete_id, :tournament_category_id, :registered_weight)
+    params.require(:registration).permit(:athlete_id, :tournament_category_id, :registered_weight, :payment_receipt)
   end
 end

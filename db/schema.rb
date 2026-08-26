@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_26_070000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_26_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -77,6 +77,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_070000) do
     t.decimal "weight", precision: 5, scale: 2
     t.index ["academy_id"], name: "index_athletes_on_academy_id"
     t.index ["user_id"], name: "index_athletes_on_user_id"
+  end
+
+  create_table "registration_action_logs", force: :cascade do |t|
+    t.string "action", null: false
+    t.bigint "actor_id", null: false
+    t.datetime "created_at", null: false
+    t.string "from_status"
+    t.bigint "registration_id", null: false
+    t.string "to_status", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_registration_action_logs_on_actor_id"
+    t.index ["registration_id"], name: "index_registration_action_logs_on_registration_id"
   end
 
   create_table "registrations", force: :cascade do |t|
@@ -187,6 +199,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_070000) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "athletes", "academies"
   add_foreign_key "athletes", "users"
+  add_foreign_key "registration_action_logs", "registrations"
+  add_foreign_key "registration_action_logs", "users", column: "actor_id"
   add_foreign_key "registrations", "athletes"
   add_foreign_key "registrations", "tournament_categories"
   add_foreign_key "registrations", "tournaments"

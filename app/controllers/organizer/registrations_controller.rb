@@ -4,19 +4,24 @@ module Organizer
     before_action :set_registration, only: %i[show approve reject]
 
     def index
-      @registrations = visible_registrations.includes(:athlete, :tournament, :tournament_category).order(created_at: :desc)
+      @registrations = visible_registrations
+        .includes(:athlete, :tournament, :tournament_category)
+        .with_attached_payment_receipt
+        .order(status_sort_sql, created_at: :desc)
     end
 
-    def show; end
+    def show
+      @action_logs = @registration.registration_action_logs.includes(:actor).order(created_at: :desc) if super_admin?
+    end
 
     def approve
-      @registration.update!(status: :approved, verified_at: Time.current)
-      redirect_to organizer_registrations_path, notice: "Registration approved."
+      @registration.review!(actor: current_user, status: :approved)
+      redirect_to organizer_registrations_path, notice: "Registration accepted."
     end
 
     def reject
-      @registration.update!(status: :rejected, verified_at: Time.current)
-      redirect_to organizer_registrations_path, notice: "Registration rejected."
+      @registration.review!(actor: current_user, status: :rejected)
+      redirect_to organizer_registrations_path, notice: "Registration denied."
     end
 
     private
@@ -35,6 +40,10 @@ module Organizer
 
     def set_registration
       @registration = visible_registrations.find(params[:id])
+    end
+
+    def status_sort_sql
+      Arel.sql("CASE registrations.status WHEN 0 THEN 0 WHEN 1 THEN 1 WHEN 2 THEN 2 ELSE 3 END")
     end
   end
 end

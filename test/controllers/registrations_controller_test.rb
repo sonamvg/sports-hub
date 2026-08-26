@@ -75,4 +75,44 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Athlete must exist"
     assert_includes response.body, "Add athlete"
   end
+
+  test "registration create requires and stores payment receipt" do
+    athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6),
+      registration_opens_at: 1.day.ago,
+      registration_closes_at: 1.day.from_now
+    )
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+
+    assert_no_difference("Registration.count") do
+      post tournament_registrations_path(tournament), params: {
+        registration: {
+          athlete_id: athlete.id,
+          tournament_category_id: category.id,
+          registered_weight: 39
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Payment receipt must be uploaded"
+
+    assert_difference("Registration.count", 1) do
+      post tournament_registrations_path(tournament), params: {
+        registration: {
+          athlete_id: athlete.id,
+          tournament_category_id: category.id,
+          registered_weight: 39,
+          payment_receipt: payment_receipt_upload
+        }
+      }
+    end
+
+    assert_predicate Registration.order(:created_at).last.payment_receipt, :attached?
+  end
 end

@@ -27,6 +27,11 @@
     </div>
     <div><%= form.label :tournament_category_id, "Category" %><%= form.collection_select :tournament_category_id, @categories, :id, :name, prompt: "Choose category" %></div>
     <div><%= form.label :registered_weight, "Current weight (kg)" %><%= form.number_field :registered_weight, step: 0.1, min: 1 %></div>
+    <div>
+      <%= form.label :payment_receipt, "Payment receipt photo" %>
+      <%= form.file_field :payment_receipt, required: true, accept: "image/png,image/jpeg,image/webp,application/pdf" %>
+      <p class="field-hint">Upload a receipt image or PDF so organizers can verify payment before accepting the registration.</p>
+    </div>
   </div>
   <div class="form-actions"><%= form.submit "Submit registration", class: "primary-button button-reset" %><%= link_to "Cancel", tournament_path(@tournament), class: "secondary-button" %></div>
 <% end %>
