@@ -2,6 +2,29 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-26 - Tournament Category List View
+
+### Reference
+- User request: on the tournament page, show categories in list view instead of tiles.
+
+### Scope Chosen For This Pass
+- Change the tournament detail page category section only.
+- Preserve existing category edit and tournament registration actions.
+- Keep the list responsive for mobile and desktop.
+
+### Product Decisions
+- Categories are operational tournament data, so the detail page should use a compact row layout instead of card tiles.
+- Each row shows event type, category name, gender, age range, weight range, and available actions.
+
+### Change Log
+- Replaced the category tile grid on `tournaments/show` with `category-list` and `category-row` markup.
+- Added responsive CSS for category rows, details, and actions.
+- Added a controller rendering assertion so the tournament page keeps the category list structure.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb`; result: 12 runs, 96 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 68 runs, 440 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-26 - Organizer Verification And Tournament Organizer Roles
 
 ### Reference

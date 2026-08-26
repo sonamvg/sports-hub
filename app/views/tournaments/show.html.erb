@@ -90,14 +90,20 @@
         <%= link_to "Add category", new_tournament_tournament_category_path(@tournament), class: "primary-button" %>
       <% end %>
     </div>
-    <div class="list-grid">
+    <div class="category-list">
       <% @categories.each do |category| %>
-        <article class="entity-card">
-          <span class="status-pill"><%= category.event_type.titleize %></span>
-          <h2><%= category.name %></h2>
-          <p><%= [category.gender&.titleize, category.weight_max && "Up to #{category.weight_max} kg"].compact.join(" · ") %></p>
+        <article class="category-row">
+          <div class="category-main">
+            <span class="status-pill"><%= category.event_type.titleize %></span>
+            <h3><%= category.name %></h3>
+          </div>
+          <div class="category-details">
+            <span><strong>Gender</strong><%= category.gender&.titleize || "Open" %></span>
+            <span><strong>Age</strong><%= [category.age_min, category.age_max].compact.any? ? [category.age_min, category.age_max].compact.join("-") : "Open" %></span>
+            <span><strong>Weight</strong><%= category.weight_max ? "Up to #{category.weight_max} kg" : "Open" %></span>
+          </div>
           <% if can_manage_tournament?(@tournament) || (current_user && @tournament.accepting_registrations?) %>
-            <div class="form-actions">
+            <div class="category-actions">
               <% if can_manage_tournament?(@tournament) %>
                 <%= link_to "Edit category", edit_tournament_tournament_category_path(@tournament, category), class: "text-link" %>
               <% end %>

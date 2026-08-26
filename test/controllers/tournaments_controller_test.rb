@@ -195,6 +195,8 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Pune Invitational"
     assert_includes response.body, "Categories"
+    assert_includes response.body, "category-list"
+    assert_includes response.body, "category-row"
     assert_not_includes response.body, "My athletes"
     assert_not_includes response.body, "No athlete profiles yet"
     assert_not_includes response.body, "Register athlete"
