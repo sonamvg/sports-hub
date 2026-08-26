@@ -142,6 +142,13 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 .category-details span { display:flex; flex-direction:column; gap:5px; color:var(--muted); font-size:14px; }
 .category-details strong { color:var(--ink); text-transform:uppercase; letter-spacing:.08em; font-size:10px; }
 .category-actions { display:flex; align-items:center; justify-content:flex-end; gap:14px; flex-wrap:wrap; }
+.registered-athlete-list { border:1px solid var(--line); background:white; }
+.registered-athlete-row { display:grid; grid-template-columns:1.25fr 1fr 1fr .8fr auto; align-items:center; gap:18px; padding:18px 22px; border-bottom:1px solid var(--line); }
+.registered-athlete-row:last-child { border-bottom:0; }
+.registered-athlete-row > div:first-child { display:flex; flex-direction:column; align-items:flex-start; gap:9px; }
+.registered-athlete-row span { display:flex; flex-direction:column; gap:5px; color:var(--muted); font-size:14px; }
+.registered-athlete-row strong { color:var(--ink); }
+.registered-athlete-row span strong { text-transform:uppercase; letter-spacing:.08em; font-size:10px; }
 .approval-table { background:white; border:1px solid var(--line); margin-top:36px; }
 .approval-row { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:20px; padding:20px 22px; border-bottom:1px solid var(--line); }
 .approval-row:last-child { border-bottom:0; }
@@ -160,6 +167,7 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
   .page-heading { align-items:flex-start; flex-direction:column; }
   .approval-row { grid-template-columns:1fr; }
   .category-row { grid-template-columns:1fr; align-items:flex-start; }
+  .registered-athlete-row { grid-template-columns:1fr; align-items:flex-start; }
   .category-actions { justify-content:flex-start; }
 }
 @media (max-width:650px) {

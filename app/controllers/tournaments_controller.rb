@@ -28,8 +28,7 @@ class TournamentsController < ApplicationController
 
   def show
     @categories = @tournament.tournament_categories.order(:name)
-    @athletes = current_user ? current_user.athletes.includes(:academy).order(:first_name, :last_name) : Athlete.none
-    @registrations_by_athlete_id = @tournament.registrations.includes(:tournament_category).index_by(&:athlete_id)
+    @registrations = visible_tournament_registrations
   end
 
   def edit; end
@@ -55,6 +54,15 @@ class TournamentsController < ApplicationController
 
   def require_tournament_manager
     raise ActiveRecord::RecordNotFound unless can_manage_tournament?(@tournament)
+  end
+
+  def visible_tournament_registrations
+    return Registration.none unless current_user
+
+    registrations = @tournament.registrations.includes(:tournament_category, athlete: :academy).order(created_at: :desc)
+    return registrations if can_manage_tournament?(@tournament)
+
+    registrations.joins(:athlete).where(athletes: { user_id: current_user.id })
   end
 
   def require_verified_organizer

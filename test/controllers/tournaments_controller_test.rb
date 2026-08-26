@@ -261,8 +261,51 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "End date cannot be before start date"
   end
 
-  test "show lists current user's athletes under tournament" do
+  test "show lists current user's registered athletes under tournament" do
     parent = User.create!(name: "Demo Parent", email: "parent@example.com", password: "password123", role: :parent)
+    other_parent = User.create!(name: "Other Parent", email: "other-parent@example.com", password: "password123", role: :parent)
+    athlete = parent.athletes.create!(
+      first_name: "Aarohi",
+      last_name: "Shah",
+      date_of_birth: Date.new(2014, 5, 12),
+      gender: "female",
+      belt: "red",
+      weight: 39.5
+    )
+    other_athlete = other_parent.athletes.create!(
+      first_name: "Hidden",
+      last_name: "Athlete",
+      date_of_birth: Date.new(2013, 4, 10),
+      gender: "male",
+      belt: "blue",
+      weight: 45
+    )
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    tournament.registrations.create!(athlete: athlete, tournament_category: category, registered_weight: 39.5, status: :approved)
+    tournament.registrations.create!(athlete: other_athlete, tournament_category: category, registered_weight: 45, status: :pending)
+    sign_in_as parent
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Registered athletes"
+    assert_includes response.body, "registered-athlete-list"
+    assert_includes response.body, "registered-athlete-row"
+    assert_includes response.body, "Aarohi Shah"
+    assert_includes response.body, "Approved"
+    assert_includes response.body, category.name
+    assert_not_includes response.body, "Hidden Athlete"
+  end
+
+  test "tournament manager sees all registered athletes" do
+    parent = User.create!(name: "Demo Parent", email: "manager-parent@example.com", password: "password123", role: :parent)
     athlete = parent.athletes.create!(
       first_name: "Aarohi",
       last_name: "Shah",
@@ -280,15 +323,13 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     )
     category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
     tournament.registrations.create!(athlete: athlete, tournament_category: category, registered_weight: 39.5, status: :approved)
-    sign_in_as parent
 
     get tournament_path(tournament)
 
     assert_response :success
-    assert_includes response.body, "My athletes"
+    assert_includes response.body, "Registered athletes"
     assert_includes response.body, "Aarohi Shah"
-    assert_includes response.body, "Approved"
-    assert_includes response.body, category.name
+    assert_includes response.body, "39.5 kg"
   end
 
   test "logged out show hides athlete-specific registration sections" do
@@ -313,6 +354,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "category-list"
     assert_includes response.body, "category-row"
     assert_not_includes response.body, "My athletes"
+    assert_not_includes response.body, "Registered athletes"
     assert_not_includes response.body, "No athlete profiles yet"
     assert_not_includes response.body, "Register athlete"
     assert_not_includes response.body, "Register →"
@@ -334,9 +376,24 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     get tournament_path(tournament)
 
     assert_response :success
-    assert_includes response.body, "My athletes"
-    assert_includes response.body, "No athlete profiles yet"
+    assert_includes response.body, "Registered athletes"
+    assert_includes response.body, "No registered athletes yet"
     assert_includes response.body, "Register athlete"
+  end
+
+  test "show uses placeholder dashes for missing optional tournament data" do
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "<span>--</span>"
+    assert_not_includes response.body, "Not set"
   end
 
   test "show renders tournament breadcrumbs" do

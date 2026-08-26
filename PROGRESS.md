@@ -2,6 +2,35 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-26 - Tournament Detail Placeholders And Registered Athletes List
+
+### Reference
+- User request: on `/tournaments/2`, show `--` instead of `Not set` for missing values such as website, and change `My athletes` to `Registered athletes` with registered athletes shown in list view.
+
+### Scope Chosen For This Pass
+- Update tournament detail display only.
+- Preserve logged-out privacy behavior by not showing athlete registration details to signed-out visitors.
+- Show all registered athletes to tournament managers.
+- Show only the current user's registered athletes to normal signed-in users.
+
+### Product Decisions
+- Missing optional tournament fields use `--` consistently.
+- The event setup detail list now remains visible even when values are missing, so users see the expected field with a placeholder.
+- Registered athletes use a row/list layout instead of profile cards.
+- Athlete names, academy, and weights are scoped to authorized viewers rather than all signed-in users.
+
+### Change Log
+- Added safe display helpers in the tournament detail template for placeholders.
+- Replaced `Not set` fallbacks with `--`.
+- Replaced `My athletes` card grid with a `Registered athletes` list.
+- Added `TournamentsController#visible_tournament_registrations` to scope registrations by manager/current-user access.
+- Added CSS for registered-athlete list rows.
+- Updated tests for placeholders, registered-athlete list rendering, manager access, current-user scoping, and logged-out privacy.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb`; result: 18 runs, 207 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 75 runs, 572 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-26 - Tournament Setup Checklist Controls
 
 ### Reference

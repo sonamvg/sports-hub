@@ -1,4 +1,6 @@
 <section class="page-shell"><div class="container">
+  <% display_value = ->(value) { value.present? ? value : "--" } %>
+  <% display_join = ->(values) { values.compact_blank.join(", ").presence || "--" } %>
   <%= render "shared/breadcrumbs", items: [
     { label: "Home", path: root_path },
     { label: "Tournaments", path: tournaments_path },
@@ -36,70 +38,62 @@
   <% end %>
 
   <div class="detail-card tournament-summary">
-    <div><strong>Venue</strong><span><%= [@tournament.venue, @tournament.city, @tournament.state].compact.join(", ") %></span></div>
+    <div><strong>Venue</strong><span><%= display_join.call([@tournament.venue, @tournament.city, @tournament.state]) %></span></div>
     <div><strong>Dates</strong><span><%= @tournament.start_date.strftime("%d %b") %> – <%= @tournament.end_date.strftime("%d %b %Y") %></span></div>
-    <div><strong>Level</strong><span><%= @tournament.tournament_level.presence || "Not set" %></span></div>
+    <div><strong>Level</strong><span><%= display_value.call(@tournament.tournament_level) %></span></div>
     <div><strong>Status</strong><span><%= @tournament.status.humanize %></span></div>
-    <div><strong>Organisation</strong><span><%= @tournament.organizing_organization.presence || "Not set" %></span></div>
-    <div><strong>Time zone</strong><span><%= @tournament.time_zone.presence || "Not set" %></span></div>
+    <div><strong>Organisation</strong><span><%= display_value.call(@tournament.organizing_organization) %></span></div>
+    <div><strong>Time zone</strong><span><%= display_value.call(@tournament.time_zone) %></span></div>
     <div><strong>Super organizer</strong><span><%= @tournament.organizer.name %></span></div>
     <div><strong>Organizers</strong><span><%= @tournament.organizer_users.order(:name).map(&:name).join(", ").presence || @tournament.organizer.name %></span></div>
-    <div><strong>Website</strong><span><%= @tournament.website_url.present? ? link_to("Open site", @tournament.website_url, class: "text-link", target: "_blank", rel: "noopener") : "Not set" %></span></div>
-    <div><strong>Registration opens</strong><span><%= @tournament.registration_opens_at&.strftime("%d %b %Y, %I:%M %p") || "Not set" %></span></div>
-    <div><strong>Registration closes</strong><span><%= @tournament.registration_closes_at&.strftime("%d %b %Y, %I:%M %p") || "Not set" %></span></div>
-    <div><strong>Capacity</strong><span><%= @tournament.registration_capacity || "Not set" %></span></div>
-    <div><strong>Fee</strong><span><%= @tournament.registration_fee ? "#{@tournament.currency.presence || "INR"} #{@tournament.registration_fee}" : "Not set" %></span></div>
+    <div><strong>Website</strong><span><%= @tournament.website_url.present? ? link_to("Open site", @tournament.website_url, class: "text-link", target: "_blank", rel: "noopener") : "--" %></span></div>
+    <div><strong>Registration opens</strong><span><%= @tournament.registration_opens_at&.strftime("%d %b %Y, %I:%M %p") || "--" %></span></div>
+    <div><strong>Registration closes</strong><span><%= @tournament.registration_closes_at&.strftime("%d %b %Y, %I:%M %p") || "--" %></span></div>
+    <div><strong>Capacity</strong><span><%= @tournament.registration_capacity || "--" %></span></div>
+    <div><strong>Fee</strong><span><%= @tournament.registration_fee ? "#{@tournament.currency.presence || "INR"} #{@tournament.registration_fee}" : "--" %></span></div>
   </div>
 
-  <% if @tournament.competition_formats.present? || @tournament.eligibility_summary.present? || @tournament.required_documents.present? || @tournament.refund_policy.present? %>
-    <div class="detail-card detail-list">
-      <div><dt>Competition formats</dt><dd><%= @tournament.competition_formats.presence || "Not set" %></dd></div>
-      <div><dt>Basic eligibility</dt><dd><%= @tournament.eligibility_summary.presence || "Not set" %></dd></div>
-      <div><dt>Category generation</dt><dd><%= @tournament.category_generation_method.presence || "Not set" %></dd></div>
-      <div><dt>Required documents</dt><dd><%= @tournament.required_documents.presence || "Not set" %></dd></div>
-      <div><dt>Refund policy</dt><dd><%= @tournament.refund_policy.presence || "Not set" %></dd></div>
-    </div>
-  <% end %>
+  <div class="detail-card detail-list">
+    <div><dt>Competition formats</dt><dd><%= display_value.call(@tournament.competition_formats) %></dd></div>
+    <div><dt>Basic eligibility</dt><dd><%= display_value.call(@tournament.eligibility_summary) %></dd></div>
+    <div><dt>Category generation</dt><dd><%= display_value.call(@tournament.category_generation_method) %></dd></div>
+    <div><dt>Required documents</dt><dd><%= display_value.call(@tournament.required_documents) %></dd></div>
+    <div><dt>Refund policy</dt><dd><%= display_value.call(@tournament.refund_policy) %></dd></div>
+  </div>
 
   <% if current_user %>
     <div class="section-compact">
     <div class="page-heading compact-heading">
       <div>
-        <h2 class="section-title">My athletes</h2>
-        <p class="page-copy">Athlete profiles available for this tournament registration.</p>
+        <h2 class="section-title">Registered athletes</h2>
+        <p class="page-copy"><%= can_manage_tournament?(@tournament) ? "Athletes registered for this tournament." : "Your athletes registered for this tournament." %></p>
       </div>
       <%= link_to "Add athlete", new_athlete_path(return_to: tournament_path(@tournament)), class: "primary-button" %>
     </div>
 
-    <% if @athletes.any? %>
-      <div class="list-grid">
-        <% @athletes.each do |athlete| %>
-          <% registration = @registrations_by_athlete_id[athlete.id] %>
-          <article class="entity-card">
-            <span class="status-pill <%= registration ? "status-#{registration.status}" : "" %>">
-              <%= registration ? registration.status.humanize : "Not registered" %>
-            </span>
-            <h2><%= athlete.full_name %></h2>
-            <p><%= [athlete.academy&.name, athlete.belt&.titleize, athlete.weight && "#{athlete.weight} kg"].compact.join(" · ") %></p>
-            <% if registration %>
-              <div class="entity-meta">
-                <span><strong>Category</strong><%= registration.tournament_category.name %></span>
-              </div>
-            <% end %>
-            <div class="form-actions">
-              <%= link_to "View profile", athlete_path(athlete), class: "text-link" %>
-              <% if @tournament.accepting_registrations? && registration.blank? %>
-                <%= link_to "Register →", new_tournament_registration_path(@tournament, athlete_id: athlete.id), class: "text-link" %>
-              <% end %>
+    <% if @registrations.any? %>
+      <div class="registered-athlete-list">
+        <% @registrations.each do |registration| %>
+          <% athlete = registration.athlete %>
+          <article class="registered-athlete-row">
+            <div>
+              <span class="status-pill status-<%= registration.status %>"><%= registration.status.humanize %></span>
+              <strong><%= athlete.full_name %></strong>
             </div>
+            <span><strong>Category</strong><%= registration.tournament_category.name %></span>
+            <span><strong>Academy</strong><%= athlete.academy&.name || "--" %></span>
+            <span><strong>Weight</strong><%= registration.registered_weight ? "#{registration.registered_weight} kg" : "--" %></span>
+            <%= link_to "View profile", athlete_path(athlete), class: "text-link" %>
           </article>
         <% end %>
       </div>
     <% else %>
       <div class="inline-empty-state">
-        <strong>No athlete profiles yet</strong>
-        <p>Add an athlete profile to make tournament registration faster and more consistent.</p>
-        <%= link_to "Add athlete", new_athlete_path(return_to: tournament_path(@tournament)), class: "primary-button" %>
+        <strong>No registered athletes yet</strong>
+        <p>Registrations will appear here after athletes are submitted for this tournament.</p>
+        <% if @tournament.accepting_registrations? %>
+          <%= link_to "Register athlete", new_tournament_registration_path(@tournament), class: "primary-button" %>
+        <% end %>
       </div>
     <% end %>
     </div>
