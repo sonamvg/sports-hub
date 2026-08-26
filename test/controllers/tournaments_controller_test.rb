@@ -31,6 +31,14 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       "Refund policy",
       "Logo or image upload",
       "Banner or hero image upload",
+      "Kyorugi",
+      "Individual Poomsae",
+      "Age proof required",
+      "Government identity proof",
+      "Full refund before registration closes",
+      "Enter competition format",
+      "Enter eligibility rule",
+      "Enter required document",
       "Save as Draft",
       "Publish"
     ].each do |label|
@@ -58,14 +66,17 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
           primary_contact_name: "Event Desk",
           primary_contact_email: "events@example.com",
           primary_contact_phone: "9876543210",
-          competition_formats: "Kyorugi, Poomsae",
-          eligibility_summary: "Red belt and above",
+          competition_format_options: ["Kyorugi", "Individual Poomsae"],
+          competition_format_other: ["Breaking"],
+          eligibility_options: ["Age proof required"],
+          eligibility_other: ["Red belt and above", "State ranking required"],
           category_generation_method: "Auto-generate from eligibility rules",
           registration_capacity: 400,
           registration_fee: "1500.00",
           currency: "inr",
-          required_documents: "Age proof, association ID",
-          refund_policy: "Refunds close 7 days before event",
+          required_document_options: ["Age proof", "Association ID"],
+          required_document_other: ["Coach approval"],
+          refund_policy_options: ["Full refund before registration closes", "No refund after draws are published"],
           status: "registration_open",
           website_url: "https://example.com/pune-invitational",
           logo_image: tournament_image_upload,
@@ -86,11 +97,14 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Maharashtra Taekwondo Association", tournament.organizing_organization
     assert_equal "Mumbai", tournament.time_zone
     assert_equal "events@example.com", tournament.primary_contact_email
-    assert_equal "Kyorugi, Poomsae", tournament.competition_formats
+    assert_equal "Kyorugi, Individual Poomsae, Breaking", tournament.competition_formats
+    assert_equal "Age proof required, Red belt and above, State ranking required", tournament.eligibility_summary
     assert_equal "Auto-generate from eligibility rules", tournament.category_generation_method
     assert_equal 400, tournament.registration_capacity
     assert_equal BigDecimal("1500.0"), tournament.registration_fee
     assert_equal "INR", tournament.currency
+    assert_equal "Age proof, Association ID, Coach approval", tournament.required_documents
+    assert_equal "Full refund before registration closes, No refund after draws are published", tournament.refund_policy
     assert_equal @organizer, tournament.tournament_organizers.super_organizer.sole.user
     assert_includes tournament.organizer_users, collaborator
   end

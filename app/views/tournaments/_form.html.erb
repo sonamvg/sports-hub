@@ -1,5 +1,13 @@
 <%= form_with model: tournament, class: "form-card" do |form| %>
   <%= render "shared/errors", record: tournament %>
+  <% split_values = ->(value) { value.to_s.split(",").map(&:squish).reject(&:blank?) } %>
+  <% selected_formats = split_values.call(tournament.competition_formats) %>
+  <% selected_eligibility = split_values.call(tournament.eligibility_summary) %>
+  <% selected_documents = split_values.call(tournament.required_documents) %>
+  <% selected_refunds = split_values.call(tournament.refund_policy) %>
+  <% custom_formats = selected_formats - Tournament::DEFAULT_COMPETITION_FORMATS %>
+  <% custom_eligibility = selected_eligibility - Tournament::DEFAULT_ELIGIBILITY_RULES %>
+  <% custom_documents = selected_documents - Tournament::DEFAULT_REQUIRED_DOCUMENTS %>
 
   <div class="form-grid two-col">
     <div class="full form-section-heading">
@@ -124,23 +132,75 @@
 
     <div class="full">
       <%= form.label :competition_formats, "Competition formats" %>
-      <%= form.text_area :competition_formats, required: true, rows: 3, placeholder: "Kyorugi, Poomsae, Team Poomsae, Para Taekwondo" %>
-      <p class="field-hint">List every format this tournament will support.</p>
+      <div class="checklist-group" data-repeatable-other data-other-name="tournament[competition_format_other][]" data-other-placeholder="Enter competition format">
+        <% Tournament::DEFAULT_COMPETITION_FORMATS.each do |format| %>
+          <label class="checkbox-option">
+            <%= check_box_tag "tournament[competition_format_options][]", format, selected_formats.include?(format) %>
+            <span><%= format %></span>
+          </label>
+        <% end %>
+        <div class="other-options" data-other-list>
+          <% (custom_formats.presence || [""]).each do |format| %>
+            <div class="other-row">
+              <%= text_field_tag "tournament[competition_format_other][]", format, placeholder: "Enter competition format" %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      <p class="field-hint">Choose defaults or use Other to add custom formats. A new Other row appears as you type.</p>
     </div>
 
     <div class="full">
       <%= form.label :eligibility_summary, "Basic eligibility" %>
-      <%= form.text_area :eligibility_summary, required: true, rows: 3, placeholder: "Age bands, belt requirements, academy/federation membership, ranking requirements" %>
+      <div class="checklist-group" data-repeatable-other data-other-name="tournament[eligibility_other][]" data-other-placeholder="Enter eligibility rule">
+        <% Tournament::DEFAULT_ELIGIBILITY_RULES.each do |rule| %>
+          <label class="checkbox-option">
+            <%= check_box_tag "tournament[eligibility_options][]", rule, selected_eligibility.include?(rule) %>
+            <span><%= rule %></span>
+          </label>
+        <% end %>
+        <div class="other-options" data-other-list>
+          <% (custom_eligibility.presence || [""]).each do |rule| %>
+            <div class="other-row">
+              <%= text_field_tag "tournament[eligibility_other][]", rule, placeholder: "Enter eligibility rule" %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      <p class="field-hint">Choose default eligibility rules or add custom rules with Other.</p>
     </div>
 
     <div class="full">
       <%= form.label :required_documents, "Required documents" %>
-      <%= form.text_area :required_documents, required: true, rows: 3, placeholder: "Age proof, association ID, medical clearance, academy approval" %>
+      <div class="checklist-group" data-repeatable-other data-other-name="tournament[required_document_other][]" data-other-placeholder="Enter required document">
+        <% Tournament::DEFAULT_REQUIRED_DOCUMENTS.each do |document| %>
+          <label class="checkbox-option">
+            <%= check_box_tag "tournament[required_document_options][]", document, selected_documents.include?(document) %>
+            <span><%= document %></span>
+          </label>
+        <% end %>
+        <div class="other-options" data-other-list>
+          <% (custom_documents.presence || [""]).each do |document| %>
+            <div class="other-row">
+              <%= text_field_tag "tournament[required_document_other][]", document, placeholder: "Enter required document" %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      <p class="field-hint">Choose required documents or add custom document names with Other.</p>
     </div>
 
     <div class="full">
       <%= form.label :refund_policy, "Refund policy" %>
-      <%= form.text_area :refund_policy, required: true, rows: 3, placeholder: "Refund deadlines, deductions, no-refund conditions" %>
+      <div class="checklist-group">
+        <% Tournament::DEFAULT_REFUND_POLICIES.each do |policy| %>
+          <label class="checkbox-option">
+            <%= check_box_tag "tournament[refund_policy_options][]", policy, selected_refunds.include?(policy) %>
+            <span><%= policy %></span>
+          </label>
+        <% end %>
+      </div>
+      <p class="field-hint">Select the refund rules that apply. Refund policy is checkbox-only.</p>
     </div>
 
     <div class="full form-section-heading">
@@ -186,3 +246,29 @@
     <%= link_to "Cancel", tournament.persisted? ? tournament_path(tournament) : tournaments_path, class: "secondary-button" %>
   </div>
 <% end %>
+
+<script>
+  document.addEventListener("input", function(event) {
+    const input = event.target;
+    const group = input.closest("[data-repeatable-other]");
+
+    if (!group || !input.closest("[data-other-list]")) return;
+
+    const list = group.querySelector("[data-other-list]");
+    const inputs = Array.from(list.querySelectorAll("input[type='text']"));
+    const lastInput = inputs[inputs.length - 1];
+
+    if (input !== lastInput || lastInput.value.trim() === "") return;
+
+    const row = document.createElement("div");
+    row.className = "other-row";
+
+    const nextInput = document.createElement("input");
+    nextInput.type = "text";
+    nextInput.name = group.dataset.otherName;
+    nextInput.placeholder = group.dataset.otherPlaceholder;
+
+    row.appendChild(nextInput);
+    list.appendChild(row);
+  });
+</script>

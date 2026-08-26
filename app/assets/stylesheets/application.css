@@ -113,6 +113,11 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 .form-grid label { display:block; font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; margin-bottom:8px; }
 .form-grid input,.form-grid select,.form-grid textarea { width:100%; border:1px solid #cfd0d4; background:white; padding:13px 14px; font:inherit; min-height:48px; }
 .form-grid input:focus,.form-grid select:focus { outline:2px solid rgba(226,29,47,.2); border-color:var(--red); }
+.checklist-group { border:1px solid #cfd0d4; padding:16px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 18px; }
+.checkbox-option { display:flex!important; align-items:flex-start; gap:10px; margin:0!important; font-size:14px!important; font-weight:700!important; letter-spacing:0!important; text-transform:none!important; line-height:1.35; }
+.checkbox-option input { width:auto!important; min-height:0!important; margin-top:2px; }
+.other-options { grid-column:1/-1; display:grid; gap:10px; }
+.other-row input { width:100%; }
 .field-hint { margin:8px 0 0; color:var(--muted); font-size:13px; }
 .form-actions { display:flex; gap:12px; align-items:center; margin-top:28px; flex-wrap:wrap; }
 .button-reset { border:0; cursor:pointer; font:inherit; }
@@ -159,6 +164,7 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 }
 @media (max-width:650px) {
   .list-grid,.form-grid.two-col,.tournament-summary,.news-board,.category-details { grid-template-columns:1fr; }
+  .checklist-group { grid-template-columns:1fr; }
   .form-grid .full { grid-column:auto; }
   .entity-meta { flex-direction:column; gap:10px; }
   .detail-list div { grid-template-columns:1fr; gap:5px; }

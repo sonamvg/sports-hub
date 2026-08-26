@@ -9,6 +9,38 @@ class Tournament < ApplicationRecord
   has_one_attached :logo_image
   has_one_attached :banner_image
 
+  DEFAULT_COMPETITION_FORMATS = [
+    "Kyorugi",
+    "Individual Poomsae",
+    "Pair Poomsae",
+    "Team Poomsae",
+    "Para Taekwondo"
+  ].freeze
+
+  DEFAULT_ELIGIBILITY_RULES = [
+    "Age proof required",
+    "Valid academy or association membership",
+    "Medical fitness declaration",
+    "Minimum belt requirement",
+    "Guardian consent for minors"
+  ].freeze
+
+  DEFAULT_REQUIRED_DOCUMENTS = [
+    "Age proof",
+    "Government identity proof",
+    "Academy approval letter",
+    "Association ID",
+    "Medical clearance"
+  ].freeze
+
+  DEFAULT_REFUND_POLICIES = [
+    "Full refund before registration closes",
+    "Partial refund after registration closes",
+    "No refund after draws are published",
+    "Refund only if event is cancelled",
+    "Transfer registration to another athlete is not allowed"
+  ].freeze
+
   enum :status, {
     draft: 0,
     registration_open: 1,

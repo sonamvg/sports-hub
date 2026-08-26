@@ -85,19 +85,46 @@ class TournamentsController < ApplicationController
   end
 
   def tournament_params
-    params.require(:tournament).permit(
+    permitted = params.require(:tournament).permit(
       :name, :slug, :description, :venue, :city, :state, :start_date, :end_date,
       :registration_opens_at, :registration_closes_at, :status, :website_url,
       :tournament_level, :organizing_organization, :time_zone, :primary_contact_name,
       :primary_contact_email, :primary_contact_phone, :competition_formats,
       :eligibility_summary, :category_generation_method, :registration_capacity,
       :registration_fee, :currency, :required_documents, :refund_policy,
-      :logo_image, :banner_image
+      :logo_image, :banner_image,
+      competition_format_options: [], competition_format_other: [],
+      eligibility_options: [], eligibility_other: [],
+      required_document_options: [], required_document_other: [],
+      refund_policy_options: []
     )
+
+    compose_checklist_fields(permitted)
   end
 
   def apply_submit_intent(tournament)
     tournament.status = :draft if params[:commit] == "Save as Draft"
     tournament.status = :scheduled if params[:commit] == "Publish" && tournament.draft?
+  end
+
+  def compose_checklist_fields(permitted)
+    if permitted.key?(:competition_format_options) || permitted.key?(:competition_format_other)
+      permitted[:competition_formats] = joined_checklist(permitted.delete(:competition_format_options), permitted.delete(:competition_format_other))
+    end
+
+    if permitted.key?(:eligibility_options) || permitted.key?(:eligibility_other)
+      permitted[:eligibility_summary] = joined_checklist(permitted.delete(:eligibility_options), permitted.delete(:eligibility_other))
+    end
+
+    if permitted.key?(:required_document_options) || permitted.key?(:required_document_other)
+      permitted[:required_documents] = joined_checklist(permitted.delete(:required_document_options), permitted.delete(:required_document_other))
+    end
+
+    permitted[:refund_policy] = joined_checklist(permitted.delete(:refund_policy_options), []) if permitted.key?(:refund_policy_options)
+    permitted
+  end
+
+  def joined_checklist(options, other_values)
+    (Array(options) + Array(other_values)).map { |value| value.to_s.squish }.reject(&:blank?).uniq.join(", ")
   end
 end

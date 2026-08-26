@@ -2,6 +2,36 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-26 - Tournament Setup Checklist Controls
+
+### Reference
+- User request: on `/tournaments/new`, replace free-text tournament setup fields with default checkboxes. Competition formats, basic eligibility, and required documents should include an `Other` option where users can enter a custom value, and another `Other` field should appear so multiple custom values can be added. Refund policy should be checkbox-only with no other section.
+
+### Scope Chosen For This Pass
+- Keep existing tournament storage columns for compatibility.
+- Change the form UI from text areas to guided checkbox groups.
+- Compose selected defaults plus custom entries into the existing text columns on submit.
+- Add a small form-local JavaScript behavior for repeatable custom `Other` rows.
+
+### Product Decisions
+- Competition formats defaults: Kyorugi, Individual Poomsae, Pair Poomsae, Team Poomsae, Para Taekwondo.
+- Basic eligibility defaults: age proof, academy/association membership, medical fitness, minimum belt, and guardian consent for minors.
+- Required document defaults: age proof, government identity proof, academy approval letter, association ID, and medical clearance.
+- Refund policy is checkbox-only as requested.
+- Custom values saved from previous edits are shown back as populated `Other` rows.
+
+### Change Log
+- Added default checklist constants to `Tournament`.
+- Replaced competition formats, basic eligibility, required documents, and refund policy text areas with checkbox groups.
+- Added repeatable custom `Other` text rows for formats, eligibility, and required documents.
+- Updated `TournamentsController` strong params to accept checklist arrays and compose them into existing text fields.
+- Added CSS for checklist groups, checkbox options, and custom rows.
+- Updated tests to verify default labels render and selected/default/custom values are saved.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/models/tournament_test.rb`; result: 20 runs, 199 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 73 runs, 552 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-26 - Tournament Image Uploads
 
 ### Reference
