@@ -2,6 +2,47 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-26 - Tournament Weight Check And Draw Lock
+
+### Reference
+- User request: once tournament registration closes, organisers should see two options: `Weight check` and `Set draw`. Before draw setup, a tournament super organiser can still manually add a late athlete. During weigh-in, organisers need to search accepted athletes, enter up to three weight attempts, lock each entered attempt, pass athletes whose measured weight is inside their registered category min/max range, and disqualify athletes who fail all three attempts. Passed athletes should move to a future draw list state.
+
+### Scope Chosen For This Pass
+- Add a weigh-in workflow for accepted tournament registrations.
+- Treat the existing tournament owner/super-organizer membership as the late-registration authority.
+- Keep late athlete additions on the existing registration form so receipt upload and organizer approval remain part of the record.
+- Add `Set draw` as an explicit tournament state change to `draw_scheduling`, which locks late additions.
+- Prepare the future draw list by adding a `weight_verified` registration status.
+
+### Product Decisions
+- Weight checks are append-only records; previous attempts are displayed as locked values rather than editable fields.
+- Only approved registrations can be weighed.
+- Attempts are assigned sequentially from 1 to 3.
+- A pass on any attempt changes the registration status to `weight_verified` and logs the actor.
+- A third failed attempt changes the registration status to `disqualified` and logs the actor.
+- Any tournament manager can run weight checks and start draw setup after registration closes.
+- Only super organisers, including super admins, can manually add athletes after registration closes, and only until draw setup starts.
+
+### Change Log
+- Added `registration_weight_checks` table with registration, checked-by user, attempt number, measured weight, pass flag, and checked timestamp.
+- Added `RegistrationWeightCheck` model with sequential attempt validation, max-three-attempt enforcement, category weight-range pass/fail evaluation, and result application.
+- Extended `Registration` statuses with `weight_verified` and `disqualified`.
+- Added registration helpers for next attempt number, attempts remaining, category weight labels, and category range checks.
+- Added tournament helpers for registration-closed weigh-in availability and late-registration permissions.
+- Added organiser weight-check routes, controller, search, and index view.
+- Added `Set draw` route/action that moves tournaments to `draw_scheduling` only after registration closes.
+- Updated tournament detail actions to show `Weight check`, `Set draw`, `Draw setup`, and late manual athlete addition where applicable.
+- Locked the weight-check page once draw setup has started.
+- Added CSS for the weigh-in search, attempt slots, and new registration statuses.
+- Added model and controller tests for weigh-in pass/fail behavior, organiser access, search, and draw locking.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: `registration_weight_checks` migration applied successfully.
+- Ran `mise exec -- bin/rails test test/models/registration_test.rb test/controllers/organizer_weight_checks_controller_test.rb test/controllers/tournaments_controller_test.rb test/controllers/registrations_controller_test.rb test/controllers/organizer_registrations_controller_test.rb`; result: 35 runs, 317 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 87 runs, 657 assertions, 0 failures, 0 errors, 0 skips.
+- Re-ran the same focused test set after final draw/weight-check lock polish; result: 35 runs, 317 assertions, 0 failures, 0 errors, 0 skips.
+- Re-ran `mise exec -- bin/rails test`; result: 87 runs, 657 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-26 - Registration Receipt Review And Action Logs
 
 ### Reference

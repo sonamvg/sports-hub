@@ -96,9 +96,9 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 .entity-meta span { display:flex; flex-direction:column; gap:5px; font-size:13px; color:var(--muted); }
 .entity-meta strong { color:var(--ink); text-transform:uppercase; letter-spacing:.08em; font-size:10px; }
 .status-pill { display:inline-flex; padding:7px 10px; border-radius:999px; background:#f0f0f1; text-transform:uppercase; letter-spacing:.08em; font-weight:800; font-size:10px; }
-.status-registration_open,.status-approved { background:#e7f7ec; color:#176532; }
+.status-registration_open,.status-approved,.status-weight_verified { background:#e7f7ec; color:#176532; }
 .status-pending { background:#fff4d6; color:#785500; }
-.status-rejected,.status-cancelled { background:#fde8e8; color:#9a1b1b; }
+.status-rejected,.status-cancelled,.status-disqualified { background:#fde8e8; color:#9a1b1b; }
 .status-registration_closed { background:#f0f0f1; color:#555; }
 .text-link { font-weight:800; color:var(--red); }
 .text-link:hover { text-decoration:underline; }
@@ -150,6 +150,22 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 .registered-athlete-row strong { color:var(--ink); }
 .registered-athlete-row span strong { text-transform:uppercase; letter-spacing:.08em; font-size:10px; }
 .approval-table { background:white; border:1px solid var(--line); margin-top:36px; }
+.inline-notice { margin:24px 0 0; padding:14px 16px; border:1px solid var(--line); background:#f8f7f4; font-weight:700; }
+.search-bar { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:end; margin:26px 0; }
+.search-bar label { grid-column:1 / -1; font-weight:800; text-transform:uppercase; letter-spacing:.08em; font-size:11px; }
+.search-bar input[type="search"] { width:100%; border:1px solid var(--line); padding:13px 14px; font:inherit; }
+.weight-check-list { display:grid; gap:14px; margin-top:24px; }
+.weight-check-row { display:grid; grid-template-columns:1.2fr 1.5fr minmax(180px,.7fr); gap:18px; align-items:center; padding:20px; border:1px solid var(--line); background:white; }
+.weight-check-main h2 { margin:10px 0 6px; font-size:22px; }
+.weight-check-main p { margin:0 0 4px; color:var(--muted); }
+.attempt-list { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.attempt-slot { min-height:86px; border:1px solid var(--line); padding:12px; display:flex; flex-direction:column; gap:6px; }
+.attempt-slot strong { font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
+.attempt-slot small { color:var(--muted); }
+.attempt-form { display:grid; gap:8px; }
+.attempt-form label { font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:800; }
+.attempt-form input[type="number"] { width:100%; border:1px solid var(--line); padding:12px; font:inherit; }
+.attempt-closed { justify-self:end; font-weight:800; color:var(--muted); }
 .approval-row { display:grid; grid-template-columns:1fr auto auto; align-items:center; gap:20px; padding:20px 22px; border-bottom:1px solid var(--line); }
 .approval-row:last-child { border-bottom:0; }
 .approval-row > div:first-child { display:flex; flex-direction:column; gap:5px; }
@@ -168,6 +184,8 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
   .approval-row { grid-template-columns:1fr; }
   .category-row { grid-template-columns:1fr; align-items:flex-start; }
   .registered-athlete-row { grid-template-columns:1fr; align-items:flex-start; }
+  .search-bar,.weight-check-row,.attempt-list { grid-template-columns:1fr; }
+  .attempt-closed { justify-self:start; }
   .category-actions { justify-content:flex-start; }
 }
 @media (max-width:650px) {

@@ -18,11 +18,20 @@
       <div class="form-actions">
         <% if can_manage_tournament?(@tournament) %>
         <%= link_to "Edit tournament", edit_tournament_path(@tournament), class: "secondary-button" %>
-        <%= link_to "Set draw", draw_tournament_path(@tournament), class: "secondary-button" %>
+        <% if @tournament.registration_closed_for_weight_check? %>
+          <% if @tournament.draw_scheduling? %>
+            <%= link_to "Draw setup", draw_tournament_path(@tournament), class: "secondary-button" %>
+          <% else %>
+            <%= link_to "Weight check", organizer_tournament_weight_checks_path(@tournament), class: "secondary-button" %>
+            <%= button_to "Set draw", set_draw_tournament_path(@tournament), method: :patch, class: "secondary-button button-reset" %>
+          <% end %>
+        <% end %>
         <% end %>
         <% if current_user %>
           <% if @tournament.accepting_registrations? %>
             <%= link_to "Register athlete", new_tournament_registration_path(@tournament), class: "primary-button" %>
+          <% elsif @tournament.late_registration_allowed_for?(current_user) %>
+            <%= link_to "Manually add athlete", new_tournament_registration_path(@tournament), class: "primary-button" %>
           <% else %>
             <span class="status-pill">Registration not open</span>
           <% end %>
@@ -91,7 +100,7 @@
       <div class="inline-empty-state">
         <strong>No registered athletes yet</strong>
         <p>Registrations will appear here after athletes are submitted for this tournament.</p>
-        <% if @tournament.accepting_registrations? %>
+        <% if @tournament.accepting_registrations? || @tournament.late_registration_allowed_for?(current_user) %>
           <%= link_to "Register athlete", new_tournament_registration_path(@tournament), class: "primary-button" %>
         <% end %>
       </div>
@@ -116,14 +125,14 @@
           <div class="category-details">
             <span><strong>Gender</strong><%= category.gender&.titleize || "Open" %></span>
             <span><strong>Age</strong><%= [category.age_min, category.age_max].compact.any? ? [category.age_min, category.age_max].compact.join("-") : "Open" %></span>
-            <span><strong>Weight</strong><%= category.weight_max ? "Up to #{category.weight_max} kg" : "Open" %></span>
+            <span><strong>Weight</strong><%= category.weight_min.present? && category.weight_max.present? ? "#{category.weight_min}-#{category.weight_max} kg" : (category.weight_max ? "Up to #{category.weight_max} kg" : "Open") %></span>
           </div>
-          <% if can_manage_tournament?(@tournament) || (current_user && @tournament.accepting_registrations?) %>
+          <% if can_manage_tournament?(@tournament) || (current_user && (@tournament.accepting_registrations? || @tournament.late_registration_allowed_for?(current_user))) %>
             <div class="category-actions">
               <% if can_manage_tournament?(@tournament) %>
                 <%= link_to "Edit category", edit_tournament_tournament_category_path(@tournament, category), class: "text-link" %>
               <% end %>
-              <% if current_user && @tournament.accepting_registrations? %>
+              <% if current_user && (@tournament.accepting_registrations? || @tournament.late_registration_allowed_for?(current_user)) %>
                 <%= link_to "Register →", new_tournament_registration_path(@tournament, category_id: category.id), class: "text-link" %>
               <% end %>
             </div>

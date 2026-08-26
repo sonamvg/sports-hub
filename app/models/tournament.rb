@@ -73,6 +73,17 @@ class Tournament < ApplicationRecord
       (registration_closes_at.blank? || registration_closes_at >= at)
   end
 
+  def registration_closed_for_weight_check?(at: Time.current)
+    registration_closes_at.present? && registration_closes_at < at
+  end
+
+  def late_registration_allowed_for?(user)
+    return false unless user
+    return false if draw_scheduling?
+
+    user.super_admin? || tournament_organizers.super_organizer.exists?(user_id: user.id)
+  end
+
   def managed_by?(user)
     return false unless user
 

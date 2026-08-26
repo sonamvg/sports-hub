@@ -446,4 +446,39 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "#{tournament.name} banner"
     assert_includes response.body, "/rails/active_storage"
   end
+
+  test "set draw locks tournament after registration closes" do
+    tournament = Tournament.create!(
+      name: "Closed Draw Open",
+      organizer: @organizer,
+      status: :registration_open,
+      registration_opens_at: 10.days.ago,
+      registration_closes_at: 1.day.ago,
+      start_date: 2.days.from_now.to_date,
+      end_date: 3.days.from_now.to_date
+    )
+
+    patch set_draw_tournament_path(tournament)
+
+    assert_redirected_to draw_tournament_path(tournament)
+    assert_predicate tournament.reload, :draw_scheduling?
+    assert_not tournament.late_registration_allowed_for?(@organizer)
+  end
+
+  test "set draw is blocked before registration closes" do
+    tournament = Tournament.create!(
+      name: "Open Draw Open",
+      organizer: @organizer,
+      status: :registration_open,
+      registration_opens_at: 1.day.ago,
+      registration_closes_at: 1.day.from_now,
+      start_date: 2.days.from_now.to_date,
+      end_date: 3.days.from_now.to_date
+    )
+
+    patch set_draw_tournament_path(tournament)
+
+    assert_redirected_to tournament_path(tournament)
+    assert_not_predicate tournament.reload, :draw_scheduling?
+  end
 end

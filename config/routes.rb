@@ -23,17 +23,22 @@ Rails.application.routes.draw do
   resources :tournaments, only: %i[index show new create edit update] do
     member do
       get :draw
+      patch :set_draw
     end
     resources :tournament_categories, path: "categories", only: %i[index show new create edit update]
     resources :registrations, only: %i[index new create]
   end
 
   namespace :organizer do
+    resources :tournaments, only: [] do
+      resources :weight_checks, only: %i[index]
+    end
     resources :registrations, only: %i[index show] do
       member do
         patch :approve
         patch :reject
       end
+      resources :weight_checks, only: %i[create]
     end
   end
 end

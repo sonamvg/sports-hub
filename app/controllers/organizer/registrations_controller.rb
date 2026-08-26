@@ -5,7 +5,7 @@ module Organizer
 
     def index
       @registrations = visible_registrations
-        .includes(:athlete, :tournament, :tournament_category)
+        .includes(:athlete, :tournament, :tournament_category, :registration_weight_checks)
         .with_attached_payment_receipt
         .order(status_sort_sql, created_at: :desc)
     end
@@ -43,7 +43,7 @@ module Organizer
     end
 
     def status_sort_sql
-      Arel.sql("CASE registrations.status WHEN 0 THEN 0 WHEN 1 THEN 1 WHEN 2 THEN 2 ELSE 3 END")
+      Arel.sql("CASE registrations.status WHEN 0 THEN 0 WHEN 1 THEN 1 WHEN 4 THEN 2 WHEN 2 THEN 3 WHEN 5 THEN 4 ELSE 5 END")
     end
   end
 end

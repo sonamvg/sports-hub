@@ -8,6 +8,9 @@
 ] %>
 
 <p class="eyebrow">REGISTRATION</p><h1 class="page-title">Register for <%= @tournament.name %></h1><p class="page-copy">Choose an athlete and competition category. The organizer will review the entry before it is confirmed.</p>
+<% if @tournament.registration_closed_for_weight_check? && @tournament.late_registration_allowed_for?(current_user) %>
+  <div class="inline-notice">Registration is closed. As super organiser, you can manually add athletes until draw setup starts.</div>
+<% end %>
 <%= form_with model: [@tournament, @registration], class: "form-card" do |form| %>
   <%= render "shared/errors", record: @registration %>
   <% if @athletes.empty? %>

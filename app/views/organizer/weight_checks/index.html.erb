@@ -1,0 +1,74 @@
+<section class="page-shell"><div class="container">
+<%= render "shared/breadcrumbs", items: [
+  { label: "Home", path: root_path },
+  { label: "Tournaments", path: tournaments_path },
+  { label: @tournament.name, path: tournament_path(@tournament) },
+  { label: "Weight check" }
+] %>
+
+<div class="page-heading">
+  <div>
+    <p class="eyebrow">WEIGHT CHECK</p>
+    <h1 class="page-title"><%= @tournament.name %></h1>
+    <p class="page-copy">Find accepted athletes, record up to three locked weight attempts, and move passing athletes into the draw list.</p>
+  </div>
+  <div class="form-actions">
+    <%= button_to "Set draw", set_draw_tournament_path(@tournament), method: :patch, class: "primary-button button-reset" %>
+  </div>
+</div>
+
+<%= form_with url: organizer_tournament_weight_checks_path(@tournament), method: :get, class: "search-bar" do |form| %>
+  <%= form.label :q, "Search athlete" %>
+  <%= form.search_field :q, value: @query, placeholder: "Name or association ID" %>
+  <%= form.submit "Search", class: "secondary-button button-reset" %>
+<% end %>
+
+<div class="weight-check-list">
+  <% if @registrations.any? %>
+    <% @registrations.each do |registration| %>
+      <% athlete = registration.athlete %>
+      <% attempts = registration.registration_weight_checks.sort_by(&:attempt_number) %>
+      <article class="weight-check-row">
+        <div class="weight-check-main">
+          <span class="status-pill status-<%= registration.status %>"><%= registration.status.humanize %></span>
+          <h2><%= athlete.full_name %></h2>
+          <p><%= registration.tournament_category.name %> · Target: <%= registration.category_weight_range %></p>
+          <p class="muted"><%= athlete.academy&.name || "--" %><%= athlete.association_id.present? ? " · #{athlete.association_id}" : "" %></p>
+        </div>
+
+        <div class="attempt-list">
+          <% 1.upto(3) do |attempt_number| %>
+            <% attempt = attempts.find { |entry| entry.attempt_number == attempt_number } %>
+            <div class="attempt-slot">
+              <strong>Attempt <%= attempt_number %></strong>
+              <% if attempt %>
+                <span><%= attempt.weight %> kg</span>
+                <small><%= attempt.passed? ? "Passed" : "Failed" %> · <%= attempt.checked_by.name %></small>
+              <% else %>
+                <span>--</span>
+                <small>Not recorded</small>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <% if registration.weight_check_attempts_remaining? %>
+          <%= form_with model: RegistrationWeightCheck.new, url: organizer_registration_weight_checks_path(registration), class: "attempt-form" do |form| %>
+            <%= hidden_field_tag :q, @query %>
+            <%= form.label :weight, "Next weight (kg)" %>
+            <%= form.number_field :weight, step: 0.1, min: 1, required: true, autofocus: @registrations.one? %>
+            <%= form.submit "Save", class: "primary-button button-reset" %>
+          <% end %>
+        <% else %>
+          <div class="attempt-closed"><%= registration.weight_verified? ? "Ready for draw" : "Closed" %></div>
+        <% end %>
+      </article>
+    <% end %>
+  <% else %>
+    <div class="inline-empty-state">
+      <strong>No accepted athletes found</strong>
+      <p>Accept registrations first, then return here for weigh-in.</p>
+    </div>
+  <% end %>
+</div>
+</div></section>

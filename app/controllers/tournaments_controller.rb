@@ -1,8 +1,8 @@
 class TournamentsController < ApplicationController
   before_action :require_user, except: %i[index show]
   before_action :require_verified_organizer, only: %i[new create]
-  before_action :set_tournament, only: %i[show edit update draw]
-  before_action :require_tournament_manager, only: %i[edit update draw]
+  before_action :set_tournament, only: %i[show edit update draw set_draw]
+  before_action :require_tournament_manager, only: %i[edit update draw set_draw]
   before_action :set_available_organizers, only: %i[new create edit update]
 
   def index
@@ -35,6 +35,16 @@ class TournamentsController < ApplicationController
 
   def draw; end
 
+  def set_draw
+    unless @tournament.registration_closed_for_weight_check?
+      redirect_to @tournament, alert: "Draw setup can start after registration closes."
+      return
+    end
+
+    @tournament.update!(status: :draw_scheduling)
+    redirect_to draw_tournament_path(@tournament), notice: "Draw setup started. Late athlete registrations are now locked."
+  end
+
   def update
     @tournament.assign_attributes(tournament_params)
     apply_submit_intent(@tournament)
@@ -59,10 +69,14 @@ class TournamentsController < ApplicationController
   def visible_tournament_registrations
     return Registration.none unless current_user
 
-    registrations = @tournament.registrations.includes(:tournament_category, athlete: :academy).order(created_at: :desc)
+    registrations = @tournament.registrations.includes(:tournament_category, athlete: :academy).order(status_sort_sql, created_at: :desc)
     return registrations if can_manage_tournament?(@tournament)
 
     registrations.joins(:athlete).where(athletes: { user_id: current_user.id })
+  end
+
+  def status_sort_sql
+    Arel.sql("CASE registrations.status WHEN 0 THEN 0 WHEN 1 THEN 1 WHEN 4 THEN 2 WHEN 2 THEN 3 WHEN 5 THEN 4 ELSE 5 END")
   end
 
   def require_verified_organizer

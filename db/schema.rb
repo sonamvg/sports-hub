@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_26_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_26_091000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -89,6 +89,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_090000) do
     t.datetime "updated_at", null: false
     t.index ["actor_id"], name: "index_registration_action_logs_on_actor_id"
     t.index ["registration_id"], name: "index_registration_action_logs_on_registration_id"
+  end
+
+  create_table "registration_weight_checks", force: :cascade do |t|
+    t.integer "attempt_number", null: false
+    t.datetime "checked_at", null: false
+    t.bigint "checked_by_id", null: false
+    t.datetime "created_at", null: false
+    t.boolean "passed", default: false, null: false
+    t.bigint "registration_id", null: false
+    t.datetime "updated_at", null: false
+    t.decimal "weight", precision: 5, scale: 2, null: false
+    t.index ["checked_by_id"], name: "index_registration_weight_checks_on_checked_by_id"
+    t.index ["registration_id", "attempt_number"], name: "idx_on_registration_id_attempt_number_89262627f2", unique: true
+    t.index ["registration_id"], name: "index_registration_weight_checks_on_registration_id"
+    t.check_constraint "attempt_number >= 1 AND attempt_number <= 3", name: "registration_weight_checks_attempt_number_range"
+    t.check_constraint "weight > 0::numeric", name: "registration_weight_checks_weight_positive"
   end
 
   create_table "registrations", force: :cascade do |t|
@@ -201,6 +217,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_090000) do
   add_foreign_key "athletes", "users"
   add_foreign_key "registration_action_logs", "registrations"
   add_foreign_key "registration_action_logs", "users", column: "actor_id"
+  add_foreign_key "registration_weight_checks", "registrations"
+  add_foreign_key "registration_weight_checks", "users", column: "checked_by_id"
   add_foreign_key "registrations", "athletes"
   add_foreign_key "registrations", "tournament_categories"
   add_foreign_key "registrations", "tournaments"
