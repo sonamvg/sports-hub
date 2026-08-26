@@ -9,8 +9,17 @@ class TournamentCategory < ApplicationRecord
   validates :category_key, uniqueness: { scope: :tournament_id, message: "already exists for this tournament" }
   validates :age_min, :age_max, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
   validates :weight_min, :weight_max, numericality: { greater_than: 0 }, allow_nil: true
+  validates :registration_fee, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validate :age_max_not_below_min
   validate :weight_max_not_below_min
+
+  def effective_registration_fee
+    registration_fee.presence || tournament.registration_fee.presence || 0
+  end
+
+  def fee_label
+    "#{tournament.currency.presence || "INR"} #{format_currency(effective_registration_fee)}"
+  end
 
   def generated_name
     [
@@ -76,6 +85,11 @@ class TournamentCategory < ApplicationRecord
 
     decimal = number.to_d
     decimal.frac.zero? ? decimal.to_i.to_s : decimal.to_s("F").sub(/0+\z/, "").sub(/\.\z/, "")
+  end
+
+  def format_currency(amount)
+    decimal = amount.to_d
+    decimal.frac.zero? ? decimal.to_i.to_s : format("%.2f", decimal)
   end
 
   def age_max_not_below_min

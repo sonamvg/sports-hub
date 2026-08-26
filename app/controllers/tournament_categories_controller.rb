@@ -45,7 +45,7 @@ class TournamentCategoriesController < ApplicationController
   def category_params
     params.require(:tournament_category).permit(
       :event_type, :gender, :age_min, :age_max, :weight_min, :weight_max,
-      :belt_min, :belt_max
+      :belt_min, :belt_max, :registration_fee
     )
   end
 end

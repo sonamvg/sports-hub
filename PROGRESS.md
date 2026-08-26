@@ -2,6 +2,40 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-26 - Per-Category Fees And Secure Payment Display
+
+### Reference
+- User request: tournament organisers should be able to set price/fee per category. If one category is 1000 INR and someone selects two categories, they should see and pay 2000 INR. Academy owners and athletes should see the amount to pay while registering. Tournament organisers should be able to add bank account details, and those details should be shared securely only during tournament registration.
+
+### Scope Chosen For This Pass
+- Add per-category registration fees while preserving the existing tournament-level fee as a fallback/default.
+- Show category fees in the registration category dropdown.
+- Calculate and display the total payable amount on the registration page as categories are selected.
+- Snapshot the fee amount and currency onto each registration row at submission/draft time.
+- Keep bank details visible only in the signed-in registration flow and absent from public tournament pages.
+
+### Product Decisions
+- `TournamentCategory#registration_fee` overrides `Tournament#registration_fee`; blank category fee uses the tournament default.
+- Each selected category creates its own registration row with its own fee snapshot.
+- A single receipt upload still applies to all selected category registrations in that submission.
+- Bank details are currently protected by access control: they are not shown on public tournament/index/show pages and are only rendered after sign-in inside the registration form. Full encryption-at-rest should be configured before production by adding Rails Active Record encryption keys or a managed secrets strategy.
+
+### Change Log
+- Added `registration_fee` to tournament categories.
+- Added `fee_amount` and `fee_currency` to registrations for payment audit snapshots.
+- Added category fee validation and fee-label helpers.
+- Added category fee input to the organiser category create/edit form.
+- Updated registration create logic to store fee snapshots per selected category.
+- Updated the registration category dropdown labels to include per-category fee.
+- Added a registration total panel that updates from selected category fees.
+- Updated payment section copy to clarify that bank details are shown only in the signed-in registration flow.
+- Added tests for category fee create/update, fee display, fee snapshots, and public bank-detail privacy.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: category fee and registration fee snapshot migration applied successfully.
+- Ran `mise exec -- bin/rails test test/controllers/tournament_categories_controller_test.rb test/controllers/registrations_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 32 runs, 312 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 96 runs, 747 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-26 - Academy Owner Athlete Privacy And Dropdown Registration
 
 ### Reference

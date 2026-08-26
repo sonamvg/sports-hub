@@ -19,7 +19,8 @@ class TournamentCategoriesControllerTest < ActionDispatch::IntegrationTest
           gender: "female",
           age_min: 12,
           age_max: 14,
-          weight_max: 41
+          weight_max: 41,
+          registration_fee: "1000.00"
         }
       }
     end
@@ -28,6 +29,7 @@ class TournamentCategoriesControllerTest < ActionDispatch::IntegrationTest
     category = @tournament.tournament_categories.order(:created_at).last
     assert_equal "Kyorugi Female Age 12-14 U41", category.name
     assert_equal "female", category.gender
+    assert_equal BigDecimal("1000.0"), category.registration_fee
   end
 
   test "renders errors when category is invalid" do
@@ -55,7 +57,8 @@ class TournamentCategoriesControllerTest < ActionDispatch::IntegrationTest
         gender: "female",
         age_min: 12,
         age_max: 14,
-        weight_max: 44
+        weight_max: 44,
+        registration_fee: "1200.00"
       }
     }
 
@@ -63,6 +66,7 @@ class TournamentCategoriesControllerTest < ActionDispatch::IntegrationTest
     category.reload
     assert_equal "Kyorugi Female Age 12-14 U44", category.name
     assert_equal 44, category.weight_max
+    assert_equal BigDecimal("1200.0"), category.registration_fee
   end
 
   test "renders errors when update is invalid" do

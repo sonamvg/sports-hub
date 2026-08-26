@@ -11,6 +11,7 @@ class Registration < ApplicationRecord
   validates :athlete_id, uniqueness: { scope: [:tournament_id, :tournament_category_id] }
   validate :payment_receipt_required
   validate :category_belongs_to_tournament
+  before_validation :assign_fee_snapshot
 
   def review!(actor:, status:)
     from_status = self.status
@@ -54,6 +55,10 @@ class Registration < ApplicationRecord
     end
   end
 
+  def fee_label
+    "#{fee_currency.presence || tournament.currency.presence || "INR"} #{formatted_currency(fee_amount || 0)}"
+  end
+
   private
 
   def category_belongs_to_tournament
@@ -70,5 +75,17 @@ class Registration < ApplicationRecord
   def formatted_weight(weight)
     decimal = weight.to_d
     decimal.frac.zero? ? decimal.to_i.to_s : decimal.to_s("F").sub(/0+\z/, "").sub(/\.\z/, "")
+  end
+
+  def assign_fee_snapshot
+    return if tournament_category.blank?
+
+    self.fee_amount ||= tournament_category.effective_registration_fee
+    self.fee_currency ||= tournament.currency.presence || "INR"
+  end
+
+  def formatted_currency(amount)
+    decimal = amount.to_d
+    decimal.frac.zero? ? decimal.to_i.to_s : format("%.2f", decimal)
   end
 end

@@ -465,6 +465,29 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "/rails/active_storage"
   end
 
+  test "public tournament pages do not expose bank account details" do
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6),
+      payment_account_name: "Pune Taekwondo Association",
+      payment_bank_name: "Demo Bank",
+      payment_account_number: "1234567890",
+      payment_ifsc: "DEMO0001234",
+      payment_instructions: "Use athlete name as reference"
+    )
+    delete logout_path
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_not_includes response.body, "1234567890"
+    assert_not_includes response.body, "DEMO0001234"
+    assert_not_includes response.body, "Demo Bank"
+    assert_not_includes response.body, "Use athlete name as reference"
+  end
+
   test "set draw locks tournament after registration closes" do
     tournament = Tournament.create!(
       name: "Closed Draw Open",

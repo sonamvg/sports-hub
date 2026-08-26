@@ -75,6 +75,8 @@ class RegistrationsController < ApplicationController
         registration = @tournament.registrations.find_or_initialize_by(athlete: @athlete, tournament_category: category)
         registration.registered_weight = registration_params[:registered_weight].presence || @athlete.weight
         registration.status = submit_registration ? :pending : :draft
+        registration.fee_amount = category.effective_registration_fee
+        registration.fee_currency = @tournament.currency.presence || "INR"
         attach_payment_receipt(registration) if submit_registration
         registration.save!
       end

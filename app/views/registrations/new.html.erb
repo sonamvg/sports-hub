@@ -31,7 +31,7 @@
     <div class="full">
       <%= form.label :tournament_category_ids, "Categories" %>
       <div class="category-picker" data-category-picker>
-        <% category_choices = @categories.map { |category| [category.name, category.id] } %>
+        <% category_choices = @categories.map { |category| ["#{category.name} - #{category.fee_label}", category.id, { data: { fee: category.effective_registration_fee.to_s } }] } %>
         <% selected_rows = @selected_category_ids.presence || [""] %>
         <% selected_rows.each_with_index do |category_id, index| %>
           <div class="category-picker-row" data-category-row>
@@ -52,9 +52,15 @@
       </div>
       <p class="field-hint">Select every category this athlete wants to enter. Saved drafts are preselected when you return.</p>
     </div>
+    <div class="registration-total full" data-registration-total data-currency="<%= @tournament.currency.presence || "INR" %>">
+      <strong>Total amount to pay</strong>
+      <span data-total-amount><%= @tournament.currency.presence || "INR" %> 0</span>
+      <p class="field-hint">The total updates from selected category fees.</p>
+    </div>
     <div><%= form.label :registered_weight, "Current weight (kg)" %><%= form.number_field :registered_weight, step: 0.1, min: 1 %></div>
     <div class="full payment-instructions">
-      <h2>Payment details</h2>
+      <h2>Secure payment details</h2>
+      <p class="field-hint">These bank details are shown only in this signed-in registration flow and are not displayed on public tournament pages.</p>
       <dl>
         <div><dt>Account holder</dt><dd><%= @tournament.payment_account_name || "--" %></dd></div>
         <div><dt>Bank</dt><dd><%= @tournament.payment_bank_name || "--" %></dd></div>
@@ -113,5 +119,29 @@
     } else {
       button.closest("[data-category-row]").remove();
     }
+    updateRegistrationTotal(picker);
   });
+
+  document.addEventListener("change", function(event) {
+    const picker = event.target.closest("[data-category-picker]");
+    if (picker) updateRegistrationTotal(picker);
+  });
+
+  document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll("[data-category-picker]").forEach(updateRegistrationTotal);
+  });
+
+  function updateRegistrationTotal(picker) {
+    if (!picker) return;
+
+    const totalBox = document.querySelector("[data-registration-total]");
+    const totalAmount = document.querySelector("[data-total-amount]");
+    const currency = totalBox.dataset.currency || "INR";
+    const total = Array.from(picker.querySelectorAll("[data-category-select]")).reduce(function(sum, select) {
+      const option = select.selectedOptions[0];
+      return sum + Number(option && option.dataset.fee ? option.dataset.fee : 0);
+    }, 0);
+
+    totalAmount.textContent = currency + " " + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(total);
+  }
 </script>

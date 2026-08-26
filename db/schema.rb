@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_26_093000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_26_094000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -116,6 +116,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_093000) do
   create_table "registrations", force: :cascade do |t|
     t.bigint "athlete_id", null: false
     t.datetime "created_at", null: false
+    t.decimal "fee_amount", precision: 10, scale: 2
+    t.string "fee_currency"
     t.decimal "registered_weight", precision: 5, scale: 2
     t.string "registration_number"
     t.integer "status", default: 0, null: false
@@ -139,6 +141,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_093000) do
     t.string "event_type", null: false
     t.string "gender"
     t.string "name", null: false
+    t.decimal "registration_fee", precision: 10, scale: 2
     t.bigint "tournament_id", null: false
     t.datetime "updated_at", null: false
     t.decimal "weight_max", precision: 5, scale: 2
