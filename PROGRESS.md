@@ -2,6 +2,49 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-26 - Athlete Signup, Profile Completion, And Multi-Category Registration
+
+### Reference
+- User request: `Join as athlete` should create a new athlete account with only name, email, phone, password, and confirmation. Athlete accounts should not require approval. After login/signup, athletes should complete a profile with current profile fields plus athlete photo, government ID type and upload, upload size restrictions, blood group, emergency contact, address, and contact number. Athletes should see upcoming tournaments, select multiple eligible categories, view secure payment details, save selections for later payment, upload a payment receipt, and submit registrations to the tournament organiser.
+
+### Scope Chosen For This Pass
+- Convert public athlete signup to create a `User` with role `athlete`.
+- Redirect athlete-role users without an athlete profile to profile completion.
+- Expand the athlete profile model and form with contact, address, medical, photo, and ID-document fields.
+- Add tournament payment fields that organisers manage in the tournament setup form and athletes see during registration.
+- Change tournament registration from one category per submission to multi-category checkbox submission.
+- Add `draft` registrations so athletes can save selected categories and submit later after payment.
+- Keep organiser approval queues free of draft registrations.
+
+### Product Decisions
+- Athlete signup does not create the athlete profile automatically because the profile requires DOB, gender, belt, academy, documents, and medical/contact details.
+- Athlete profile uploads use Active Storage and are limited to 1 byte through 5 MB.
+- Payment details are stored on the tournament record and shown only inside the signed-in registration flow, not on public tournament pages.
+- A single uploaded receipt is attached to every selected category registration in the same submission.
+- Saved selections are stored as `draft` registration rows so uniqueness and resume behavior are handled by the database-backed registration model.
+- Draft registrations are visible to the athlete in their registration list but hidden from organiser approval lists and tournament-manager registered-athlete lists.
+
+### Change Log
+- Added athlete profile fields: contact number, blood group, emergency contact name/phone, address, and government ID document type.
+- Added athlete Active Storage attachments for profile photo and identity document.
+- Added upload-size validations for athlete photo and identity document.
+- Added tournament payment fields: account holder name, bank name, account number, IFSC, and payment instructions.
+- Added `draft` status to registrations.
+- Updated athlete signup copy and behavior to create athlete-role users and redirect to profile setup.
+- Added global athlete-profile-completion guard for athlete-role accounts without a profile.
+- Expanded the athlete profile form and show page, including previous competition/registration status list.
+- Updated tournament setup form with organiser-managed payment details.
+- Reworked athlete tournament registration form with category checkboxes, payment details, pay-later save, and receipt-based submit.
+- Updated registration create logic to save multiple category registrations as draft or pending records.
+- Updated organiser and tournament-manager registration queries to hide drafts.
+- Updated home page `Join as athlete` CTAs to open athlete signup directly.
+- Added controller tests for athlete signup/profile completion, athlete profile extra fields/uploads, draft category saves, and multi-category receipt submission.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: athlete profile and tournament payment fields migration applied successfully.
+- Ran `mise exec -- bin/rails test test/controllers/users_controller_test.rb test/controllers/athletes_controller_test.rb test/controllers/registrations_controller_test.rb`; result: 18 runs, 141 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 90 runs, 685 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-26 - Registration Approval Routed To Tournament Organisers
 
 ### Reference

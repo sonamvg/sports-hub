@@ -4,27 +4,28 @@ class RegistrationsController < ApplicationController
   before_action :ensure_registration_open, only: %i[new create]
 
   def index
-    @registrations = @tournament.registrations.where(athlete: current_user.athletes).includes(:athlete, :tournament_category)
+    @registrations = @tournament.registrations.where(athlete: current_user.athletes).includes(:athlete, :tournament_category).order(status_sort_sql, created_at: :desc)
   end
 
   def new
     @registration = @tournament.registrations.build(
-      athlete_id: params[:athlete_id],
-      tournament_category_id: params[:category_id]
+      athlete_id: params[:athlete_id] || current_user.athletes.order(:first_name, :last_name).first&.id
     )
-    @athletes = current_user.athletes.order(:first_name, :last_name)
-    @categories = @tournament.tournament_categories.order(:name)
+    set_registration_collections
+    @selected_category_ids = selected_category_ids
   end
 
   def create
-    @registration = @tournament.registrations.build(registration_params)
-    @registration.athlete = current_user.athletes.find_by(id: registration_params[:athlete_id])
+    @registration = @tournament.registrations.build
+    @athlete = current_user.athletes.find_by(id: registration_params[:athlete_id])
+    @selected_category_ids = Array(registration_params[:tournament_category_ids]).reject(&:blank?)
+    submit_registration = params[:commit] != "Save and pay later"
 
-    if @registration.save
-      redirect_to tournament_registrations_path(@tournament), notice: "Registration submitted to tournament organizers for approval."
+    if save_category_registrations(submit_registration: submit_registration)
+      notice = submit_registration ? "Registration submitted to tournament organizers for approval." : "Selection saved. Upload payment receipt when you are ready to submit."
+      redirect_to tournament_registrations_path(@tournament), notice: notice
     else
-      @athletes = current_user.athletes.order(:first_name, :last_name)
-      @categories = @tournament.tournament_categories.order(:name)
+      set_registration_collections
       render :new, status: :unprocessable_entity
     end
   end
@@ -43,6 +44,57 @@ class RegistrationsController < ApplicationController
   end
 
   def registration_params
-    params.require(:registration).permit(:athlete_id, :tournament_category_id, :registered_weight, :payment_receipt)
+    params.require(:registration).permit(:athlete_id, :registered_weight, :payment_receipt, tournament_category_ids: [])
+  end
+
+  def set_registration_collections
+    @athletes = current_user.athletes.order(:first_name, :last_name)
+    @categories = @tournament.tournament_categories.order(:name)
+  end
+
+  def selected_category_ids
+    ids = Array(params[:category_id]).reject(&:blank?).map(&:to_s)
+    athlete_id = @registration.athlete_id
+    ids += @tournament.registrations.draft.where(athlete_id: athlete_id).pluck(:tournament_category_id).map(&:to_s) if athlete_id.present?
+    ids.uniq
+  end
+
+  def save_category_registrations(submit_registration:)
+    @registration.athlete = @athlete
+    validate_registration_selection(submit_registration)
+    return false if @registration.errors.any?
+
+    Registration.transaction do
+      @selected_category_ids.each do |category_id|
+        category = @tournament.tournament_categories.find(category_id)
+        registration = @tournament.registrations.find_or_initialize_by(athlete: @athlete, tournament_category: category)
+        registration.registered_weight = registration_params[:registered_weight].presence || @athlete.weight
+        registration.status = submit_registration ? :pending : :draft
+        attach_payment_receipt(registration) if submit_registration
+        registration.save!
+      end
+    end
+    true
+  rescue ActiveRecord::RecordInvalid => error
+    @registration.errors.merge!(error.record.errors)
+    false
+  end
+
+  def validate_registration_selection(submit_registration)
+    @registration.errors.add(:athlete, "must be selected") if @athlete.blank?
+    @registration.errors.add(:tournament_category, "must include at least one category") if @selected_category_ids.blank?
+    return unless submit_registration
+
+    @registration.errors.add(:payment_receipt, "must be uploaded") if registration_params[:payment_receipt].blank?
+  end
+
+  def attach_payment_receipt(registration)
+    receipt = registration_params[:payment_receipt]
+    receipt.tempfile.rewind if receipt.respond_to?(:tempfile)
+    registration.payment_receipt.attach(receipt)
+  end
+
+  def status_sort_sql
+    Arel.sql("CASE registrations.status WHEN 6 THEN 0 WHEN 0 THEN 1 WHEN 1 THEN 2 WHEN 4 THEN 3 WHEN 2 THEN 4 WHEN 5 THEN 5 ELSE 6 END")
   end
 end

@@ -34,18 +34,21 @@ class UsersController < ApplicationController
     case @account_type
     when "organizer" then :organizer
     when "academy_owner" then :academy_owner
-    else :parent
+    else :athlete
     end
   end
 
   def after_signup_path
     return organizers_path if @account_type == "organizer"
+    return new_athlete_path(profile_setup: true, return_to: safe_return_path(params[:return_to])) if @account_type == "athlete"
 
     safe_return_path(params[:return_to]) || tournaments_path
   end
 
   def signup_notice
     return "Organizer account created and sent to super admin for verification." if @account_type == "organizer"
+
+    return "Athlete account created. Complete your profile to continue." if @account_type == "athlete"
 
     "Account created."
   end

@@ -69,7 +69,7 @@ class TournamentsController < ApplicationController
   def visible_tournament_registrations
     return Registration.none unless current_user
 
-    registrations = @tournament.registrations.includes(:tournament_category, athlete: :academy).order(status_sort_sql, created_at: :desc)
+    registrations = @tournament.registrations.where.not(status: :draft).includes(:tournament_category, athlete: :academy).order(status_sort_sql, created_at: :desc)
     return registrations if can_manage_tournament?(@tournament)
 
     registrations.joins(:athlete).where(athletes: { user_id: current_user.id })
@@ -114,6 +114,8 @@ class TournamentsController < ApplicationController
       :primary_contact_email, :primary_contact_phone, :competition_formats,
       :eligibility_summary, :category_generation_method, :registration_capacity,
       :registration_fee, :currency, :required_documents, :refund_policy,
+      :payment_account_name, :payment_bank_name, :payment_account_number,
+      :payment_ifsc, :payment_instructions,
       :logo_image, :banner_image,
       competition_format_options: [], competition_format_other: [],
       eligibility_options: [], eligibility_other: [],

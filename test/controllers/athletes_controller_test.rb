@@ -16,15 +16,40 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
           gender: "female",
           belt: "red",
           weight: 39.5,
-          city: "Pune"
+          blood_group: "O+",
+          contact_number: "9876543210",
+          emergency_contact_name: "Demo Parent",
+          emergency_contact_phone: "9876500000",
+          address: "Line 1, Sports Nagar",
+          city: "Pune",
+          state: "Maharashtra",
+          government_id_document_type: "Aadhaar",
+          profile_photo: tournament_image_upload,
+          identity_document: identity_document_upload
         }
       }
     end
 
     athlete = Athlete.order(:created_at).last
     assert_equal @parent, athlete.user
+    assert_equal "O+", athlete.blood_group
+    assert_equal "9876543210", athlete.contact_number
+    assert_equal "Line 1, Sports Nagar", athlete.address
+    assert_equal "Aadhaar", athlete.government_id_document_type
+    assert_predicate athlete.profile_photo, :attached?
+    assert_predicate athlete.identity_document, :attached?
     assert_redirected_to athlete_path(athlete)
     assert_equal "Athlete profile created.", flash[:notice]
+  end
+
+  test "athlete account without profile is redirected to profile setup" do
+    athlete_user = User.create!(name: "New Athlete", email: "new-athlete-profile@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    sign_in_as athlete_user
+
+    get tournaments_path
+
+    assert_redirected_to new_athlete_path(profile_setup: true)
+    assert_equal "Complete your athlete profile to continue.", flash[:alert]
   end
 
   test "returns to registration flow after creating athlete from registration page" do

@@ -10,7 +10,7 @@
       <% elsif academy_owner_account %>
         Create an academy owner account to submit your academy for approval and manage academy details.
       <% else %>
-        Create a general athlete or parent account to add athletes and register for tournaments.
+        Create an athlete account. No approval is required; after signup you will complete your athlete profile.
       <% end %>
     </p>
 
@@ -20,7 +20,7 @@
       <%= hidden_field_tag :return_to, params[:return_to] if params[:return_to].present? %>
       <div class="form-grid two-col">
         <div><%= form.label :name %><%= form.text_field :name, required: true, autocomplete: "name" %></div>
-        <div><%= form.label :phone, organizer_account ? "Mobile number" : "Phone" %><%= form.telephone_field :phone, required: organizer_account, autocomplete: "tel" %></div>
+        <div><%= form.label :phone, organizer_account ? "Mobile number" : "Phone number" %><%= form.telephone_field :phone, required: organizer_account || (!academy_owner_account && !organizer_account), autocomplete: "tel" %></div>
         <% if organizer_account %>
           <div>
             <%= form.label :organizer_designation, "Designation" %>

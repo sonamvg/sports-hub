@@ -1,4 +1,6 @@
 class ApplicationController < ActionController::Base
+  before_action :require_athlete_profile_completion
+
   helper_method :current_user, :demo_organizer, :super_admin?, :can_manage_academy?, :can_manage_tournament?
 
   private
@@ -33,5 +35,15 @@ class ApplicationController < ActionController::Base
     return false unless current_user
 
     super_admin? || tournament.managed_by?(current_user)
+  end
+
+  def require_athlete_profile_completion
+    return unless current_user&.athlete?
+    return if current_user.athletes.exists?
+    return if controller_name == "athletes" && %w[new create].include?(action_name)
+    return if controller_name == "sessions" && action_name == "destroy"
+    return if controller_name == "users"
+
+    redirect_to new_athlete_path(profile_setup: true), alert: "Complete your athlete profile to continue."
   end
 end

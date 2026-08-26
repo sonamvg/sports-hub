@@ -7,7 +7,8 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Join as athlete"
     assert_includes response.body, "Create athlete account"
-    assert_includes response.body, "general athlete or parent account"
+    assert_includes response.body, "No approval is required"
+    assert_includes response.body, "Phone number"
   end
 
   test "new user page explains organizer account role" do
@@ -35,12 +36,13 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'value="academy_owner"'
   end
 
-  test "creates general user account and signs in" do
+  test "creates athlete account and sends user to profile completion" do
     assert_difference("User.count", 1) do
       post users_path, params: {
         user: {
-          name: "New Parent",
-          email: "new-parent@example.com",
+          name: "New Athlete",
+          email: "new-athlete@example.com",
+          phone: "9876543210",
           password: "password123",
           password_confirmation: "password123"
         }
@@ -48,9 +50,11 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     end
 
     user = User.order(:created_at).last
-    assert_predicate user, :parent?
+    assert_predicate user, :athlete?
+    assert_equal "9876543210", user.phone
     assert_equal user.id, session[:user_id]
-    assert_redirected_to tournaments_path
+    assert_redirected_to new_athlete_path(profile_setup: true)
+    assert_equal "Athlete account created. Complete your profile to continue.", flash[:notice]
   end
 
   test "creates pending organizer account and sends it to verification" do

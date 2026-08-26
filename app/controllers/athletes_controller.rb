@@ -13,6 +13,7 @@ class AthletesController < ApplicationController
 
   def new
     @athlete = current_user.athletes.build
+    assign_name_from_user(@athlete) if params[:profile_setup].present?
     @return_to = safe_return_path(params[:return_to])
   end
 
@@ -59,8 +60,18 @@ class AthletesController < ApplicationController
   def athlete_params
     params.require(:athlete).permit(
       :academy_id, :first_name, :last_name, :date_of_birth, :gender,
-      :belt, :weight, :association_id, :city, :state, :country
+      :belt, :weight, :association_id, :city, :state, :country,
+      :contact_number, :blood_group, :emergency_contact_name,
+      :emergency_contact_phone, :address, :government_id_document_type,
+      :profile_photo, :identity_document
     )
+  end
+
+  def assign_name_from_user(athlete)
+    names = current_user.name.to_s.split
+    athlete.first_name ||= names.first
+    athlete.last_name ||= names.drop(1).join(" ").presence
+    athlete.contact_number ||= current_user.phone
   end
 
   def set_available_academies

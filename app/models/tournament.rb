@@ -122,6 +122,11 @@ class Tournament < ApplicationRecord
     self.currency = currency.to_s.upcase.squish.presence
     self.required_documents = required_documents.to_s.squish.presence
     self.refund_policy = refund_policy.to_s.squish.presence
+    self.payment_account_name = payment_account_name.to_s.squish.presence
+    self.payment_bank_name = payment_bank_name.to_s.squish.presence
+    self.payment_account_number = payment_account_number.to_s.squish.presence
+    self.payment_ifsc = payment_ifsc.to_s.upcase.squish.presence
+    self.payment_instructions = payment_instructions.to_s.squish.presence
   end
 
   def end_date_not_before_start_date

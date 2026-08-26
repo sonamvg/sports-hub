@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_26_091000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_26_093000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -62,14 +62,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_091000) do
 
   create_table "athletes", force: :cascade do |t|
     t.bigint "academy_id"
+    t.text "address"
     t.string "association_id"
     t.string "belt"
+    t.string "blood_group"
     t.string "city"
+    t.string "contact_number"
     t.string "country", default: "India"
     t.datetime "created_at", null: false
     t.date "date_of_birth", null: false
+    t.string "emergency_contact_name"
+    t.string "emergency_contact_phone"
     t.string "first_name", null: false
     t.string "gender", null: false
+    t.string "government_id_document_type"
     t.string "last_name", null: false
     t.string "state"
     t.datetime "updated_at", null: false
@@ -168,6 +174,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_26_091000) do
     t.string "name", null: false
     t.bigint "organizer_id", null: false
     t.string "organizing_organization"
+    t.string "payment_account_name"
+    t.string "payment_account_number"
+    t.string "payment_bank_name"
+    t.string "payment_ifsc"
+    t.text "payment_instructions"
     t.string "primary_contact_email"
     t.string "primary_contact_name"
     t.string "primary_contact_phone"

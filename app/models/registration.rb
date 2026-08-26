@@ -6,7 +6,7 @@ class Registration < ApplicationRecord
   has_many :registration_weight_checks, dependent: :destroy
   has_one_attached :payment_receipt
 
-  enum :status, { pending: 0, approved: 1, rejected: 2, withdrawn: 3, weight_verified: 4, disqualified: 5 }, default: :pending
+  enum :status, { pending: 0, approved: 1, rejected: 2, withdrawn: 3, weight_verified: 4, disqualified: 5, draft: 6 }, default: :pending
 
   validates :athlete_id, uniqueness: { scope: [:tournament_id, :tournament_category_id] }
   validate :payment_receipt_required
@@ -62,6 +62,8 @@ class Registration < ApplicationRecord
   end
 
   def payment_receipt_required
+    return if draft?
+
     errors.add(:payment_receipt, "must be uploaded") unless payment_receipt.attached?
   end
 

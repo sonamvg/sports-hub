@@ -120,6 +120,36 @@
       <%= form.text_field :currency, required: true, maxlength: 3, placeholder: "INR" %>
     </div>
 
+    <div class="full form-section-heading">
+      <h2>Payment details</h2>
+    </div>
+
+    <div>
+      <%= form.label :payment_account_name, "Account holder name" %>
+      <%= form.text_field :payment_account_name, autocomplete: "off" %>
+    </div>
+
+    <div>
+      <%= form.label :payment_bank_name, "Bank name" %>
+      <%= form.text_field :payment_bank_name, autocomplete: "off" %>
+    </div>
+
+    <div>
+      <%= form.label :payment_account_number, "Account number" %>
+      <%= form.text_field :payment_account_number, autocomplete: "off" %>
+    </div>
+
+    <div>
+      <%= form.label :payment_ifsc, "IFSC" %>
+      <%= form.text_field :payment_ifsc, autocomplete: "off" %>
+    </div>
+
+    <div class="full">
+      <%= form.label :payment_instructions, "Payment instructions" %>
+      <%= form.text_area :payment_instructions, rows: 3, placeholder: "Mention any UPI ID, reference format, or organizer payment note." %>
+      <p class="field-hint">These details are shown only to signed-in athletes during registration.</p>
+    </div>
+
     <div>
       <%= form.label :category_generation_method, "Category generation" %>
       <%= form.select :category_generation_method, [

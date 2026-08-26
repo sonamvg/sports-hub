@@ -33,7 +33,7 @@ module Organizer
         .distinct
         .select(:id)
 
-      Registration.where(tournament_id: tournament_ids)
+      Registration.where(tournament_id: tournament_ids).where.not(status: :draft)
     end
 
     def set_registration
