@@ -431,6 +431,24 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "https://example.com/pune-invitational"
   end
 
+  test "signed in users see register link for open tournaments on index" do
+    tournament = Tournament.create!(
+      name: "Open Invitational",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6),
+      registration_opens_at: 1.day.ago,
+      registration_closes_at: 1.day.from_now
+    )
+
+    get tournaments_path
+
+    assert_response :success
+    assert_includes response.body, new_tournament_registration_path(tournament)
+    assert_includes response.body, "Register"
+  end
+
   test "show renders uploaded tournament banner" do
     tournament = Tournament.create!(
       name: "Pune Invitational",

@@ -144,4 +144,40 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
 
     assert Registration.where(athlete: athlete, tournament: tournament).all? { |registration| registration.payment_receipt.attached? }
   end
+
+  test "academy owner can register an owned academy athlete and category picker uses add more flow" do
+    owner = User.create!(name: "Academy Owner", email: "register-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Owned Academy", city: "Pune", status: :approved, owner: owner)
+    athlete_user = User.create!(name: "Athlete User", email: "register-academy-athlete@example.test", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6),
+      registration_opens_at: 1.day.ago,
+      registration_closes_at: 1.day.from_now
+    )
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    sign_in_as owner
+
+    get new_tournament_registration_path(tournament)
+    assert_response :success
+    assert_includes response.body, "Aarohi Shah"
+    assert_includes response.body, "data-category-picker"
+    assert_includes response.body, "Do you want to add more categories?"
+    assert_includes response.body, "Delete"
+
+    assert_difference("Registration.pending.count", 1) do
+      post tournament_registrations_path(tournament), params: {
+        registration: {
+          athlete_id: athlete.id,
+          tournament_category_ids: [category.id],
+          registered_weight: 39,
+          payment_receipt: payment_receipt_upload
+        }
+      }
+    end
+  end
 end

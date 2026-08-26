@@ -96,6 +96,19 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "academy owner can view athletes assigned to owned academy" do
+    owner = User.create!(name: "Academy Owner", email: "academy-owner-athlete@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Owned Academy", city: "Pune", status: :approved, owner: owner)
+    athlete_user = User.create!(name: "Athlete User", email: "academy-athlete@example.test", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    sign_in_as owner
+
+    get athlete_path(athlete)
+
+    assert_response :success
+    assert_includes response.body, "Aarohi Shah"
+  end
+
   test "super admin can view another user's athlete profile" do
     other_user = User.create!(name: "Other Parent", email: "other-parent@example.test", password: "password123", role: :parent)
     athlete = other_user.athletes.create!(

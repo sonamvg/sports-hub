@@ -98,8 +98,43 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     get academy_path(academy)
 
     assert_response :success
-    assert_includes response.body, "Registered athletes"
+    assert_includes response.body, "My athletes"
     assert_includes response.body, "Aarohi Shah"
     assert_includes response.body, "Red"
+  end
+
+  test "academy owner sees other academies but not their athletes" do
+    owner = User.create!(name: "Academy Owner", email: "owner-privacy@example.com", password: "password123", role: :academy_owner)
+    owned_academy = Academy.create!(name: "Owned Academy", city: "Pune", status: :approved, owner: owner)
+    other_academy = Academy.create!(name: "Other Academy", city: "Mumbai", status: :approved)
+    owner.athletes.create!(academy: owned_academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    other_user = User.create!(name: "Other Parent", email: "other-academy-parent@example.test", password: "password123", role: :parent)
+    other_user.athletes.create!(academy: other_academy, first_name: "Hidden", last_name: "Athlete", date_of_birth: Date.new(2014, 5, 12), gender: "male")
+    sign_in_as owner
+
+    get academies_path
+    assert_response :success
+    assert_includes response.body, "Owned Academy"
+    assert_includes response.body, "Other Academy"
+
+    get academy_path(other_academy)
+    assert_response :success
+    assert_not_includes response.body, "Hidden Athlete"
+    assert_not_includes response.body, "My athletes"
+  end
+
+  test "academy owner sees owned academy athletes in list view with profile links" do
+    owner = User.create!(name: "Academy Owner", email: "owner-list@example.com", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
+    athlete = owner.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", belt: "red")
+    sign_in_as owner
+
+    get academy_path(academy)
+
+    assert_response :success
+    assert_includes response.body, "My athletes"
+    assert_includes response.body, "registered-athlete-list"
+    assert_includes response.body, "Aarohi Shah"
+    assert_includes response.body, athlete_path(athlete)
   end
 end

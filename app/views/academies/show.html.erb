@@ -7,9 +7,19 @@
     <% if @academy.rejected? && @academy.rejection_reason.present? %><div><dt>Reason</dt><dd><%= @academy.rejection_reason %></dd></div><% end %>
   </dl>
   <% if can_manage_academy?(@academy) %>
-    <h3>Registered athletes</h3>
+    <h3>My athletes</h3>
     <% if @academy.athletes.any? %>
-      <% @academy.athletes.order(:first_name).each do |athlete| %><p><%= athlete.full_name %> · <%= athlete.belt&.titleize || "Belt not set" %></p><% end %>
+      <div class="registered-athlete-list academy-athlete-list">
+        <% @academy.athletes.order(:first_name, :last_name).each do |athlete| %>
+          <article class="registered-athlete-row">
+            <div><strong><%= athlete.full_name %></strong><span class="muted"><%= athlete.association_id || "--" %></span></div>
+            <span><strong>Belt</strong><%= athlete.belt&.titleize || "--" %></span>
+            <span><strong>Weight</strong><%= athlete.weight ? "#{athlete.weight} kg" : "--" %></span>
+            <span><strong>City</strong><%= athlete.city || "--" %></span>
+            <%= link_to "View", athlete_path(athlete), class: "text-link" %>
+          </article>
+        <% end %>
+      </div>
     <% else %>
       <p class="muted">No athlete profiles assigned yet.</p>
     <% end %>

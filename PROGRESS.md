@@ -2,6 +2,37 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-26 - Academy Owner Athlete Privacy And Dropdown Registration
+
+### Reference
+- User request: academy owners should be able to see other academies but not their athletes, see their own athletes in list view, see all tournaments, and register an academy athlete for open tournaments. Registration should use athlete and category dropdowns. After choosing a category, the selected category should remain displayed, a checkbox should ask whether to add more categories, another category dropdown should appear when checked, and chosen categories should be removable. The same category-selection flow should be used when athletes register themselves.
+
+### Scope Chosen For This Pass
+- Keep public/other-academy visibility limited to academy details only.
+- Treat athletes assigned to academies owned by the current academy owner as manageable athletes for viewing and tournament registration.
+- Reuse the existing multi-category registration persistence and payment/receipt flow.
+- Replace category checkboxes with repeatable category dropdown rows for all tournament registration users.
+
+### Product Decisions
+- Academy index shows athlete counts only for academies the current user can manage.
+- Academy detail pages show athlete details only for academy managers and super admins.
+- Academy-owned athletes are visible in the shared athlete controller, so profile links from academy pages work.
+- The registration form starts with one category dropdown. Once a category is selected, an add-more checkbox appears. Checking it appends another dropdown. Each chosen row can be deleted.
+- Tournament index now shows a direct `Register` link for signed-in users when registration is open.
+
+### Change Log
+- Expanded athlete visibility in `AthletesController` to include athletes assigned to approved academies owned by the current user.
+- Expanded registration athlete dropdown scope to include the current user's athletes plus athletes assigned to their owned approved academies.
+- Hid academy athlete counts from non-managers on the academy index.
+- Reworked academy detail athlete display into a row/list view labelled `My athletes`.
+- Replaced registration category checkboxes with a JavaScript-enhanced repeatable dropdown picker.
+- Added a direct tournament-card `Register` link for signed-in users when tournament registration is open.
+- Added tests for academy-owner privacy, owned academy athlete list/profile access, academy-owner registration of academy athletes, category picker controls, and tournament index register links.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb test/controllers/athletes_controller_test.rb test/controllers/registrations_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 42 runs, 362 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 95 runs, 723 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-26 - Athlete Signup, Profile Completion, And Multi-Category Registration
 
 ### Reference

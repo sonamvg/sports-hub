@@ -4,9 +4,8 @@ class AthletesController < ApplicationController
   before_action :set_available_academies, only: %i[new create edit update]
 
   def index
-    @athletes = Athlete.none
-    @athletes = current_user.athletes.includes(:academy).order(:first_name, :last_name) if current_user
-    @athletes = Athlete.includes(:academy, :user).order(:first_name, :last_name) if super_admin?
+    @athletes = visible_athletes.includes(:academy).order(:first_name, :last_name)
+    @athletes = @athletes.includes(:user) if super_admin?
   end
 
   def show; end
@@ -54,7 +53,8 @@ class AthletesController < ApplicationController
   def visible_athletes
     return Athlete.all if super_admin?
 
-    current_user.athletes
+    owned_academy_ids = current_user.owned_academies.approved.select(:id)
+    Athlete.where(user_id: current_user.id).or(Athlete.where(academy_id: owned_academy_ids)).distinct
   end
 
   def athlete_params

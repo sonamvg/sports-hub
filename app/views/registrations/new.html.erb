@@ -30,13 +30,25 @@
     </div>
     <div class="full">
       <%= form.label :tournament_category_ids, "Categories" %>
-      <div class="checklist-group">
-        <% @categories.each do |category| %>
-          <label class="checkbox-option">
-            <%= check_box_tag "registration[tournament_category_ids][]", category.id, @selected_category_ids.include?(category.id.to_s) %>
-            <span><%= category.name %></span>
-          </label>
+      <div class="category-picker" data-category-picker>
+        <% category_choices = @categories.map { |category| [category.name, category.id] } %>
+        <% selected_rows = @selected_category_ids.presence || [""] %>
+        <% selected_rows.each_with_index do |category_id, index| %>
+          <div class="category-picker-row" data-category-row>
+            <%= select_tag "registration[tournament_category_ids][]", options_for_select(category_choices, category_id), include_blank: "Choose category", class: "category-picker-select", data: { category_select: true } %>
+            <button type="button" class="secondary-button button-reset category-remove-button" data-remove-category <%= "hidden" if category_id.blank? && selected_rows.one? %>>Delete</button>
+          </div>
         <% end %>
+        <template data-category-template>
+          <div class="category-picker-row" data-category-row>
+            <%= select_tag "registration[tournament_category_ids][]", options_for_select(category_choices), include_blank: "Choose category", class: "category-picker-select", data: { category_select: true } %>
+            <button type="button" class="secondary-button button-reset category-remove-button" data-remove-category>Delete</button>
+          </div>
+        </template>
+        <label class="checkbox-option add-more-category-option" data-add-more-wrapper <%= "hidden" if @selected_category_ids.blank? %>>
+          <input type="checkbox" data-add-more-category>
+          <span>Do you want to add more categories?</span>
+        </label>
       </div>
       <p class="field-hint">Select every category this athlete wants to enter. Saved drafts are preselected when you return.</p>
     </div>
@@ -65,3 +77,41 @@
   </div>
 <% end %>
 </div></section>
+
+<script>
+  document.addEventListener("change", function(event) {
+    const select = event.target.closest("[data-category-select]");
+    if (!select) return;
+
+    const picker = select.closest("[data-category-picker]");
+    const addMoreWrapper = picker.querySelector("[data-add-more-wrapper]");
+    addMoreWrapper.hidden = picker.querySelectorAll("[data-category-select]").length > 0 && select.value === "";
+    if (select.value !== "") addMoreWrapper.hidden = false;
+  });
+
+  document.addEventListener("change", function(event) {
+    const checkbox = event.target.closest("[data-add-more-category]");
+    if (!checkbox || !checkbox.checked) return;
+
+    const picker = checkbox.closest("[data-category-picker]");
+    const template = picker.querySelector("[data-category-template]");
+    picker.insertBefore(template.content.cloneNode(true), checkbox.closest("[data-add-more-wrapper]"));
+    checkbox.checked = false;
+    checkbox.closest("[data-add-more-wrapper]").hidden = true;
+  });
+
+  document.addEventListener("click", function(event) {
+    const button = event.target.closest("[data-remove-category]");
+    if (!button) return;
+
+    const picker = button.closest("[data-category-picker]");
+    const rows = picker.querySelectorAll("[data-category-row]");
+    if (rows.length === 1) {
+      rows[0].querySelector("select").value = "";
+      button.hidden = true;
+      picker.querySelector("[data-add-more-wrapper]").hidden = true;
+    } else {
+      button.closest("[data-category-row]").remove();
+    }
+  });
+</script>

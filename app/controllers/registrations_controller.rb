@@ -4,12 +4,12 @@ class RegistrationsController < ApplicationController
   before_action :ensure_registration_open, only: %i[new create]
 
   def index
-    @registrations = @tournament.registrations.where(athlete: current_user.athletes).includes(:athlete, :tournament_category).order(status_sort_sql, created_at: :desc)
+    @registrations = @tournament.registrations.where(athlete: manageable_athletes).includes(:athlete, :tournament_category).order(status_sort_sql, created_at: :desc)
   end
 
   def new
     @registration = @tournament.registrations.build(
-      athlete_id: params[:athlete_id] || current_user.athletes.order(:first_name, :last_name).first&.id
+      athlete_id: params[:athlete_id] || manageable_athletes.order(:first_name, :last_name).first&.id
     )
     set_registration_collections
     @selected_category_ids = selected_category_ids
@@ -17,7 +17,7 @@ class RegistrationsController < ApplicationController
 
   def create
     @registration = @tournament.registrations.build
-    @athlete = current_user.athletes.find_by(id: registration_params[:athlete_id])
+    @athlete = manageable_athletes.find_by(id: registration_params[:athlete_id])
     @selected_category_ids = Array(registration_params[:tournament_category_ids]).reject(&:blank?)
     submit_registration = params[:commit] != "Save and pay later"
 
@@ -48,8 +48,13 @@ class RegistrationsController < ApplicationController
   end
 
   def set_registration_collections
-    @athletes = current_user.athletes.order(:first_name, :last_name)
+    @athletes = manageable_athletes.includes(:academy).order(:first_name, :last_name)
     @categories = @tournament.tournament_categories.order(:name)
+  end
+
+  def manageable_athletes
+    owned_academy_ids = current_user.owned_academies.approved.select(:id)
+    Athlete.where(user_id: current_user.id).or(Athlete.where(academy_id: owned_academy_ids)).distinct
   end
 
   def selected_category_ids
