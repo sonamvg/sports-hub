@@ -21,7 +21,7 @@ class RegistrationsController < ApplicationController
     @registration.athlete = current_user.athletes.find_by(id: registration_params[:athlete_id])
 
     if @registration.save
-      redirect_to tournament_registrations_path(@tournament), notice: "Registration submitted for organizer approval."
+      redirect_to tournament_registrations_path(@tournament), notice: "Registration submitted to tournament organizers for approval."
     else
       @athletes = current_user.athletes.order(:first_name, :last_name)
       @categories = @tournament.tournament_categories.order(:name)

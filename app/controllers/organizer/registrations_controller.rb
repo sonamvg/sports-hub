@@ -27,8 +27,6 @@ module Organizer
     private
 
     def visible_registrations
-      return Registration.all if super_admin?
-
       tournament_ids = Tournament
         .left_joins(:tournament_organizers)
         .where("tournaments.organizer_id = :user_id OR tournament_organizers.user_id = :user_id", user_id: current_user.id)

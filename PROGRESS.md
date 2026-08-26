@@ -2,6 +2,32 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-26 - Registration Approval Routed To Tournament Organisers
+
+### Reference
+- User request: when an athlete registers for an event, the approval should go to the organiser, not the super admin.
+
+### Scope Chosen For This Pass
+- Tighten the organiser registration approval queue so it is scoped to users who own or are assigned to the tournament.
+- Keep super-admin-only action log visibility only within registrations that the super admin can access as an assigned tournament organiser.
+- Update registration wording so athletes know their submission goes to tournament organisers.
+
+### Product Decisions
+- Super admins no longer receive every tournament registration in the organiser approval queue by default.
+- A super admin can still review approval logs when they are explicitly attached to that tournament, preserving the audit-only visibility rule without making super admin the default approval recipient.
+- Tournament organisers remain responsible for accepting or denying athlete registrations.
+
+### Change Log
+- Removed the super-admin `Registration.all` shortcut from `Organizer::RegistrationsController#visible_registrations`.
+- Updated the successful athlete registration notice to say the entry was submitted to tournament organisers for approval.
+- Updated the athlete registration page copy to say tournament organisers review the entry.
+- Added tests proving unassigned super admins cannot see or approve tournament registrations in the organiser queue.
+- Updated the action-log visibility test so a super admin must be assigned to the tournament to access the organiser registration detail.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/organizer_registrations_controller_test.rb test/controllers/registrations_controller_test.rb`; result: 9 runs, 69 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 88 runs, 663 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-26 - Tournament Weight Check And Draw Lock
 
 ### Reference
