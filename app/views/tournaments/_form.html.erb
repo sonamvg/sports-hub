@@ -32,15 +32,21 @@
     </div>
 
     <div>
-      <%= form.label :logo_url, "Logo or image URL" %>
-      <%= form.url_field :logo_url, placeholder: "https://example.com/logo.png" %>
-      <p class="field-hint">Use an image from the tournament website or organizer media kit.</p>
+      <%= form.label :logo_image, "Logo or image upload" %>
+      <%= form.file_field :logo_image, accept: "image/png,image/jpeg,image/webp" %>
+      <p class="field-hint">Upload a logo or square image. PNG, JPG, or WebP is accepted.</p>
+      <% if tournament.logo_image.attached? %>
+        <p class="field-hint">Current upload: <%= tournament.logo_image.filename %></p>
+      <% end %>
     </div>
 
     <div class="full">
-      <%= form.label :banner_image_url, "Banner or hero image URL" %>
-      <%= form.url_field :banner_image_url, placeholder: "https://example.com/banner.jpg" %>
-      <p class="field-hint">This can be used for tournament promotion pages and listing artwork.</p>
+      <%= form.label :banner_image, "Banner or hero image upload" %>
+      <%= form.file_field :banner_image, accept: "image/png,image/jpeg,image/webp" %>
+      <p class="field-hint">Upload a wide banner image for tournament promotion pages and listing artwork.</p>
+      <% if tournament.banner_image.attached? %>
+        <p class="field-hint">Current upload: <%= tournament.banner_image.filename %></p>
+      <% end %>
     </div>
 
     <div class="full form-section-heading">

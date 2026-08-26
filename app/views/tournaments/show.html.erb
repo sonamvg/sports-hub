@@ -28,6 +28,13 @@
       </div>
     <% end %>
   </div>
+
+  <% if @tournament.banner_image_source.present? %>
+    <div class="tournament-banner">
+      <%= image_tag @tournament.banner_image_source, alt: "#{@tournament.name} banner", loading: "lazy" %>
+    </div>
+  <% end %>
+
   <div class="detail-card tournament-summary">
     <div><strong>Venue</strong><span><%= [@tournament.venue, @tournament.city, @tournament.state].compact.join(", ") %></span></div>
     <div><strong>Dates</strong><span><%= @tournament.start_date.strftime("%d %b") %> – <%= @tournament.end_date.strftime("%d %b %Y") %></span></div>

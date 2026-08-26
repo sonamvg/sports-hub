@@ -18,8 +18,8 @@
       <% @tournaments.each do |tournament| %>
         <article class="entity-card tournament-card">
           <div class="tournament-visual">
-            <% if tournament.logo_url.present? %>
-              <%= image_tag tournament.logo_url, alt: "#{tournament.name} logo", loading: "lazy" %>
+            <% if tournament.logo_image_source.present? %>
+              <%= image_tag tournament.logo_image_source, alt: "#{tournament.name} logo", loading: "lazy" %>
             <% else %>
               <span><%= tournament.name.to_s.first&.upcase || "T" %></span>
             <% end %>

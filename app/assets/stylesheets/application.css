@@ -88,6 +88,8 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 .tournament-visual { width:calc(100% + 52px); height:150px; margin:0 -26px 22px; background:linear-gradient(135deg,#111318 0%,#2f333b 55%,#e21d2f 100%); display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--line); }
 .tournament-visual img { width:100%; height:100%; object-fit:contain; padding:24px; background:#f7f7f5; }
 .tournament-visual span { color:white; font-size:64px; font-weight:900; line-height:1; }
+.tournament-banner { margin:0 0 28px; border:1px solid var(--line); background:#f7f7f5; max-height:320px; overflow:hidden; }
+.tournament-banner img { width:100%; height:100%; max-height:320px; object-fit:cover; display:block; }
 .card-links { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:auto; }
 .muted-link { color:var(--muted); }
 .entity-meta { display:flex; gap:30px; margin:18px 0 22px; }

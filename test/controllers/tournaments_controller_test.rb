@@ -29,7 +29,8 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       "Currency",
       "Required documents",
       "Refund policy",
-      "Banner or hero image URL",
+      "Logo or image upload",
+      "Banner or hero image upload",
       "Save as Draft",
       "Publish"
     ].each do |label|
@@ -65,10 +66,10 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
           currency: "inr",
           required_documents: "Age proof, association ID",
           refund_policy: "Refunds close 7 days before event",
-          banner_image_url: "https://example.com/banner.jpg",
           status: "registration_open",
           website_url: "https://example.com/pune-invitational",
-          logo_url: "https://example.com/pune-logo.png",
+          logo_image: tournament_image_upload,
+          banner_image: tournament_image_upload,
           organizer_user_ids: [collaborator.id]
         }
       }
@@ -79,7 +80,8 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal @organizer, tournament.organizer
     assert_equal "registration_open", tournament.status
     assert_equal "https://example.com/pune-invitational", tournament.website_url
-    assert_equal "https://example.com/pune-logo.png", tournament.logo_url
+    assert_predicate tournament.logo_image, :attached?
+    assert_predicate tournament.banner_image, :attached?
     assert_equal "State", tournament.tournament_level
     assert_equal "Maharashtra Taekwondo Association", tournament.organizing_organization
     assert_equal "Mumbai", tournament.time_zone
@@ -89,7 +91,6 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 400, tournament.registration_capacity
     assert_equal BigDecimal("1500.0"), tournament.registration_fee
     assert_equal "INR", tournament.currency
-    assert_equal "https://example.com/banner.jpg", tournament.banner_image_url
     assert_equal @organizer, tournament.tournament_organizers.super_organizer.sole.user
     assert_includes tournament.organizer_users, collaborator
   end
@@ -169,15 +170,13 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
           name: "Pune Invitational",
           start_date: "2026-12-05",
           end_date: "2026-12-06",
-          website_url: "not-a-url",
-          logo_url: "ftp://example.com/logo.png"
+          website_url: "not-a-url"
         }
       }
     end
 
     assert_response :unprocessable_entity
     assert_includes response.body, "Website url must be a valid http or https URL"
-    assert_includes response.body, "Logo url must be a valid http or https URL"
   end
 
   test "updates tournament" do
@@ -343,21 +342,37 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Pune Invitational"
   end
 
-  test "index renders tournament logos and website links" do
+  test "index renders uploaded tournament logos and website links" do
     tournament = Tournament.create!(
       name: "Pune Invitational",
       organizer: @organizer,
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6),
-      website_url: "https://example.com/pune-invitational",
-      logo_url: "https://example.com/pune-logo.png"
+      website_url: "https://example.com/pune-invitational"
     )
+    tournament.logo_image.attach(tournament_image_upload)
 
     get tournaments_path
 
     assert_response :success
     assert_includes response.body, "#{tournament.name} logo"
-    assert_includes response.body, "https://example.com/pune-logo.png"
+    assert_includes response.body, "/rails/active_storage"
     assert_includes response.body, "https://example.com/pune-invitational"
+  end
+
+  test "show renders uploaded tournament banner" do
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    tournament.banner_image.attach(tournament_image_upload)
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "#{tournament.name} banner"
+    assert_includes response.body, "/rails/active_storage"
   end
 end

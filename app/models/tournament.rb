@@ -6,6 +6,8 @@ class Tournament < ApplicationRecord
   has_many :registrations, dependent: :destroy
   has_many :tournament_organizers, dependent: :destroy
   has_many :organizer_users, through: :tournament_organizers, source: :user
+  has_one_attached :logo_image
+  has_one_attached :banner_image
 
   enum :status, {
     draft: 0,
@@ -43,6 +45,18 @@ class Tournament < ApplicationRecord
     return false unless user
 
     organizer_id == user.id || tournament_organizers.exists?(user_id: user.id)
+  end
+
+  def logo_image_source
+    return logo_image if logo_image.attached?
+
+    logo_url.presence
+  end
+
+  def banner_image_source
+    return banner_image if banner_image.attached?
+
+    banner_image_url.presence
   end
 
   private

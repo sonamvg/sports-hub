@@ -2,6 +2,36 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-26 - Tournament Image Uploads
+
+### Reference
+- User request: image fields currently ask for a URL; make them uploaders and save the image directly instead.
+
+### Scope Chosen For This Pass
+- Replace tournament logo/banner URL inputs with file upload controls.
+- Store uploaded tournament images through Active Storage.
+- Render uploaded images on tournament listings and tournament detail pages.
+- Keep old `logo_url` and `banner_image_url` columns as display fallback for older records, but stop accepting them in the tournament form/controller.
+
+### Product Decisions
+- `logo_image` is the uploaded logo/card image for tournament listings.
+- `banner_image` is the uploaded wide hero/banner image for tournament detail pages.
+- Upload controls accept PNG, JPG, and WebP.
+- Existing remote image URL data remains readable so older development records do not break.
+
+### Change Log
+- Added `has_one_attached :logo_image` and `has_one_attached :banner_image` to `Tournament`.
+- Added `Tournament#logo_image_source` and `Tournament#banner_image_source` helpers for uploaded-image-first rendering with URL fallback.
+- Replaced `logo_url` and `banner_image_url` form fields with file uploaders.
+- Updated tournament controller strong params to accept `logo_image` and `banner_image` uploads instead of image URL params.
+- Updated tournament index to render uploaded logo images.
+- Updated tournament show to render uploaded banner images.
+- Added tournament image upload fixture and tests for attached images.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/models/tournament_test.rb`; result: 20 runs, 180 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 73 runs, 533 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-26 - Expanded Add Tournament Setup Flow
 
 ### Reference

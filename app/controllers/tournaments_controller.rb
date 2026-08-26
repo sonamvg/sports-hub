@@ -87,11 +87,12 @@ class TournamentsController < ApplicationController
   def tournament_params
     params.require(:tournament).permit(
       :name, :slug, :description, :venue, :city, :state, :start_date, :end_date,
-      :registration_opens_at, :registration_closes_at, :status, :website_url, :logo_url,
+      :registration_opens_at, :registration_closes_at, :status, :website_url,
       :tournament_level, :organizing_organization, :time_zone, :primary_contact_name,
       :primary_contact_email, :primary_contact_phone, :competition_formats,
       :eligibility_summary, :category_generation_method, :registration_capacity,
-      :registration_fee, :currency, :required_documents, :refund_policy, :banner_image_url
+      :registration_fee, :currency, :required_documents, :refund_policy,
+      :logo_image, :banner_image
     )
   end
 
