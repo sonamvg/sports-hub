@@ -15,7 +15,16 @@ class OrganizersControllerTest < ActionDispatch::IntegrationTest
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6)
     )
-    User.create!(name: "Pending Organizer", email: "pending-organizer@example.test", password: "password123", role: :organizer, organizer_status: :pending)
+    User.create!(
+      name: "Pending Organizer",
+      email: "pending-organizer@example.test",
+      password: "password123",
+      role: :organizer,
+      organizer_status: :pending,
+      phone: "9876543210",
+      organizer_designation: "Event Director",
+      identity_document: identity_document_upload
+    )
 
     get organizers_path
 
@@ -30,7 +39,16 @@ class OrganizersControllerTest < ActionDispatch::IntegrationTest
 
   test "super admin can verify pending organizer" do
     super_admin = User.create!(name: "Super Admin", email: "admin@example.test", password: "password123", role: :super_admin)
-    organizer = User.create!(name: "Pending Organizer", email: "pending-organizer@example.test", password: "password123", role: :organizer, organizer_status: :pending)
+    organizer = User.create!(
+      name: "Pending Organizer",
+      email: "pending-organizer@example.test",
+      password: "password123",
+      role: :organizer,
+      organizer_status: :pending,
+      phone: "9876543210",
+      organizer_designation: "Event Director",
+      identity_document: identity_document_upload
+    )
     sign_in_as super_admin
 
     patch approve_organizer_path(organizer)
@@ -44,7 +62,16 @@ class OrganizersControllerTest < ActionDispatch::IntegrationTest
 
   test "non super admin cannot verify organizer" do
     user = User.create!(name: "Organizer", email: "organizer@example.test", password: "password123", role: :organizer)
-    pending = User.create!(name: "Pending Organizer", email: "pending@example.test", password: "password123", role: :organizer, organizer_status: :pending)
+    pending = User.create!(
+      name: "Pending Organizer",
+      email: "pending@example.test",
+      password: "password123",
+      role: :organizer,
+      organizer_status: :pending,
+      phone: "9876543210",
+      organizer_designation: "Event Director",
+      identity_document: identity_document_upload
+    )
     sign_in_as user
 
     patch approve_organizer_path(pending)

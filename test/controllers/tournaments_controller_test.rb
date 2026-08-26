@@ -37,7 +37,16 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "pending organizer cannot create tournament" do
-    pending = User.create!(name: "Pending Organizer", email: "pending-organizer@example.test", password: "password123", role: :organizer, organizer_status: :pending)
+    pending = User.create!(
+      name: "Pending Organizer",
+      email: "pending-organizer@example.test",
+      password: "password123",
+      role: :organizer,
+      organizer_status: :pending,
+      phone: "9876543210",
+      organizer_designation: "Event Director",
+      identity_document: identity_document_upload
+    )
     sign_in_as pending
 
     assert_no_difference("Tournament.count") do

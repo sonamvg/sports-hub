@@ -2,6 +2,39 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-26 - Organizer Registration Verification Fields
+
+### Reference
+- User request: while registering an organiser, collect designation, academy affiliation if they belong to one, one government/identity verification document such as Aadhaar, and make mobile number compulsory.
+
+### Scope Chosen For This Pass
+- Add organizer-only registration fields to the existing account creation flow.
+- Require mobile number, designation, and identity document only for pending organizer registrations.
+- Keep academy affiliation optional because not every organizer may belong to an academy.
+- Store identity documents with Rails Active Storage using local disk storage in development and test.
+
+### Product Decisions
+- `phone` remains the shared user mobile/contact field, but it is required when the account is a pending organizer request.
+- `organizer_designation` stores the organizer's title or capacity, such as tournament director, coach, or academy owner.
+- `organizer_academy_id` optionally links an organizer to an approved academy.
+- `identity_document` is a private Active Storage attachment on `User`; the public organizer directory does not expose the uploaded document.
+- Existing verified organizers are not forced to backfill identity documents, so older data and tests remain usable.
+
+### Change Log
+- Added Active Storage migrations and `config/storage.yml`.
+- Configured development storage as `:local` and test storage as `:test`.
+- Added organizer profile fields to users: `organizer_designation` and optional `organizer_academy`.
+- Added `User#identity_document` attachment.
+- Added conditional organizer registration validations for mobile number, designation, and identity document upload.
+- Updated organizer signup form with required mobile number, designation, optional academy affiliation, optional public photo URL, and required identity document upload accepting PDF/JPG/PNG.
+- Updated organizer directory to show designation and academy affiliation on verified organizer cards and pending-review rows.
+- Added tests and a fixture identity document for organizer signup and organizer approval flows.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: Active Storage tables and organizer profile columns applied successfully.
+- Ran `mise exec -- bin/rails test test/controllers/users_controller_test.rb test/controllers/organizers_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 22 runs, 195 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 69 runs, 461 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-26 - Tournament Category List View
 
 ### Reference

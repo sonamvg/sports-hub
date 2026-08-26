@@ -18,6 +18,10 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Create organizer account"
     assert_includes response.body, "super admin will verify"
     assert_includes response.body, 'value="organizer"'
+    assert_includes response.body, "Mobile number"
+    assert_includes response.body, "Designation"
+    assert_includes response.body, "Academy affiliation"
+    assert_includes response.body, "Identity verification document"
     assert_includes response.body, "Profile photo URL"
   end
 
@@ -57,7 +61,10 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
         user: {
           name: "New Organizer",
           email: "new-organizer@example.com",
+          phone: "9876543210",
+          organizer_designation: "Tournament Director",
           profile_photo_url: "https://example.com/organizer.jpg",
+          identity_document: identity_document_upload,
           password: "password123",
           password_confirmation: "password123"
         }
@@ -67,10 +74,32 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     user = User.order(:created_at).last
     assert_predicate user, :organizer?
     assert_predicate user, :organizer_pending?
+    assert_equal "9876543210", user.phone
+    assert_equal "Tournament Director", user.organizer_designation
     assert_equal "https://example.com/organizer.jpg", user.profile_photo_url
+    assert_predicate user.identity_document, :attached?
     assert_equal user.id, session[:user_id]
     assert_redirected_to organizers_path
     assert_equal "Organizer account created and sent to super admin for verification.", flash[:notice]
+  end
+
+  test "organizer signup requires mobile designation and identity document" do
+    assert_no_difference("User.count") do
+      post users_path, params: {
+        account_type: "organizer",
+        user: {
+          name: "New Organizer",
+          email: "missing-verification@example.com",
+          password: "password123",
+          password_confirmation: "password123"
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Phone can&#39;t be blank"
+    assert_includes response.body, "Organizer designation can&#39;t be blank"
+    assert_includes response.body, "Identity document must be uploaded"
   end
 
   test "creates academy owner account and returns to academy registration" do

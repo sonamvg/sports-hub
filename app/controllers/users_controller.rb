@@ -2,6 +2,7 @@ class UsersController < ApplicationController
   def new
     @account_type = account_type_param
     @user = User.new(role: signup_role)
+    set_available_academies
   end
 
   def create
@@ -15,6 +16,7 @@ class UsersController < ApplicationController
       session[:user_id] = @user.id
       redirect_to after_signup_path, notice: signup_notice
     else
+      set_available_academies
       render :new, status: :unprocessable_entity
     end
   end
@@ -48,6 +50,10 @@ class UsersController < ApplicationController
     "Account created."
   end
 
+  def set_available_academies
+    @available_academies = Academy.approved.order(:name)
+  end
+
   def safe_return_path(path)
     return if path.blank?
 
@@ -55,6 +61,9 @@ class UsersController < ApplicationController
   end
 
   def user_params
-    params.require(:user).permit(:name, :email, :phone, :profile_photo_url, :password, :password_confirmation)
+    params.require(:user).permit(
+      :name, :email, :phone, :profile_photo_url, :organizer_designation,
+      :organizer_academy_id, :identity_document, :password, :password_confirmation
+    )
   end
 end

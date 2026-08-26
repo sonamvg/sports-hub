@@ -20,12 +20,25 @@
       <%= hidden_field_tag :return_to, params[:return_to] if params[:return_to].present? %>
       <div class="form-grid two-col">
         <div><%= form.label :name %><%= form.text_field :name, required: true, autocomplete: "name" %></div>
-        <div><%= form.label :phone %><%= form.telephone_field :phone, autocomplete: "tel" %></div>
+        <div><%= form.label :phone, organizer_account ? "Mobile number" : "Phone" %><%= form.telephone_field :phone, required: organizer_account, autocomplete: "tel" %></div>
         <% if organizer_account %>
+          <div>
+            <%= form.label :organizer_designation, "Designation" %>
+            <%= form.text_field :organizer_designation, required: true, placeholder: "Tournament director, coach, academy owner" %>
+          </div>
+          <div>
+            <%= form.label :organizer_academy_id, "Academy affiliation" %>
+            <%= form.collection_select :organizer_academy_id, @available_academies, :id, :name, include_blank: "No academy affiliation" %>
+          </div>
           <div class="full">
             <%= form.label :profile_photo_url, "Profile photo URL" %>
             <%= form.url_field :profile_photo_url, placeholder: "https://example.com/photo.jpg" %>
             <p class="field-hint">Optional. This appears on the public organizer directory after verification.</p>
+          </div>
+          <div class="full">
+            <%= form.label :identity_document, "Identity verification document" %>
+            <%= form.file_field :identity_document, required: true, accept: "image/png,image/jpeg,application/pdf" %>
+            <p class="field-hint">Upload one document such as Aadhaar or another identity proof. PDF, JPG, or PNG is accepted.</p>
           </div>
         <% end %>
         <div class="full"><%= form.label :email %><%= form.email_field :email, required: true, autocomplete: "email" %></div>

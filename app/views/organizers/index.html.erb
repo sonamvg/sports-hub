@@ -22,7 +22,7 @@
             <div class="approval-row">
               <div>
                 <strong><%= organizer.name %></strong>
-                <span><%= organizer.email %></span>
+                <span><%= [organizer.email, organizer.phone, organizer.organizer_designation].compact.join(" · ") %></span>
               </div>
               <span class="status-pill status-pending"><%= organizer.organizer_status.humanize %></span>
               <div class="row-actions">
@@ -48,6 +48,7 @@
           </div>
           <span class="status-pill status-approved">Verified organizer</span>
           <h2><%= organizer.name %></h2>
+          <p><%= [organizer.organizer_designation, organizer.organizer_academy&.name].compact.join(" · ").presence || "Organizer profile verified" %></p>
           <p><%= events.any? ? "#{events.size} event#{'s' unless events.one?} organized" : "No published events yet" %></p>
           <% if events.any? %>
             <div class="entity-meta organizer-events">
