@@ -2,6 +2,37 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-27 - Demo Seed Data For New Tournament Fields
+
+### Reference
+- User request: add seed data for new fields added.
+
+### Scope Chosen For This Pass
+- Reintroduce explicit demo seed data after the earlier empty-seed state.
+- Cover the newer tournament operations fields and flows rather than only base users.
+- Keep the seed script idempotent so repeated `db:seed` runs update/reuse records instead of creating duplicates.
+
+### Product Decisions
+- Demo password is `password123` for all seeded accounts.
+- Seeded roles include super admin, verified organiser, assistant organiser, academy owner, and athlete.
+- Seeded tournaments include one registration-open tournament and one registration-closed tournament.
+- Tournament seed data includes fee per category, currency, payment bank instructions, courts count, categories, organisers, referees, uploaded image attachments, and registrations with receipt attachments.
+- Referee seed data includes names, phone, email, role, qualifications, certification ID, affiliation, notes, and photo attachment.
+- Demo registrations include pending and approved states so organiser approval queues and accepted lists have visible data.
+
+### Change Log
+- Replaced the empty `db/seeds.rb` placeholder with an idempotent demo seed script.
+- Added helper methods inside `db/seeds.rb` for users, academies, athletes, tournaments, categories, registrations, and file attachments.
+- Seeded default category-template-based categories for both demo tournaments.
+- Seeded tournament referee records for new referee-management fields.
+- Seeded registration receipts using existing fixture files.
+- Printed demo login credentials after seeding.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:seed`; result: seed data loaded successfully and printed demo credentials.
+- Reran `mise exec -- bin/rails db:seed`; result: completed successfully again, confirming idempotent behavior for this pass.
+- Ran `mise exec -- bin/rails test`; result: 118 runs, 876 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-27 - Code Review And Safe Dead-Code Cleanup
 
 ### Reference
