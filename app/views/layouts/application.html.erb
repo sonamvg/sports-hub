@@ -15,7 +15,7 @@
           <%= link_to "Tournaments", tournaments_path %>
           <%= link_to "Athletes", athletes_path %>
           <%= link_to "Academies", academies_path %>
-          <%= link_to "Organizer", current_user&.can_organize_tournaments? ? organizer_registrations_path : organizers_path %>
+          <%= link_to "Organizer", current_user&.can_organize_tournaments? ? profile_organizers_path : organizers_path %>
           <% if current_user %>
             <span class="status-pill"><%= current_user.role.humanize %></span>
             <%= button_to "Sign out", logout_path, method: :delete, class: "link-button" %>

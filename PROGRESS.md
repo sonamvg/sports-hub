@@ -2,6 +2,34 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-27 - Organizer Profile Landing Page
+
+### Reference
+- User request: as an organiser, when I sign in and click the organiser, I should be able to see my profile.
+
+### Scope Chosen For This Pass
+- Add a signed-in organiser profile landing page.
+- Change the top navigation `Organizer` link for verified organiser-capable users to open the profile instead of the approvals queue.
+- Keep registration approvals accessible from the organiser profile.
+
+### Product Decisions
+- The organiser profile lives at `/organizers/profile`.
+- The profile shows verification status, role, designation, email, phone, approval date, owned tournaments, and collaborating tournaments.
+- Owned tournament rows link to view, edit, and referee management.
+- Collaborating tournament rows link to view and approvals.
+- Non-organiser users are redirected to the public organisers page with a clear alert.
+
+### Change Log
+- Added `profile` collection route under organisers.
+- Added `OrganizersController#profile`.
+- Added `app/views/organizers/profile.html.erb`.
+- Updated the app header organiser nav target for organiser-capable users.
+- Added controller tests for profile access, nav target, owned tournament display, and non-organiser redirect.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/organizers_controller_test.rb`; result: 5 runs, 47 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 122 runs, 922 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-27 - Image Placeholders For Missing Or Broken Media
 
 ### Reference

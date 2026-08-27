@@ -1,6 +1,52 @@
 require "test_helper"
 
 class OrganizersControllerTest < ActionDispatch::IntegrationTest
+  test "verified organizer can view own profile from organizer nav" do
+    organizer = User.create!(
+      name: "Verified Organizer",
+      email: "verified-profile-organizer@example.test",
+      password: "password123",
+      role: :organizer,
+      organizer_status: :verified,
+      organizer_designation: "Tournament Director",
+      phone: "9876543210",
+      organizer_approved_at: Time.current
+    )
+    tournament = Tournament.create!(
+      name: "City Open",
+      organizer: organizer,
+      city: "Pune",
+      state: "Maharashtra",
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    sign_in_as organizer
+
+    get root_path
+    assert_response :success
+    assert_includes response.body, profile_organizers_path
+
+    get profile_organizers_path
+
+    assert_response :success
+    assert_includes response.body, "ORGANIZER PROFILE"
+    assert_includes response.body, "Verified Organizer"
+    assert_includes response.body, "Tournament Director"
+    assert_includes response.body, "City Open"
+    assert_includes response.body, edit_tournament_path(tournament)
+    assert_includes response.body, organizer_registrations_path
+  end
+
+  test "non organizer is redirected away from organizer profile" do
+    user = User.create!(name: "Parent User", email: "parent-organizer-profile@example.test", password: "password123", role: :parent)
+    sign_in_as user
+
+    get profile_organizers_path
+
+    assert_redirected_to organizers_path
+    assert_equal "Create an organizer account to access an organizer profile.", flash[:alert]
+  end
+
   test "signed out users see organizer registration CTA and verified organizers" do
     organizer = User.create!(
       name: "Verified Organizer",
