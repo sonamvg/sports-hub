@@ -42,7 +42,6 @@ class TournamentCategory < ApplicationRecord
   validates :category_key, uniqueness: { scope: :tournament_id, message: "already exists for this tournament" }
   validates :age_min, :age_max, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
   validates :weight_min, :weight_max, numericality: { greater_than: 0 }, allow_nil: true
-  validates :registration_fee, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validate :age_max_not_below_min
   validate :weight_max_not_below_min
 

@@ -1,16 +1,12 @@
 class ApplicationController < ActionController::Base
   before_action :require_athlete_profile_completion
 
-  helper_method :current_user, :demo_organizer, :super_admin?, :can_manage_academy?, :can_manage_tournament?
+  helper_method :current_user, :super_admin?, :can_manage_academy?, :can_manage_tournament?
 
   private
 
   def current_user
     @current_user ||= User.find_by(id: session[:user_id]) if session[:user_id].present?
-  end
-
-  def demo_organizer
-    @demo_organizer ||= User.find_by(email: "organizer@example.com")
   end
 
   def require_user

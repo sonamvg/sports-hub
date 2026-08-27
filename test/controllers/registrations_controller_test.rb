@@ -126,10 +126,9 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
       registration_closes_at: 1.day.from_now
     )
     category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
-    tournament.registrations.create!(athlete: first_athlete, tournament_category: category, status: :draft)
     sign_in_as owner
 
-    get new_tournament_registration_path(tournament, athlete_id: first_athlete.id)
+    get new_tournament_registration_path(tournament, athlete_id: first_athlete.id, category_id: category.id)
 
     assert_response :success
     assert_includes response.body, "data-athlete-select"

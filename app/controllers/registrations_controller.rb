@@ -56,10 +56,7 @@ class RegistrationsController < ApplicationController
   end
 
   def selected_category_ids
-    ids = Array(params[:category_id]).reject(&:blank?).map(&:to_s)
-    athlete_id = @registration.athlete_id
-    ids += @tournament.registrations.draft.where(athlete_id: athlete_id).pluck(:tournament_category_id).map(&:to_s) if athlete_id.present?
-    ids.uniq
+    Array(params[:category_id]).reject(&:blank?).map(&:to_s).uniq
   end
 
   def save_category_registrations

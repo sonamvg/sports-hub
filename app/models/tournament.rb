@@ -59,7 +59,7 @@ class Tournament < ApplicationRecord
   validates :name, :start_date, :end_date, presence: true
   validates :name, length: { minimum: 3, maximum: 120 }, allow_blank: true
   validates :slug, uniqueness: true, allow_blank: true
-  validates :website_url, :logo_url, :banner_image_url, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid http or https URL" }, allow_blank: true
+  validates :website_url, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid http or https URL" }, allow_blank: true
   validates :primary_contact_email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :registration_capacity, numericality: { only_integer: true, greater_than: 0 }, allow_blank: true
   validates :registration_fee, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
@@ -93,15 +93,11 @@ class Tournament < ApplicationRecord
   end
 
   def logo_image_source
-    return logo_image if logo_image.attached?
-
-    logo_url.presence
+    logo_image if logo_image.attached?
   end
 
   def banner_image_source
-    return banner_image if banner_image.attached?
-
-    banner_image_url.presence
+    banner_image if banner_image.attached?
   end
 
   private
@@ -110,8 +106,6 @@ class Tournament < ApplicationRecord
     self.name = name.to_s.squish.presence
     self.slug = slug.presence
     self.website_url = website_url.to_s.squish.presence
-    self.logo_url = logo_url.to_s.squish.presence
-    self.banner_image_url = banner_image_url.to_s.squish.presence
     self.city = city.to_s.squish.presence
     self.state = state.to_s.squish.presence
     self.country = country.to_s.squish.presence || "India"

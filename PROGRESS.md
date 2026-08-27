@@ -2,6 +2,39 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-27 - Code Review And Safe Dead-Code Cleanup
+
+### Reference
+- User request: code review the application and remove unwanted code.
+
+### Scope Chosen For This Pass
+- Review the Rails application for unused runtime paths, stale helpers, old flow leftovers, and tracked junk files.
+- Remove dead code only where it does not delete existing data.
+- Avoid dropping database columns without explicit approval because that can destroy stored values.
+
+### Review Findings
+- `ApplicationController#demo_organizer` was exposed as a helper but had no live references.
+- Tournament image uploads replaced the old `logo_url` and `banner_image_url` runtime fallback paths.
+- Category-specific registration fees were removed from the product flow, but a model validation for the unused category fee column remained.
+- Registration draft preselection belonged to the removed `Save and pay later` flow and was no longer part of the registration UX.
+- No tracked `log` or `tmp` files were found.
+
+### Change Log
+- Removed unused `demo_organizer` helper exposure and method.
+- Removed legacy logo/banner URL fallback behavior from `Tournament#logo_image_source` and `#banner_image_source`.
+- Removed normalization and URL validation for legacy tournament branding URL attributes.
+- Removed unused `TournamentCategory#registration_fee` validation.
+- Removed draft-registration lookup from registration category preselection.
+- Updated the registration controller test to use explicit category preselection instead of creating a draft registration.
+
+### Known Gaps And Deferred Cleanup
+- The legacy database columns `tournaments.logo_url`, `tournaments.banner_image_url`, and `tournament_categories.registration_fee` still exist. They are unused by runtime code after this pass, but dropping them would delete any existing data and should be done only after explicit approval or a backup/export decision.
+- The `Registration.draft` enum remains for compatibility with any existing draft rows created before the pay-later flow was removed.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/registrations_controller_test.rb test/controllers/tournaments_controller_test.rb test/models/tournament_category_test.rb`; result: 39 runs, 341 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 118 runs, 876 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-27 - Tournament Referee Management
 
 ### Reference
