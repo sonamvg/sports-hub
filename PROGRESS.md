@@ -2,6 +2,34 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-27 - Image Placeholders For Missing Or Broken Media
+
+### Reference
+- User request: if an image is missing or broken, add placeholders.
+
+### Scope Chosen For This Pass
+- Add reusable placeholder behavior for image surfaces that can be blank or broken.
+- Cover tournament logo cards, tournament banners, organizer profile photos, athlete profile photos, referee photos, and the homepage hero image.
+- Keep the implementation server-rendered with a small browser `onerror` fallback for broken image responses.
+
+### Product Decisions
+- Missing Active Storage uploads show text placeholders immediately.
+- Broken remote image URLs hide the failed image and reveal the placeholder without changing the page layout.
+- Tournament cards use the tournament initial.
+- Tournament banners use an initial plus `banner` label.
+- Organizer, athlete, and referee profiles use initials or first-letter placeholders.
+- Placeholders use the existing dark Sports Hub visual language rather than adding new image assets.
+
+### Change Log
+- Added `ApplicationHelper#image_with_placeholder`.
+- Replaced direct `image_tag` calls on vulnerable image surfaces with the placeholder helper.
+- Added CSS for fallback wrappers, hidden failed images, and placeholder boxes.
+- Added tests for homepage fallback wiring, organizer remote-photo fallback wiring, and tournament logo/banner placeholders.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/home_controller_test.rb test/controllers/organizers_controller_test.rb test/controllers/tournaments_controller_test.rb test/controllers/athletes_controller_test.rb test/controllers/tournament_referees_controller_test.rb`; result: 53 runs, 443 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 120 runs, 902 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-27 - Tournament Filter UI Polish
 
 ### Reference

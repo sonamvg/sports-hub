@@ -33,6 +33,8 @@ class OrganizersControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Register as organizer"
     assert_includes response.body, "Verified Organizer"
     assert_includes response.body, "Verified Organizer photo"
+    assert_includes response.body, "fallback-placeholder"
+    assert_includes response.body, "onerror"
     assert_includes response.body, "City Open"
     assert_not_includes response.body, "Pending Organizer"
   end

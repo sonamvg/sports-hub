@@ -12,7 +12,11 @@
         </div>
       </div>
       <div class="hero-photo-card">
-        <%= image_tag "black-belt-dobok.jpg", alt: "Close-up of a black belt tied over a white taekwondo uniform" %>
+        <%= image_with_placeholder(
+          "black-belt-dobok.jpg",
+          alt: "Close-up of a black belt tied over a white taekwondo uniform",
+          placeholder: "Sports Hub"
+        ) %>
         <div class="hero-photo-caption">
           <p class="small-label">READY FOR THE MAT</p>
           <span>From athlete profiles to tournament day.</span>

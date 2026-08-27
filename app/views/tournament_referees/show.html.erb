@@ -10,9 +10,13 @@
 
     <p class="eyebrow">REFEREE</p>
     <h1 class="page-title"><%= @referee.name %></h1>
-    <% if @referee.photo.attached? %>
-      <div class="athlete-photo"><%= image_tag @referee.photo, alt: "#{@referee.name} photo" %></div>
-    <% end %>
+    <div class="athlete-photo">
+      <%= image_with_placeholder(
+        @referee.photo.attached? ? @referee.photo : nil,
+        alt: "#{@referee.name} photo",
+        placeholder: @referee.name.to_s.first
+      ) %>
+    </div>
 
     <div class="detail-card">
       <dl class="detail-list">

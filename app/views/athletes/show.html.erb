@@ -1,8 +1,12 @@
 <section class="page-shell"><div class="container narrow">
   <p class="eyebrow">ATHLETE PROFILE</p><h1 class="page-title"><%= @athlete.full_name %></h1>
-  <% if @athlete.profile_photo.attached? %>
-    <div class="athlete-photo"><%= image_tag @athlete.profile_photo, alt: "#{@athlete.full_name} photo" %></div>
-  <% end %>
+  <div class="athlete-photo">
+    <%= image_with_placeholder(
+      @athlete.profile_photo.attached? ? @athlete.profile_photo : nil,
+      alt: "#{@athlete.full_name} photo",
+      placeholder: @athlete.full_name.to_s.split.map(&:first).join.first(2).presence || "A"
+    ) %>
+  </div>
   <div class="detail-card">
     <dl class="detail-list">
       <div><dt>Academy</dt><dd><%= @athlete.academy&.name || "Not selected" %></dd></div>

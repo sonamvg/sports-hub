@@ -40,11 +40,11 @@
         <% events = organizer.organizer_event_names %>
         <article class="entity-card organizer-card">
           <div class="organizer-photo">
-            <% if organizer.profile_photo_url.present? %>
-              <%= image_tag organizer.profile_photo_url, alt: "#{organizer.name} photo" %>
-            <% else %>
-              <span><%= organizer.initials %></span>
-            <% end %>
+            <%= image_with_placeholder(
+              organizer.profile_photo_url,
+              alt: "#{organizer.name} photo",
+              placeholder: organizer.initials
+            ) %>
           </div>
           <span class="status-pill status-approved">Verified organizer</span>
           <h2><%= organizer.name %></h2>

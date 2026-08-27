@@ -21,11 +21,11 @@
         <% @referees.each do |referee| %>
           <article class="referee-row">
             <div class="referee-photo">
-              <% if referee.photo.attached? %>
-                <%= image_tag referee.photo, alt: "#{referee.name} photo" %>
-              <% else %>
-                <span><%= referee.name.to_s.first %></span>
-              <% end %>
+              <%= image_with_placeholder(
+                referee.photo.attached? ? referee.photo : nil,
+                alt: "#{referee.name} photo",
+                placeholder: referee.name.to_s.first
+              ) %>
             </div>
             <div class="referee-main">
               <h2><%= referee.name %></h2>

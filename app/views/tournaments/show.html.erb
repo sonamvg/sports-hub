@@ -42,11 +42,13 @@
     <% end %>
   </div>
 
-  <% if @tournament.banner_image_source.present? %>
-    <div class="tournament-banner">
-      <%= image_tag @tournament.banner_image_source, alt: "#{@tournament.name} banner", loading: "lazy" %>
-    </div>
-  <% end %>
+  <div class="tournament-banner">
+    <%= image_with_placeholder(
+      @tournament.banner_image_source,
+      alt: "#{@tournament.name} banner",
+      placeholder: "#{@tournament.name.to_s.first&.upcase || "T"} banner"
+    ) %>
+  </div>
 
   <div class="detail-card tournament-summary">
     <div><strong>Venue</strong><span><%= display_join.call([@tournament.venue, @tournament.city, @tournament.state]) %></span></div>

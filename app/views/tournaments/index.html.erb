@@ -55,11 +55,11 @@
       <% @tournaments.each do |tournament| %>
         <article class="entity-card tournament-card">
           <div class="tournament-visual">
-            <% if tournament.logo_image_source.present? %>
-              <%= image_tag tournament.logo_image_source, alt: "#{tournament.name} logo", loading: "lazy" %>
-            <% else %>
-              <span><%= tournament.name.to_s.first&.upcase || "T" %></span>
-            <% end %>
+            <%= image_with_placeholder(
+              tournament.logo_image_source,
+              alt: "#{tournament.name} logo",
+              placeholder: tournament.name.to_s.first&.upcase || "T"
+            ) %>
           </div>
           <span class="status-pill status-<%= tournament.status %>"><%= tournament.status.humanize %></span>
           <h2><%= tournament.name %></h2>

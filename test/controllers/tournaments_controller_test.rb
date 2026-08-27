@@ -530,6 +530,21 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Page 1 of 2"
   end
 
+  test "index renders placeholder for tournament without logo" do
+    Tournament.create!(
+      name: "Placeholder Open",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+
+    get tournaments_path
+
+    assert_response :success
+    assert_includes response.body, "fallback-placeholder"
+    assert_includes response.body, ">P</div>"
+  end
+
   test "show renders uploaded tournament banner" do
     tournament = Tournament.create!(
       name: "Pune Invitational",
@@ -544,6 +559,21 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "#{tournament.name} banner"
     assert_includes response.body, "/rails/active_storage"
+  end
+
+  test "show renders placeholder for tournament without banner" do
+    tournament = Tournament.create!(
+      name: "Placeholder Invitational",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "P banner"
+    assert_includes response.body, "fallback-placeholder"
   end
 
   test "public tournament pages do not expose bank account details" do
