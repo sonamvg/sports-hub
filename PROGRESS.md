@@ -1398,3 +1398,26 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 ### Verification Log
 - Ran `mise exec -- bin/rails test`; result: 40 runs, 184 assertions, 0 failures, 0 errors, 0 skips.
 - Performed live HTTP verification: logged in as `admin@example.com` and requested `/athletes/2`; result: `200 OK` and athlete profile content rendered.
+
+## 2026-08-27 - Organizer Image Helper Runtime Fix
+
+### Reference
+- User report: an error occurred after the organizer-profile and image-placeholder updates.
+
+### Root Cause
+- `/organizers` raised `ActionView::Template::Error: undefined method 'image_with_placeholder'`.
+- The helper existed in `ApplicationHelper`, but the running app was not exposing that helper method to view templates.
+
+### Scope Chosen For This Pass
+- Keep the placeholder helper implementation unchanged.
+- Explicitly expose `ApplicationHelper` from `ApplicationController` so all controller-rendered views can use `image_with_placeholder`.
+
+### Change Log
+- Added `helper ApplicationHelper` to `ApplicationController`.
+
+### Verification Log
+- Restarted the Rails server on `127.0.0.1:3000`.
+- Verified `GET /organizers` with `curl -i`; result: `HTTP/1.1 200 OK`.
+- Checked `log/development.log`; result: the new `/organizers` request completed `200 OK`.
+- First sandboxed `mise exec -- bin/rails test` attempt could not access the local PostgreSQL socket.
+- Re-ran `mise exec -- bin/rails test` with local database access; result: 122 runs, 922 assertions, 0 failures, 0 errors, 0 skips.

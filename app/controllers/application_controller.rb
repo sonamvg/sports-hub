@@ -1,4 +1,6 @@
 class ApplicationController < ActionController::Base
+  helper ApplicationHelper
+
   before_action :require_athlete_profile_completion
 
   helper_method :current_user, :super_admin?, :can_manage_academy?, :can_manage_tournament?
