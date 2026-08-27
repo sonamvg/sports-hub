@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_27_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_27_101000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -163,6 +163,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_100000) do
     t.index ["user_id"], name: "index_tournament_organizers_on_user_id"
   end
 
+  create_table "tournament_referees", force: :cascade do |t|
+    t.string "affiliation"
+    t.string "certification_id"
+    t.datetime "created_at", null: false
+    t.string "email"
+    t.string "name", null: false
+    t.text "notes"
+    t.string "phone"
+    t.string "qualification"
+    t.string "role"
+    t.bigint "tournament_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["tournament_id", "name"], name: "index_tournament_referees_on_tournament_id_and_name"
+    t.index ["tournament_id"], name: "index_tournament_referees_on_tournament_id"
+  end
+
   create_table "tournaments", force: :cascade do |t|
     t.string "banner_image_url"
     t.string "category_generation_method"
@@ -242,6 +258,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_100000) do
   add_foreign_key "tournament_organizers", "tournaments"
   add_foreign_key "tournament_organizers", "users"
   add_foreign_key "tournament_organizers", "users", column: "added_by_id"
+  add_foreign_key "tournament_referees", "tournaments"
   add_foreign_key "tournaments", "users", column: "organizer_id"
   add_foreign_key "users", "academies", column: "organizer_academy_id"
   add_foreign_key "users", "users", column: "organizer_reviewed_by_id"

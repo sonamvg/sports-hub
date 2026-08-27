@@ -6,6 +6,7 @@ class Tournament < ApplicationRecord
   has_many :registrations, dependent: :destroy
   has_many :tournament_organizers, dependent: :destroy
   has_many :organizer_users, through: :tournament_organizers, source: :user
+  has_many :tournament_referees, dependent: :destroy
   has_one_attached :logo_image
   has_one_attached :banner_image
 

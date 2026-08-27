@@ -1,0 +1,56 @@
+<%= form_with model: [tournament, referee], class: "form-card" do |form| %>
+  <%= render "shared/errors", record: referee %>
+
+  <div class="form-grid two-col">
+    <div>
+      <%= form.label :name, "Referee name" %>
+      <%= form.text_field :name, required: true, autocomplete: "name" %>
+    </div>
+
+    <div>
+      <%= form.label :role, "Role" %>
+      <%= form.text_field :role, placeholder: "Center referee, judge, technical official" %>
+    </div>
+
+    <div>
+      <%= form.label :phone, "Contact number" %>
+      <%= form.telephone_field :phone, autocomplete: "tel" %>
+    </div>
+
+    <div>
+      <%= form.label :email %>
+      <%= form.email_field :email, autocomplete: "email" %>
+    </div>
+
+    <div>
+      <%= form.label :qualification, "Qualifications" %>
+      <%= form.text_field :qualification, placeholder: "State referee, national referee, WT certified" %>
+    </div>
+
+    <div>
+      <%= form.label :certification_id, "Certification ID" %>
+      <%= form.text_field :certification_id %>
+    </div>
+
+    <div>
+      <%= form.label :affiliation, "Academy or association" %>
+      <%= form.text_field :affiliation %>
+    </div>
+
+    <div>
+      <%= form.label :photo, "Referee photo" %>
+      <%= form.file_field :photo, accept: "image/png,image/jpeg,image/webp" %>
+      <p class="field-hint">Optional. Upload a clear photo up to 5 MB.</p>
+    </div>
+
+    <div class="full">
+      <%= form.label :notes, "Other details" %>
+      <%= form.text_area :notes, rows: 4, placeholder: "Availability, court assignment notes, uniform size, travel notes, or other organiser-only details." %>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <%= form.submit referee.persisted? ? "Update referee" : "Add referee", class: "primary-button button-reset" %>
+    <%= link_to "Cancel", tournament_tournament_referees_path(tournament), class: "secondary-button" %>
+  </div>
+<% end %>

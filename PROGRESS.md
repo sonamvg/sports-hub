@@ -2,6 +2,44 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-27 - Tournament Referee Management
+
+### Reference
+- User request: organisers should be able to add referee details for a tournament, including referee names, contact details, useful notes, referee count, photo, and qualifications.
+
+### Scope Chosen For This Pass
+- Add structured referee records under each tournament.
+- Keep referee contact and operational notes visible only to tournament managers.
+- Show only a referee count on the public tournament page.
+- Use Active Storage for referee photos.
+
+### Product Decisions
+- Referee management is a nested tournament organiser workflow at `/tournaments/:tournament_id/referees`.
+- Tournament managers can add, view, edit, and remove referees.
+- Referee fields include name, phone, email, role, qualifications, certification ID, academy/association affiliation, notes, and photo.
+- Referee name is required.
+- Referee email must be valid when provided.
+- Referee photos are optional and must be between 1 byte and 5 MB.
+- Referee count is derived from the number of saved referee records; there is no separate manual count field so the UI cannot drift from actual entries.
+
+### Change Log
+- Added `TournamentReferee` model with normalization, email validation, and photo upload size validation.
+- Added `tournament_referees` table.
+- Added `Tournament#tournament_referees` association.
+- Added organiser-only `TournamentRefereesController`.
+- Added nested referee routes under tournaments.
+- Added referee index, detail, new, edit, and shared form views.
+- Added referee action link and referee count to tournament show.
+- Added CSS for referee list rows and photos.
+- Added model and controller tests for referee creation, update, delete, validation, photo attachment, and non-manager privacy.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: `tournament_referees` table migration applied successfully.
+- Ran `mise exec -- bin/rails test test/models/tournament_referee_test.rb test/controllers/tournament_referees_controller_test.rb test/controllers/tournaments_controller_test.rb`; first run found a validation bug where blank referee names were not rejected because `allow_blank` was applied to a combined presence/length validation.
+- Fixed referee name validation by separating presence and length validators.
+- Reran `mise exec -- bin/rails test test/models/tournament_referee_test.rb test/controllers/tournament_referees_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 36 runs, 310 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 118 runs, 876 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-27 - Tournament Fee, Default Categories, And Venue Setup
 
 ### Reference

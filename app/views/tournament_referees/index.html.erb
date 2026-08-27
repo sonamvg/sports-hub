@@ -1,0 +1,54 @@
+<section class="page-shell">
+  <div class="container">
+    <%= render "shared/breadcrumbs", items: [
+      { label: "Home", path: root_path },
+      { label: "Tournaments", path: tournaments_path },
+      { label: @tournament.name, path: tournament_path(@tournament) },
+      { label: "Referees" }
+    ] %>
+
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">REFEREES</p>
+        <h1 class="page-title"><%= @tournament.name %></h1>
+        <p class="page-copy">Maintain referee staffing, contact details, qualifications, and organiser notes for match-day operations.</p>
+      </div>
+      <%= link_to "Add referee", new_tournament_tournament_referee_path(@tournament), class: "primary-button" %>
+    </div>
+
+    <% if @referees.any? %>
+      <div class="referee-list">
+        <% @referees.each do |referee| %>
+          <article class="referee-row">
+            <div class="referee-photo">
+              <% if referee.photo.attached? %>
+                <%= image_tag referee.photo, alt: "#{referee.name} photo" %>
+              <% else %>
+                <span><%= referee.name.to_s.first %></span>
+              <% end %>
+            </div>
+            <div class="referee-main">
+              <h2><%= referee.name %></h2>
+              <p><%= [referee.role, referee.qualification].compact_blank.join(" · ").presence || "Referee details pending" %></p>
+            </div>
+            <div class="referee-details">
+              <span><strong>Phone</strong><%= referee.phone || "--" %></span>
+              <span><strong>Email</strong><%= referee.email || "--" %></span>
+              <span><strong>Affiliation</strong><%= referee.affiliation || "--" %></span>
+            </div>
+            <div class="category-actions">
+              <%= link_to "View", tournament_tournament_referee_path(@tournament, referee), class: "text-link" %>
+              <%= link_to "Edit", edit_tournament_tournament_referee_path(@tournament, referee), class: "text-link" %>
+            </div>
+          </article>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="inline-empty-state">
+        <strong>No referees added yet</strong>
+        <p>Add referee names, contacts, photos, and qualifications before match day.</p>
+        <%= link_to "Add referee", new_tournament_tournament_referee_path(@tournament), class: "primary-button" %>
+      </div>
+    <% end %>
+  </div>
+</section>

@@ -18,6 +18,7 @@
       <div class="form-actions">
         <% if can_manage_tournament?(@tournament) %>
         <%= link_to "Edit tournament", edit_tournament_path(@tournament), class: "secondary-button" %>
+        <%= link_to "Referees", tournament_tournament_referees_path(@tournament), class: "secondary-button" %>
         <% if @tournament.registration_closed_for_weight_check? %>
           <% if @tournament.draw_scheduling? %>
             <%= link_to "Draw setup", draw_tournament_path(@tournament), class: "secondary-button" %>
@@ -62,6 +63,7 @@
     <div><strong>Capacity</strong><span><%= @tournament.registration_capacity || "--" %></span></div>
     <div><strong>Fee per category</strong><span><%= @tournament.registration_fee ? "#{@tournament.currency.presence || "INR"} #{@tournament.registration_fee}" : "--" %></span></div>
     <div><strong>Courts</strong><span><%= @tournament.courts_count || "--" %></span></div>
+    <div><strong>Referees</strong><span><%= pluralize(@tournament.tournament_referees.count, "referee") %></span></div>
   </div>
 
   <div class="detail-card detail-list">

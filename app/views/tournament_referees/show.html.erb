@@ -1,0 +1,33 @@
+<section class="page-shell">
+  <div class="container narrow">
+    <%= render "shared/breadcrumbs", items: [
+      { label: "Home", path: root_path },
+      { label: "Tournaments", path: tournaments_path },
+      { label: @tournament.name, path: tournament_path(@tournament) },
+      { label: "Referees", path: tournament_tournament_referees_path(@tournament) },
+      { label: @referee.name }
+    ] %>
+
+    <p class="eyebrow">REFEREE</p>
+    <h1 class="page-title"><%= @referee.name %></h1>
+    <% if @referee.photo.attached? %>
+      <div class="athlete-photo"><%= image_tag @referee.photo, alt: "#{@referee.name} photo" %></div>
+    <% end %>
+
+    <div class="detail-card">
+      <dl class="detail-list">
+        <div><dt>Role</dt><dd><%= @referee.role || "--" %></dd></div>
+        <div><dt>Contact number</dt><dd><%= @referee.phone || "--" %></dd></div>
+        <div><dt>Email</dt><dd><%= @referee.email || "--" %></dd></div>
+        <div><dt>Qualifications</dt><dd><%= @referee.qualification || "--" %></dd></div>
+        <div><dt>Certification ID</dt><dd><%= @referee.certification_id || "--" %></dd></div>
+        <div><dt>Academy or association</dt><dd><%= @referee.affiliation || "--" %></dd></div>
+        <div><dt>Other details</dt><dd><%= @referee.notes || "--" %></dd></div>
+      </dl>
+      <div class="form-actions">
+        <%= link_to "Edit referee", edit_tournament_tournament_referee_path(@tournament, @referee), class: "primary-button" %>
+        <%= button_to "Remove referee", tournament_tournament_referee_path(@tournament, @referee), method: :delete, class: "secondary-button button-reset" %>
+      </div>
+    </div>
+  </div>
+</section>

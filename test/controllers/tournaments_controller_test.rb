@@ -564,6 +564,23 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Use athlete name as reference"
   end
 
+  test "public tournament page shows referee count without contact details" do
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    tournament.tournament_referees.create!(name: "Meera Rao", phone: "9876543210")
+    delete logout_path
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "1 referee"
+    assert_not_includes response.body, "9876543210"
+  end
+
   test "venue setup opens after registration closes" do
     tournament = Tournament.create!(
       name: "Closed Venue Open",
