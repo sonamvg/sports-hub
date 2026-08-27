@@ -22,6 +22,7 @@
           <% if @tournament.draw_scheduling? %>
             <%= link_to "Draw setup", draw_tournament_path(@tournament), class: "secondary-button" %>
           <% else %>
+            <%= link_to "Venue setup", venue_setup_tournament_path(@tournament), class: "secondary-button" %>
             <%= link_to "Weight check", organizer_tournament_weight_checks_path(@tournament), class: "secondary-button" %>
             <%= button_to "Set draw", set_draw_tournament_path(@tournament), method: :patch, class: "secondary-button button-reset" %>
           <% end %>
@@ -59,7 +60,8 @@
     <div><strong>Registration opens</strong><span><%= @tournament.registration_opens_at&.strftime("%d %b %Y, %I:%M %p") || "--" %></span></div>
     <div><strong>Registration closes</strong><span><%= @tournament.registration_closes_at&.strftime("%d %b %Y, %I:%M %p") || "--" %></span></div>
     <div><strong>Capacity</strong><span><%= @tournament.registration_capacity || "--" %></span></div>
-    <div><strong>Fee</strong><span><%= @tournament.registration_fee ? "#{@tournament.currency.presence || "INR"} #{@tournament.registration_fee}" : "--" %></span></div>
+    <div><strong>Fee per category</strong><span><%= @tournament.registration_fee ? "#{@tournament.currency.presence || "INR"} #{@tournament.registration_fee}" : "--" %></span></div>
+    <div><strong>Courts</strong><span><%= @tournament.courts_count || "--" %></span></div>
   </div>
 
   <div class="detail-card detail-list">
@@ -112,7 +114,7 @@
     <div class="page-heading compact-heading">
       <h2 class="section-title">Categories</h2>
       <% if can_manage_tournament?(@tournament) %>
-        <%= link_to "Add category", new_tournament_tournament_category_path(@tournament), class: "primary-button" %>
+        <%= link_to "Manage categories", tournament_tournament_categories_path(@tournament), class: "primary-button" %>
       <% end %>
     </div>
     <div class="category-list">

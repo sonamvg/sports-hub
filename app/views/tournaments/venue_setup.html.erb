@@ -1,0 +1,31 @@
+<section class="page-shell">
+  <div class="container narrow">
+    <%= render "shared/breadcrumbs", items: [
+      { label: "Home", path: root_path },
+      { label: "Tournaments", path: tournaments_path },
+      { label: @tournament.name, path: tournament_path(@tournament) },
+      { label: "Venue setup" }
+    ] %>
+
+    <p class="eyebrow">VENUE SETUP</p>
+    <h1 class="page-title">Match-day venue details</h1>
+    <p class="page-copy">Add the court count after athlete entry closes. This will feed the draw and match scheduling work.</p>
+
+    <%= form_with model: @tournament, url: venue_setup_tournament_path(@tournament), method: :patch, class: "form-card" do |form| %>
+      <%= render "shared/errors", record: @tournament %>
+
+      <div class="form-grid">
+        <div>
+          <%= form.label :courts_count, "Number of courts" %>
+          <%= form.number_field :courts_count, min: 1, step: 1, required: true %>
+          <p class="field-hint">Use the actual competition courts available for scheduling matches.</p>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <%= form.submit "Save venue setup", class: "primary-button button-reset" %>
+        <%= link_to "Cancel", tournament_path(@tournament), class: "secondary-button" %>
+      </div>
+    <% end %>
+  </div>
+</section>

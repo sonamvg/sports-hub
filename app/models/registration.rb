@@ -78,9 +78,9 @@ class Registration < ApplicationRecord
   end
 
   def assign_fee_snapshot
-    return if tournament_category.blank?
+    return if tournament.blank?
 
-    self.fee_amount ||= tournament_category.effective_registration_fee
+    self.fee_amount ||= tournament.registration_fee.presence || 0
     self.fee_currency ||= tournament.currency.presence || "INR"
   end
 

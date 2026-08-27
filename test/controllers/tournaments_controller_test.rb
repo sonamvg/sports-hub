@@ -25,7 +25,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       "Basic eligibility",
       "Category generation",
       "Registration capacity",
-      "Fee",
+      "Fee per category",
       "Currency",
       "Required documents",
       "Refund policy",
@@ -562,6 +562,44 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "DEMO0001234"
     assert_not_includes response.body, "Demo Bank"
     assert_not_includes response.body, "Use athlete name as reference"
+  end
+
+  test "venue setup opens after registration closes" do
+    tournament = Tournament.create!(
+      name: "Closed Venue Open",
+      organizer: @organizer,
+      status: :registration_open,
+      registration_opens_at: 10.days.ago,
+      registration_closes_at: 1.day.ago,
+      start_date: 2.days.from_now.to_date,
+      end_date: 3.days.from_now.to_date
+    )
+
+    get venue_setup_tournament_path(tournament)
+    assert_response :success
+    assert_includes response.body, "Number of courts"
+
+    patch venue_setup_tournament_path(tournament), params: { tournament: { courts_count: 4 } }
+
+    assert_redirected_to tournament_path(tournament)
+    assert_equal 4, tournament.reload.courts_count
+  end
+
+  test "venue setup is blocked before registration closes" do
+    tournament = Tournament.create!(
+      name: "Open Venue Open",
+      organizer: @organizer,
+      status: :registration_open,
+      registration_opens_at: 1.day.ago,
+      registration_closes_at: 1.day.from_now,
+      start_date: 2.days.from_now.to_date,
+      end_date: 3.days.from_now.to_date
+    )
+
+    get venue_setup_tournament_path(tournament)
+
+    assert_redirected_to tournament_path(tournament)
+    assert_equal "Venue setup opens after registration closes.", flash[:alert]
   end
 
   test "set draw locks tournament after registration closes" do

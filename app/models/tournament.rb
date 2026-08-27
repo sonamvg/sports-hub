@@ -62,6 +62,7 @@ class Tournament < ApplicationRecord
   validates :primary_contact_email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :registration_capacity, numericality: { only_integer: true, greater_than: 0 }, allow_blank: true
   validates :registration_fee, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
+  validates :courts_count, numericality: { only_integer: true, greater_than: 0 }, allow_blank: true
   validate :end_date_not_before_start_date
   validate :registration_window_chronology
 

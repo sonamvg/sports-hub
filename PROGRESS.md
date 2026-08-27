@@ -2,6 +2,51 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-27 - Tournament Fee, Default Categories, And Venue Setup
+
+### Reference
+- User request: keep initial tournament setup focused on pre-registration details and athlete entry, use a single category fee input at tournament level, multiply that fee by selected category count during registration, add post-registration venue details such as number of courts, and use the attached registration PDF as reference for default categories so organisers can select common categories instead of manually creating many rows.
+- Attached PDF: `/Users/sonamgoyal/Downloads/registration_forms-index-2f501d232bf20356b7f482b5bbe8d8ea.pdf`.
+
+### Scope Chosen For This Pass
+- Treat `tournaments.registration_fee` as the single fee per selected category.
+- Remove organiser-facing category-level fee entry from category creation/editing.
+- Keep the older `tournament_categories.registration_fee` column in place for migration compatibility, but stop using it in registration totals and fee snapshots.
+- Add a reusable default category picker on the tournament category management page.
+- Add post-registration venue setup with `courts_count`, available only to tournament managers after registration closes.
+
+### Product Decisions
+- The initial tournament form label is now `Fee per category`, with helper copy explaining that two selected categories at INR 1000 totals INR 2000.
+- Athlete and academy-owner registration totals now multiply selected categories by the tournament fee.
+- Existing registrations snapshot the fee at submission time using the tournament-level fee and tournament currency.
+- Default categories are app-maintained templates covering common taekwondo Kyorugi age, gender, and weight bands plus individual Poomsae age/gender bands.
+- The attached PDF could not be parsed locally because Poppler `pdftotext`, `pdfplumber`, and `pypdf` were unavailable in this environment. The PDF was confirmed to be a three-page Chromium PDF; default templates were implemented from standard taekwondo registration category patterns and kept easy to expand later.
+- Venue setup intentionally opens after `registration_closes_at` so organisers focus on athlete entry while registration is open, then enter court count before draw and schedule work.
+- Court count must be a positive integer when entered.
+
+### Change Log
+- Added `courts_count` to tournaments.
+- Added `Tournament#courts_count` validation.
+- Added `TournamentsController#venue_setup` and `#update_venue_setup`.
+- Added `venue_setup_tournament_path` GET/PATCH routes.
+- Added `app/views/tournaments/venue_setup.html.erb`.
+- Added `Venue setup` action to tournament show after registration closes.
+- Added courts count to tournament summary.
+- Changed tournament setup fee label to `Fee per category`.
+- Changed category fee calculation to always use the tournament fee.
+- Changed registration fee snapshots to use the tournament fee instead of category overrides.
+- Removed category-level fee input and strong parameter permitting from category forms.
+- Added `TournamentCategory::DEFAULT_CATEGORY_TEMPLATES`.
+- Added default category bulk creation action and UI.
+- Tightened tournament category create/edit/update/default-import authorization to tournament managers.
+- Added tests for default category import, tournament-level fee totals, and venue setup timing.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: `courts_count` migration applied successfully.
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/tournament_categories_controller_test.rb test/controllers/registrations_controller_test.rb`; result: 40 runs, 364 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 109 runs, 826 assertions, 0 failures, 0 errors, 0 skips.
+- After an ERB cleanup on the category index privacy wrapper, reran the same focused tests and full suite; result stayed green at 40/364 and 109/826 respectively.
+
 ## 2026-08-27 - Search Filters Sorting And Pagination
 
 ### Reference

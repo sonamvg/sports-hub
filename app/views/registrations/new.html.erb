@@ -55,7 +55,7 @@
     <div class="registration-total full" data-registration-total data-currency="<%= @tournament.currency.presence || "INR" %>">
       <strong>Total amount to pay</strong>
       <span data-total-amount><%= @tournament.currency.presence || "INR" %> 0</span>
-      <p class="field-hint">The total updates from selected category fees.</p>
+      <p class="field-hint">The total is the tournament fee per category multiplied by selected categories.</p>
     </div>
     <div><%= form.label :registered_weight, "Current weight (kg)" %><%= form.number_field :registered_weight, step: 0.1, min: 1 %></div>
     <div class="full payment-instructions">

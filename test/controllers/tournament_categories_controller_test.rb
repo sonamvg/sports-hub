@@ -2,13 +2,14 @@ require "test_helper"
 
 class TournamentCategoriesControllerTest < ActionDispatch::IntegrationTest
   setup do
-    organizer = User.create!(name: "Organizer", email: "organizer@example.test", password: "password123", role: :organizer)
+    @organizer = User.create!(name: "Organizer", email: "organizer@example.test", password: "password123", role: :organizer)
     @tournament = Tournament.create!(
       name: "Pune Invitational",
-      organizer: organizer,
+      organizer: @organizer,
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6)
     )
+    sign_in_as @organizer
   end
 
   test "creates category" do
@@ -19,8 +20,7 @@ class TournamentCategoriesControllerTest < ActionDispatch::IntegrationTest
           gender: "female",
           age_min: 12,
           age_max: 14,
-          weight_max: 41,
-          registration_fee: "1000.00"
+          weight_max: 41
         }
       }
     end
@@ -29,7 +29,32 @@ class TournamentCategoriesControllerTest < ActionDispatch::IntegrationTest
     category = @tournament.tournament_categories.order(:created_at).last
     assert_equal "Kyorugi Female Age 12-14 U41", category.name
     assert_equal "female", category.gender
-    assert_equal BigDecimal("1000.0"), category.registration_fee
+  end
+
+  test "creates selected default categories" do
+    assert_difference("@tournament.tournament_categories.count", 2) do
+      post create_defaults_tournament_tournament_categories_path(@tournament), params: {
+        template_keys: ["cadet-female-u37", "cadet-male-u37"]
+      }
+    end
+
+    assert_redirected_to tournament_tournament_categories_path(@tournament)
+    assert_equal "2 default categories added.", flash[:notice]
+    assert_includes @tournament.tournament_categories.pluck(:name), "Kyorugi Female Age 12-14 33-37kg"
+    assert_includes @tournament.tournament_categories.pluck(:name), "Kyorugi Male Age 12-14 33-37kg"
+  end
+
+  test "default category import skips existing categories" do
+    @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+
+    assert_no_difference("@tournament.tournament_categories.count") do
+      post create_defaults_tournament_tournament_categories_path(@tournament), params: {
+        template_keys: ["cadet-female-u37"]
+      }
+    end
+
+    assert_redirected_to tournament_tournament_categories_path(@tournament)
+    assert_equal "Select at least one new default category.", flash[:alert]
   end
 
   test "renders errors when category is invalid" do
@@ -57,8 +82,7 @@ class TournamentCategoriesControllerTest < ActionDispatch::IntegrationTest
         gender: "female",
         age_min: 12,
         age_max: 14,
-        weight_max: 44,
-        registration_fee: "1200.00"
+        weight_max: 44
       }
     }
 
@@ -66,7 +90,6 @@ class TournamentCategoriesControllerTest < ActionDispatch::IntegrationTest
     category.reload
     assert_equal "Kyorugi Female Age 12-14 U44", category.name
     assert_equal 44, category.weight_max
-    assert_equal BigDecimal("1200.0"), category.registration_fee
   end
 
   test "renders errors when update is invalid" do

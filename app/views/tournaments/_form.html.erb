@@ -116,8 +116,9 @@
     </div>
 
     <div>
-      <%= form.label :registration_fee, "Fee" %>
+      <%= form.label :registration_fee, "Fee per category" %>
       <%= form.number_field :registration_fee, required: true, min: 0, step: "0.01", placeholder: "0.00" %>
+      <p class="field-hint">One fee applies to each selected category. Two categories at INR 1000 each means INR 2000 total.</p>
     </div>
 
     <div>

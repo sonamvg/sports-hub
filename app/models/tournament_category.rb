@@ -5,6 +5,39 @@ class TournamentCategory < ApplicationRecord
   belongs_to :tournament
   has_many :registrations, dependent: :restrict_with_error
 
+  DEFAULT_CATEGORY_TEMPLATES = [
+    { key: "sub-junior-female-u18", event_type: "kyorugi", gender: "female", age_min: 8, age_max: 11, weight_max: 18 },
+    { key: "sub-junior-female-u21", event_type: "kyorugi", gender: "female", age_min: 8, age_max: 11, weight_min: 18, weight_max: 21 },
+    { key: "sub-junior-female-u24", event_type: "kyorugi", gender: "female", age_min: 8, age_max: 11, weight_min: 21, weight_max: 24 },
+    { key: "sub-junior-male-u18", event_type: "kyorugi", gender: "male", age_min: 8, age_max: 11, weight_max: 18 },
+    { key: "sub-junior-male-u21", event_type: "kyorugi", gender: "male", age_min: 8, age_max: 11, weight_min: 18, weight_max: 21 },
+    { key: "sub-junior-male-u24", event_type: "kyorugi", gender: "male", age_min: 8, age_max: 11, weight_min: 21, weight_max: 24 },
+    { key: "cadet-female-u33", event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 33 },
+    { key: "cadet-female-u37", event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37 },
+    { key: "cadet-female-u41", event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 37, weight_max: 41 },
+    { key: "cadet-male-u33", event_type: "kyorugi", gender: "male", age_min: 12, age_max: 14, weight_max: 33 },
+    { key: "cadet-male-u37", event_type: "kyorugi", gender: "male", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37 },
+    { key: "cadet-male-u41", event_type: "kyorugi", gender: "male", age_min: 12, age_max: 14, weight_min: 37, weight_max: 41 },
+    { key: "junior-female-u44", event_type: "kyorugi", gender: "female", age_min: 15, age_max: 17, weight_max: 44 },
+    { key: "junior-female-u49", event_type: "kyorugi", gender: "female", age_min: 15, age_max: 17, weight_min: 44, weight_max: 49 },
+    { key: "junior-female-u55", event_type: "kyorugi", gender: "female", age_min: 15, age_max: 17, weight_min: 49, weight_max: 55 },
+    { key: "junior-male-u45", event_type: "kyorugi", gender: "male", age_min: 15, age_max: 17, weight_max: 45 },
+    { key: "junior-male-u51", event_type: "kyorugi", gender: "male", age_min: 15, age_max: 17, weight_min: 45, weight_max: 51 },
+    { key: "junior-male-u55", event_type: "kyorugi", gender: "male", age_min: 15, age_max: 17, weight_min: 51, weight_max: 55 },
+    { key: "senior-female-u49", event_type: "kyorugi", gender: "female", age_min: 18, weight_max: 49 },
+    { key: "senior-female-u57", event_type: "kyorugi", gender: "female", age_min: 18, weight_min: 49, weight_max: 57 },
+    { key: "senior-female-u67", event_type: "kyorugi", gender: "female", age_min: 18, weight_min: 57, weight_max: 67 },
+    { key: "senior-male-u58", event_type: "kyorugi", gender: "male", age_min: 18, weight_max: 58 },
+    { key: "senior-male-u68", event_type: "kyorugi", gender: "male", age_min: 18, weight_min: 58, weight_max: 68 },
+    { key: "senior-male-u80", event_type: "kyorugi", gender: "male", age_min: 18, weight_min: 68, weight_max: 80 },
+    { key: "individual-poomsae-female-cadet", event_type: "poomsae", gender: "female", age_min: 12, age_max: 14 },
+    { key: "individual-poomsae-male-cadet", event_type: "poomsae", gender: "male", age_min: 12, age_max: 14 },
+    { key: "individual-poomsae-female-junior", event_type: "poomsae", gender: "female", age_min: 15, age_max: 17 },
+    { key: "individual-poomsae-male-junior", event_type: "poomsae", gender: "male", age_min: 15, age_max: 17 },
+    { key: "individual-poomsae-female-senior", event_type: "poomsae", gender: "female", age_min: 18 },
+    { key: "individual-poomsae-male-senior", event_type: "poomsae", gender: "male", age_min: 18 }
+  ].freeze
+
   validates :name, :event_type, :category_key, presence: true
   validates :category_key, uniqueness: { scope: :tournament_id, message: "already exists for this tournament" }
   validates :age_min, :age_max, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
@@ -14,7 +47,7 @@ class TournamentCategory < ApplicationRecord
   validate :weight_max_not_below_min
 
   def effective_registration_fee
-    registration_fee.presence || tournament.registration_fee.presence || 0
+    tournament.registration_fee.presence || 0
   end
 
   def fee_label
@@ -29,6 +62,10 @@ class TournamentCategory < ApplicationRecord
       weight_label,
       belt_label
     ].compact.join(" ").presence || "Tournament category"
+  end
+
+  def self.default_template_for(key)
+    DEFAULT_CATEGORY_TEMPLATES.find { |template| template[:key] == key.to_s }
   end
 
   private

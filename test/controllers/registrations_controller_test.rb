@@ -154,13 +154,13 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
       registration_opens_at: 1.day.ago,
       registration_closes_at: 1.day.from_now
     )
-    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41, registration_fee: 1000)
-    second_category = tournament.tournament_categories.create!(event_type: "poomsae", gender: "female", age_min: 12, age_max: 14, registration_fee: 1200)
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    second_category = tournament.tournament_categories.create!(event_type: "poomsae", gender: "female", age_min: 12, age_max: 14)
 
     get new_tournament_registration_path(tournament)
     assert_response :success
-    assert_includes response.body, "Kyorugi Female Age 12-14 U41 - INR 1000"
-    assert_includes response.body, "Poomsae Female Age 12-14 - INR 1200"
+    assert_includes response.body, "Kyorugi Female Age 12-14 U41 - INR 750"
+    assert_includes response.body, "Poomsae Female Age 12-14 - INR 750"
     assert_includes response.body, "Total amount to pay"
     assert_includes response.body, "Secure payment details"
     assert_includes response.body, "1234567890"
@@ -190,7 +190,7 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert Registration.where(athlete: athlete, tournament: tournament).all? { |registration| registration.payment_receipt.attached? }
-    assert_equal [BigDecimal("1000.0"), BigDecimal("1200.0")], Registration.where(athlete: athlete, tournament: tournament).order(:fee_amount).pluck(:fee_amount)
+    assert_equal [BigDecimal("750.0"), BigDecimal("750.0")], Registration.where(athlete: athlete, tournament: tournament).order(:fee_amount).pluck(:fee_amount)
     assert_equal ["INR"], Registration.where(athlete: athlete, tournament: tournament).distinct.pluck(:fee_currency)
   end
 

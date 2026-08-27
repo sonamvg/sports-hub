@@ -22,10 +22,16 @@ Rails.application.routes.draw do
 
   resources :tournaments, only: %i[index show new create edit update] do
     member do
+      get :venue_setup
+      patch :venue_setup, action: :update_venue_setup
       get :draw
       patch :set_draw
     end
-    resources :tournament_categories, path: "categories", only: %i[index show new create edit update]
+    resources :tournament_categories, path: "categories", only: %i[index show new create edit update] do
+      collection do
+        post :create_defaults
+      end
+    end
     resources :registrations, only: %i[index new create]
   end
 

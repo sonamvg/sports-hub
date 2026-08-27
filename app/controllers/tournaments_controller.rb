@@ -1,8 +1,8 @@
 class TournamentsController < ApplicationController
   before_action :require_user, except: %i[index show]
   before_action :require_verified_organizer, only: %i[new create]
-  before_action :set_tournament, only: %i[show edit update draw set_draw]
-  before_action :require_tournament_manager, only: %i[edit update draw set_draw]
+  before_action :set_tournament, only: %i[show edit update venue_setup update_venue_setup draw set_draw]
+  before_action :require_tournament_manager, only: %i[edit update venue_setup update_venue_setup draw set_draw]
   before_action :set_available_organizers, only: %i[new create edit update]
 
   def index
@@ -33,6 +33,23 @@ class TournamentsController < ApplicationController
   end
 
   def edit; end
+
+  def venue_setup
+    redirect_to @tournament, alert: "Venue setup opens after registration closes." unless @tournament.registration_closed_for_weight_check?
+  end
+
+  def update_venue_setup
+    unless @tournament.registration_closed_for_weight_check?
+      redirect_to @tournament, alert: "Venue setup opens after registration closes."
+      return
+    end
+
+    if @tournament.update(venue_setup_params)
+      redirect_to @tournament, notice: "Venue setup updated."
+    else
+      render :venue_setup, status: :unprocessable_entity
+    end
+  end
 
   def draw; end
 
@@ -125,6 +142,10 @@ class TournamentsController < ApplicationController
     )
 
     compose_checklist_fields(permitted)
+  end
+
+  def venue_setup_params
+    params.require(:tournament).permit(:courts_count)
   end
 
   def apply_submit_intent(tournament)
