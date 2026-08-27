@@ -29,12 +29,16 @@ class OrganizersControllerTest < ActionDispatch::IntegrationTest
     get profile_organizers_path
 
     assert_response :success
-    assert_includes response.body, "ORGANIZER PROFILE"
+    assert_includes response.body, "Your organiser profile"
     assert_includes response.body, "Verified Organizer"
-    assert_includes response.body, "Tournament Director"
+    assert_includes response.body, "verified-profile-organizer@example.test"
+    assert_includes response.body, "9876543210"
     assert_includes response.body, "City Open"
     assert_includes response.body, edit_tournament_path(tournament)
     assert_includes response.body, organizer_registrations_path
+    assert_not_includes response.body, "Tournament Director"
+    assert_not_includes response.body, "Tournaments where you are the super organiser"
+    assert_not_includes response.body, "Manage your organizer identity"
   end
 
   test "non organizer is redirected away from organizer profile" do

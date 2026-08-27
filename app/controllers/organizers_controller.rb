@@ -15,7 +15,7 @@ class OrganizersController < ApplicationController
     end
 
     @organizer = current_user
-    @owned_tournaments = @organizer.organized_tournaments.order(start_date: :desc)
+    @owned_tournaments = @organizer.organized_tournaments.order(created_at: :desc)
     @collaborating_tournaments = @organizer.collaborating_tournaments.where.not(organizer_id: @organizer.id).distinct.order(start_date: :desc)
   end
 

@@ -8,9 +8,8 @@
 
     <div class="page-heading">
       <div>
-        <p class="eyebrow">ORGANIZER PROFILE</p>
+        <p class="eyebrow">ORGANIZER</p>
         <h1 class="page-title"><%= @organizer.name %></h1>
-        <p class="page-copy">Manage your organizer identity, events, approvals, referees, categories, venue setup, and tournament operations.</p>
       </div>
       <div class="form-actions">
         <%= link_to "Registration approvals", organizer_registrations_path, class: "primary-button" %>
@@ -18,31 +17,50 @@
       </div>
     </div>
 
-    <div class="detail-card tournament-summary">
-      <div><strong>Status</strong><span><%= @organizer.organizer_status.humanize %></span></div>
-      <div><strong>Role</strong><span><%= @organizer.role.humanize %></span></div>
-      <div><strong>Designation</strong><span><%= @organizer.organizer_designation || "--" %></span></div>
-      <div><strong>Email</strong><span><%= @organizer.email %></span></div>
-      <div><strong>Phone</strong><span><%= @organizer.phone || "--" %></span></div>
-      <div><strong>Approved at</strong><span><%= @organizer.organizer_approved_at&.strftime("%d %b %Y") || "--" %></span></div>
+    <div class="organizer-profile-panel">
+      <div class="organizer-profile-identity">
+        <div class="organizer-profile-avatar"><%= @organizer.initials %></div>
+        <div>
+          <span>Your organiser profile</span>
+          <strong><%= @organizer.name %></strong>
+        </div>
+      </div>
+      <div class="organizer-contact-list">
+        <div>
+          <span>Name</span>
+          <strong><%= @organizer.name %></strong>
+        </div>
+        <div>
+          <span>Email</span>
+          <strong><%= @organizer.email %></strong>
+        </div>
+        <div>
+          <span>Phone</span>
+          <strong><%= @organizer.phone.presence || "--" %></strong>
+        </div>
+      </div>
     </div>
 
     <div class="section-compact">
       <div class="page-heading compact-heading">
         <div>
-          <h2 class="section-title">My tournaments</h2>
-          <p class="page-copy">Tournaments where you are the super organiser.</p>
+          <h2 class="section-title">Tournaments organised</h2>
         </div>
-        <span class="status-pill"><%= pluralize(@owned_tournaments.count, "event") %></span>
+        <span class="subtle-count"><%= pluralize(@owned_tournaments.count, "event") %></span>
       </div>
 
       <% if @owned_tournaments.any? %>
-        <div class="approval-table">
+        <div class="organizer-event-list">
           <% @owned_tournaments.each do |tournament| %>
-            <div class="approval-row">
-              <div>
+            <article class="organizer-event-row">
+              <div class="organizer-event-main">
+                <span><%= tournament.start_date.strftime("%d %b %Y") %></span>
                 <strong><%= tournament.name %></strong>
-                <span><%= [tournament.city, tournament.state, tournament.start_date.strftime("%d %b %Y")].compact_blank.join(" · ") %></span>
+                <p><%= [tournament.city, tournament.state, tournament.country].compact_blank.join(", ").presence || "--" %></p>
+              </div>
+              <div class="organizer-event-meta">
+                <span>Created</span>
+                <strong><%= tournament.created_at.strftime("%d %b %Y") %></strong>
               </div>
               <span class="status-pill status-<%= tournament.status %>"><%= tournament.status.humanize %></span>
               <div class="row-actions">
@@ -50,7 +68,7 @@
                 <%= link_to "Edit", edit_tournament_path(tournament), class: "text-link" %>
                 <%= link_to "Referees", tournament_tournament_referees_path(tournament), class: "text-link" %>
               </div>
-            </div>
+            </article>
           <% end %>
         </div>
       <% else %>
@@ -69,22 +87,23 @@
             <h2 class="section-title">Collaborating on</h2>
             <p class="page-copy">Tournaments where another organiser added you.</p>
           </div>
-          <span class="status-pill"><%= pluralize(@collaborating_tournaments.count, "event") %></span>
+          <span class="subtle-count"><%= pluralize(@collaborating_tournaments.count, "event") %></span>
         </div>
 
-        <div class="approval-table">
+        <div class="organizer-event-list">
           <% @collaborating_tournaments.each do |tournament| %>
-            <div class="approval-row">
-              <div>
+            <article class="organizer-event-row">
+              <div class="organizer-event-main">
+                <span><%= tournament.start_date.strftime("%d %b %Y") %></span>
                 <strong><%= tournament.name %></strong>
-                <span><%= [tournament.organizer.name, tournament.city, tournament.start_date.strftime("%d %b %Y")].compact_blank.join(" · ") %></span>
+                <p><%= [tournament.organizer.name, tournament.city, tournament.state].compact_blank.join(" · ") %></p>
               </div>
               <span class="status-pill status-<%= tournament.status %>"><%= tournament.status.humanize %></span>
               <div class="row-actions">
                 <%= link_to "View", tournament_path(tournament), class: "text-link" %>
                 <%= link_to "Approvals", organizer_registrations_path, class: "text-link" %>
               </div>
-            </div>
+            </article>
           <% end %>
         </div>
       </div>

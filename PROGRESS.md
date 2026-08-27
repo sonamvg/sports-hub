@@ -1421,3 +1421,25 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Checked `log/development.log`; result: the new `/organizers` request completed `200 OK`.
 - First sandboxed `mise exec -- bin/rails test` attempt could not access the local PostgreSQL socket.
 - Re-ran `mise exec -- bin/rails test` with local database access; result: 122 runs, 922 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-28 - Organizer Profile UI Simplification
+
+### Reference
+- User request: improve the organiser signed-in profile flow so the organiser tab first shows the organiser's name, email, phone number, and tournaments organised newest first.
+
+### Product Decisions
+- The organiser profile now focuses on identity and owned tournaments rather than internal approval metadata.
+- "Newest first" is based on tournament creation time for the organiser-owned tournament list, because this page is about events the organiser created.
+
+### Change Log
+- Removed the organiser profile explanatory line about managing identity, events, approvals, referees, categories, venue setup, and tournament operations.
+- Removed status, role, designation, approved-at, and "Tournaments where you are the super organiser" copy from the profile page.
+- Added a simpler organiser identity panel showing name, organiser email, and phone number.
+- Replaced the organiser tournament table with a cleaner list view showing event date, name, location, created date, status, and actions.
+- Updated owned tournament ordering to newest created first.
+- Updated organiser controller tests to cover the new profile copy and ensure the removed text stays removed.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; first result: 122 runs, 912 assertions, 1 failure because an existing test still expected the old `ORGANIZER PROFILE` text.
+- Updated the test expectation to the new organiser profile behavior.
+- Re-ran `mise exec -- bin/rails test`; result: 122 runs, 930 assertions, 0 failures, 0 errors, 0 skips.
