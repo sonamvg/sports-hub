@@ -123,6 +123,12 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 .button-reset { border:0; cursor:pointer; font:inherit; }
 .form-errors { background:#fff0f0; border-left:4px solid var(--red); padding:16px 18px; margin-bottom:24px; }
 .form-errors ul { margin-bottom:0; }
+.filter-bar { border:1px solid var(--line); background:#f7f7f5; padding:18px; margin:0 0 28px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; align-items:end; }
+.filter-bar.compact-filter { grid-template-columns:1fr auto; }
+.filter-bar label { display:block; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; margin-bottom:7px; }
+.filter-bar input,.filter-bar select { width:100%; border:1px solid #cfd0d4; padding:12px 13px; font:inherit; background:white; min-height:46px; }
+.filter-actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.pagination { margin-top:28px; display:flex; justify-content:center; align-items:center; gap:14px; color:var(--muted); font-weight:800; }
 .checkbox-fieldset { border:1px solid #cfd0d4; padding:16px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 18px; }
 .checkbox-fieldset legend { font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:0 8px; }
 .payment-instructions { border:1px solid var(--line); padding:20px; background:#f8f7f4; }
@@ -200,6 +206,7 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
   .approval-row { grid-template-columns:1fr; }
   .category-row { grid-template-columns:1fr; align-items:flex-start; }
   .registered-athlete-row { grid-template-columns:1fr; align-items:flex-start; }
+  .filter-bar,.filter-bar.compact-filter { grid-template-columns:1fr; }
   .search-bar,.weight-check-row,.attempt-list { grid-template-columns:1fr; }
   .attempt-closed { justify-self:start; }
   .category-actions { justify-content:flex-start; }

@@ -8,9 +8,9 @@
   </dl>
   <% if can_manage_academy?(@academy) %>
     <h3>My athletes</h3>
-    <% if @academy.athletes.any? %>
+    <% if @athletes.any? %>
       <div class="registered-athlete-list academy-athlete-list">
-        <% @academy.athletes.order(:first_name, :last_name).each do |athlete| %>
+        <% @athletes.each do |athlete| %>
           <article class="registered-athlete-row">
             <div><strong><%= athlete.full_name %></strong><span class="muted"><%= athlete.association_id || "--" %></span></div>
             <span><strong>Belt</strong><%= athlete.belt&.titleize || "--" %></span>

@@ -110,6 +110,9 @@ class Tournament < ApplicationRecord
     self.website_url = website_url.to_s.squish.presence
     self.logo_url = logo_url.to_s.squish.presence
     self.banner_image_url = banner_image_url.to_s.squish.presence
+    self.city = city.to_s.squish.presence
+    self.state = state.to_s.squish.presence
+    self.country = country.to_s.squish.presence || "India"
     self.tournament_level = tournament_level.to_s.squish.presence
     self.organizing_organization = organizing_organization.to_s.squish.presence
     self.time_zone = time_zone.to_s.squish.presence

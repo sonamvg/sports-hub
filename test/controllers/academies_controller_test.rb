@@ -137,4 +137,41 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Aarohi Shah"
     assert_includes response.body, athlete_path(athlete)
   end
+
+  test "index searches academies and orders oldest first" do
+    newer = Academy.create!(name: "Newer Academy", city: "Pune", state: "Maharashtra", status: :approved)
+    older = Academy.create!(name: "Older Academy", city: "Pune", state: "Maharashtra", status: :approved)
+    hidden = Academy.create!(name: "Hidden Academy", city: "Delhi", state: "Delhi", status: :approved)
+    older.update_column(:created_at, 2.days.ago)
+    newer.update_column(:created_at, 1.day.ago)
+
+    get academies_path(q: "pune")
+
+    assert_response :success
+    assert_operator response.body.index(older.name), :<, response.body.index(newer.name)
+    assert_not_includes response.body, hidden.name
+    assert_includes response.body, "Search academies"
+  end
+
+  test "academy show sorts athletes by name" do
+    owner = User.create!(name: "Academy Owner", email: "sort-owner@example.com", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
+    owner.athletes.create!(academy: academy, first_name: "Zoya", last_name: "Kapoor", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    owner.athletes.create!(academy: academy, first_name: "Aarav", last_name: "Mehta", date_of_birth: Date.new(2014, 5, 12), gender: "male")
+    sign_in_as owner
+
+    get academy_path(academy)
+
+    assert_response :success
+    assert_operator response.body.index("Aarav Mehta"), :<, response.body.index("Zoya Kapoor")
+  end
+
+  test "index paginates academies" do
+    13.times { |index| Academy.create!(name: "Academy #{index}", city: "Pune", status: :approved) }
+
+    get academies_path
+
+    assert_response :success
+    assert_includes response.body, "Page 1 of 2"
+  end
 end

@@ -77,6 +77,11 @@
     </div>
 
     <div>
+      <%= form.label :country %>
+      <%= form.text_field :country, value: tournament.country.presence || "India", required: true %>
+    </div>
+
+    <div>
       <%= form.label :time_zone, "Time zone" %>
       <%= form.time_zone_select :time_zone, ActiveSupport::TimeZone.all, { include_blank: "Select time zone" }, required: true %>
     </div>

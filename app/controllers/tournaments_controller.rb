@@ -6,7 +6,8 @@ class TournamentsController < ApplicationController
   before_action :set_available_organizers, only: %i[new create edit update]
 
   def index
-    @tournaments = Tournament.order(:start_date)
+    @tournaments = filtered_tournaments.order(tournament_sort_sql, start_date: :desc, created_at: :desc)
+    @tournaments, @pagination = paginate(@tournaments)
   end
 
   def new
@@ -108,7 +109,7 @@ class TournamentsController < ApplicationController
 
   def tournament_params
     permitted = params.require(:tournament).permit(
-      :name, :slug, :description, :venue, :city, :state, :start_date, :end_date,
+      :name, :slug, :description, :venue, :city, :state, :country, :start_date, :end_date,
       :registration_opens_at, :registration_closes_at, :status, :website_url,
       :tournament_level, :organizing_organization, :time_zone, :primary_contact_name,
       :primary_contact_email, :primary_contact_phone, :competition_formats,
@@ -150,5 +151,25 @@ class TournamentsController < ApplicationController
 
   def joined_checklist(options, other_values)
     (Array(options) + Array(other_values)).map { |value| value.to_s.squish }.reject(&:blank?).uniq.join(", ")
+  end
+
+  def filtered_tournaments
+    tournaments = Tournament.all
+    query = params[:q].to_s.squish.downcase
+    if query.present?
+      tournaments = tournaments.where(
+        "LOWER(name) LIKE :query OR LOWER(COALESCE(venue, '')) LIKE :query OR LOWER(COALESCE(city, '')) LIKE :query OR LOWER(COALESCE(state, '')) LIKE :query OR LOWER(COALESCE(country, '')) LIKE :query",
+        query: "%#{query}%"
+      )
+    end
+
+    tournaments = tournaments.where("LOWER(country) = ?", params[:country].to_s.squish.downcase) if params[:country].present?
+    tournaments = tournaments.where("LOWER(state) = ?", params[:state].to_s.squish.downcase) if params[:state].present?
+    tournaments
+  end
+
+  def tournament_sort_sql
+    today = ActiveRecord::Base.connection.quote(Date.current)
+    Arel.sql("CASE WHEN end_date < #{today} OR status IN (2, 4, 5, 10) THEN 1 ELSE 0 END ASC")
   end
 end

@@ -14,6 +14,13 @@
       <%= link_to "Create tournament", new_tournament_path, class: "primary-button" %>
     </div>
 
+    <%= form_with url: tournaments_path, method: :get, class: "filter-bar" do |form| %>
+      <div><%= form.label :q, "Search" %><%= form.search_field :q, value: params[:q], placeholder: "Tournament, venue, city" %></div>
+      <div><%= form.label :country %><%= form.text_field :country, value: params[:country], placeholder: "India" %></div>
+      <div><%= form.label :state %><%= form.text_field :state, value: params[:state], placeholder: "Maharashtra" %></div>
+      <div class="filter-actions"><%= form.submit "Search", class: "primary-button button-reset" %><%= link_to "Clear", tournaments_path, class: "secondary-button" %></div>
+    <% end %>
+
     <div class="list-grid">
       <% @tournaments.each do |tournament| %>
         <article class="entity-card tournament-card">
@@ -44,5 +51,6 @@
         </article>
       <% end %>
     </div>
+    <%= render "shared/pagination", pagination: @pagination %>
   </div>
 </section>

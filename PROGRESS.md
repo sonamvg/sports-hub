@@ -2,6 +2,44 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-27 - Search Filters Sorting And Pagination
+
+### Reference
+- User request: implement search for tournament, academy, and athlete flows. Athletes should support filters by age, weight, and belt. Academy athletes should be sorted by name. Academy list should show oldest registered academies first. Tournaments should filter by country and state, newest active tournaments should appear first, and older/closed/ended tournaments should be lower. Use proper pagination as athletes and tournaments grow.
+
+### Scope Chosen For This Pass
+- Add server-rendered search/filter forms to athlete, academy, and tournament indexes.
+- Add lightweight built-in pagination without introducing a new gem.
+- Add `country` to tournaments so country filtering is a first-class field.
+- Keep list visibility rules unchanged while layering search/filtering on top.
+
+### Product Decisions
+- Pagination defaults to 12 records per page for list screens.
+- Athlete search covers athlete name, full name, association ID, and academy name.
+- Athlete filters support min/max age, min/max weight, and belt.
+- Academy search covers name, city, state, country, and registration number.
+- Academy index sorts by `created_at ASC`, then id, so oldest registered academies appear first.
+- Academy detail athlete list uses `first_name, last_name` sorting.
+- Tournament search covers name, venue, city, state, and country.
+- Tournament filters support exact country and state match after trimming/lowercasing.
+- Tournament sorting puts active/upcoming tournaments first, then closed/completed/cancelled/archived or already-ended tournaments, with newer start dates first inside each group.
+
+### Change Log
+- Added `ApplicationController#paginate` and shared pagination partial.
+- Added `country` column to tournaments with default `India`.
+- Added athlete index search/filter logic and filter form.
+- Added academy index search, oldest-first ordering, filter form, and pagination.
+- Updated academy show to use a sorted `@athletes` collection.
+- Added tournament index search, country/state filters, active/newest-first sorting, and filter form.
+- Added country to the tournament setup form and permitted tournament params.
+- Added CSS for filters and pagination.
+- Added controller tests for athlete filters/pagination, academy search/order/pagination/athlete sorting, and tournament country/state filtering/order/pagination.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: tournament country migration applied successfully.
+- Ran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb test/controllers/academies_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 45 runs, 372 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 105 runs, 801 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-26 - Remove Athlete Pay-Later Registration
 
 ### Reference

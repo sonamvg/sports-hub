@@ -4,8 +4,9 @@ class AthletesController < ApplicationController
   before_action :set_available_academies, only: %i[new create edit update]
 
   def index
-    @athletes = visible_athletes.includes(:academy).order(:first_name, :last_name)
+    @athletes = filtered_athletes.includes(:academy).order(:first_name, :last_name)
     @athletes = @athletes.includes(:user) if super_admin?
+    @athletes, @pagination = paginate(@athletes)
   end
 
   def show; end
@@ -55,6 +56,24 @@ class AthletesController < ApplicationController
 
     owned_academy_ids = current_user.owned_academies.approved.select(:id)
     Athlete.where(user_id: current_user.id).or(Athlete.where(academy_id: owned_academy_ids)).distinct
+  end
+
+  def filtered_athletes
+    athletes = visible_athletes
+    query = params[:q].to_s.squish.downcase
+    if query.present?
+      athletes = athletes.left_joins(:academy).where(
+        "LOWER(athletes.first_name) LIKE :query OR LOWER(athletes.last_name) LIKE :query OR LOWER(CONCAT(athletes.first_name, ' ', athletes.last_name)) LIKE :query OR LOWER(COALESCE(athletes.association_id, '')) LIKE :query OR LOWER(COALESCE(academies.name, '')) LIKE :query",
+        query: "%#{query}%"
+      )
+    end
+
+    athletes = athletes.where(belt: params[:belt]) if params[:belt].present?
+    athletes = athletes.where("weight >= ?", params[:weight_min].to_d) if params[:weight_min].present?
+    athletes = athletes.where("weight <= ?", params[:weight_max].to_d) if params[:weight_max].present?
+    athletes = athletes.where("date_of_birth <= ?", params[:age_min].to_i.years.ago.to_date) if params[:age_min].present?
+    athletes = athletes.where("date_of_birth >= ?", (params[:age_max].to_i + 1).years.ago.to_date + 1.day) if params[:age_max].present?
+    athletes
   end
 
   def athlete_params

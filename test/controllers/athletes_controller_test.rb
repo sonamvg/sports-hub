@@ -125,4 +125,49 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Anaya Iyer"
   end
+
+  test "index filters athletes by search age weight and belt" do
+    matching = @parent.athletes.create!(
+      first_name: "Aarohi",
+      last_name: "Shah",
+      association_id: "TKD-22",
+      date_of_birth: 12.years.ago.to_date,
+      gender: "female",
+      belt: "red",
+      weight: 39.5
+    )
+    @parent.athletes.create!(
+      first_name: "Vihaan",
+      last_name: "Mehta",
+      date_of_birth: 8.years.ago.to_date,
+      gender: "male",
+      belt: "blue",
+      weight: 28
+    )
+
+    get athletes_path(q: "aarohi", age_min: 10, age_max: 14, weight_min: 35, weight_max: 45, belt: "red")
+
+    assert_response :success
+    assert_includes response.body, matching.full_name
+    assert_not_includes response.body, "Vihaan Mehta"
+    assert_includes response.body, "Min age"
+    assert_includes response.body, "Max weight"
+  end
+
+  test "index paginates athletes" do
+    13.times do |index|
+      @parent.athletes.create!(
+        first_name: "Athlete#{index}",
+        last_name: "Page",
+        date_of_birth: 12.years.ago.to_date,
+        gender: "female"
+      )
+    end
+
+    get athletes_path
+
+    assert_response :success
+    assert_includes response.body, "Page 1 of 2"
+    assert_includes response.body, "Next"
+  end
 end

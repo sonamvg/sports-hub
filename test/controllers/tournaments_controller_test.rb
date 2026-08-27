@@ -449,6 +449,82 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Register"
   end
 
+  test "index filters tournaments by country and state" do
+    matching = Tournament.create!(
+      name: "Pune State Open",
+      organizer: @organizer,
+      status: :registration_open,
+      city: "Pune",
+      state: "Maharashtra",
+      country: "India",
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    Tournament.create!(
+      name: "Dubai Open",
+      organizer: @organizer,
+      city: "Dubai",
+      state: "Dubai",
+      country: "UAE",
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+
+    get tournaments_path(country: "India", state: "Maharashtra")
+
+    assert_response :success
+    assert_includes response.body, matching.name
+    assert_not_includes response.body, "Dubai Open"
+    assert_includes response.body, "Country"
+    assert_includes response.body, "State"
+  end
+
+  test "index orders newest active tournaments before ended tournaments" do
+    ended = Tournament.create!(
+      name: "Ended Open",
+      organizer: @organizer,
+      status: :completed,
+      start_date: 20.days.ago.to_date,
+      end_date: 18.days.ago.to_date
+    )
+    older_active = Tournament.create!(
+      name: "Older Active",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: 10.days.from_now.to_date,
+      end_date: 11.days.from_now.to_date
+    )
+    newer_active = Tournament.create!(
+      name: "Newer Active",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: 20.days.from_now.to_date,
+      end_date: 21.days.from_now.to_date
+    )
+
+    get tournaments_path
+
+    assert_response :success
+    assert_operator response.body.index(newer_active.name), :<, response.body.index(older_active.name)
+    assert_operator response.body.index(older_active.name), :<, response.body.index(ended.name)
+  end
+
+  test "index paginates tournaments" do
+    13.times do |index|
+      Tournament.create!(
+        name: "Paged Tournament #{index}",
+        organizer: @organizer,
+        start_date: (index + 1).days.from_now.to_date,
+        end_date: (index + 2).days.from_now.to_date
+      )
+    end
+
+    get tournaments_path
+
+    assert_response :success
+    assert_includes response.body, "Page 1 of 2"
+  end
+
   test "show renders uploaded tournament banner" do
     tournament = Tournament.create!(
       name: "Pune Invitational",

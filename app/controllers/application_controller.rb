@@ -37,6 +37,25 @@ class ApplicationController < ActionController::Base
     super_admin? || tournament.managed_by?(current_user)
   end
 
+  def paginate(scope, per_page: 12)
+    page = params[:page].to_i
+    page = 1 if page < 1
+    total_count = scope.count
+    total_pages = (total_count.to_f / per_page).ceil
+    total_pages = 1 if total_pages < 1
+    page = total_pages if page > total_pages
+
+    [
+      scope.limit(per_page).offset((page - 1) * per_page),
+      {
+        page: page,
+        total_pages: total_pages,
+        total_count: total_count,
+        per_page: per_page
+      }
+    ]
+  end
+
   def require_athlete_profile_completion
     return unless current_user&.athlete?
     return if current_user.athletes.exists?

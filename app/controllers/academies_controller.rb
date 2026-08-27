@@ -5,10 +5,13 @@ class AcademiesController < ApplicationController
   before_action :require_super_admin, only: %i[approve reject]
 
   def index
-    @academies = visible_academies.order(:name)
+    @academies = filtered_academies.order(:created_at, :id)
+    @academies, @pagination = paginate(@academies)
   end
 
-  def show; end
+  def show
+    @athletes = @academy.athletes.order(:first_name, :last_name) if can_manage_academy?(@academy)
+  end
 
   def new
     @academy = current_user.owned_academies.build
@@ -62,6 +65,17 @@ class AcademiesController < ApplicationController
     return Academy.where("status = ? OR owner_id = ?", Academy.statuses[:approved], current_user.id) if current_user
 
     Academy.approved
+  end
+
+  def filtered_academies
+    academies = visible_academies
+    query = params[:q].to_s.squish.downcase
+    return academies if query.blank?
+
+    academies.where(
+      "LOWER(name) LIKE :query OR LOWER(COALESCE(city, '')) LIKE :query OR LOWER(COALESCE(state, '')) LIKE :query OR LOWER(COALESCE(country, '')) LIKE :query OR LOWER(COALESCE(registration_number, '')) LIKE :query",
+      query: "%#{query}%"
+    )
   end
 
   def require_academy_manager
