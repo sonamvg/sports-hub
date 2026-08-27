@@ -14,11 +14,41 @@
       <%= link_to "Create tournament", new_tournament_path, class: "primary-button" %>
     </div>
 
-    <%= form_with url: tournaments_path, method: :get, class: "filter-bar" do |form| %>
-      <div><%= form.label :q, "Search" %><%= form.search_field :q, value: params[:q], placeholder: "Tournament, venue, city" %></div>
-      <div><%= form.label :country %><%= form.text_field :country, value: params[:country], placeholder: "India" %></div>
-      <div><%= form.label :state %><%= form.text_field :state, value: params[:state], placeholder: "Maharashtra" %></div>
-      <div class="filter-actions"><%= form.submit "Search", class: "primary-button button-reset" %><%= link_to "Clear", tournaments_path, class: "secondary-button" %></div>
+    <% active_filters = [params[:q], params[:country], params[:state]].compact_blank.count %>
+    <%= form_with url: tournaments_path, method: :get, class: "tournament-filter-panel" do |form| %>
+      <div class="filter-panel-header">
+        <div>
+          <span class="small-label">FIND COMPETITIONS</span>
+          <strong>Tournament filters</strong>
+        </div>
+        <% if active_filters.positive? %>
+          <span class="status-pill"><%= pluralize(active_filters, "filter") %> active</span>
+        <% else %>
+          <span class="status-pill">All tournaments</span>
+        <% end %>
+      </div>
+
+      <div class="tournament-filter-grid">
+        <div class="filter-field search-field">
+          <%= form.label :q, "Search" %>
+          <%= form.search_field :q, value: params[:q], placeholder: "Search tournament, venue, city, state or country" %>
+        </div>
+
+        <div class="filter-field">
+          <%= form.label :country %>
+          <%= form.select :country, options_for_select(@filter_countries, params[:country]), { include_blank: "All countries" } %>
+        </div>
+
+        <div class="filter-field">
+          <%= form.label :state %>
+          <%= form.select :state, options_for_select(@filter_states, params[:state]), { include_blank: "All states" } %>
+        </div>
+
+        <div class="filter-actions tournament-filter-actions">
+          <%= form.submit "Apply filters", class: "primary-button button-reset" %>
+          <%= link_to "Clear", tournaments_path, class: "secondary-button" %>
+        </div>
+      </div>
     <% end %>
 
     <div class="list-grid">

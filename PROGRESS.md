@@ -2,6 +2,32 @@
 
 This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-08-27 - Tournament Filter UI Polish
+
+### Reference
+- User request: improve the UI for filters on the tournament page.
+
+### Scope Chosen For This Pass
+- Improve the tournament index filter presentation without changing existing query parameters or filtering semantics.
+- Keep the filter controls server-rendered and Rails-native.
+
+### Product Decisions
+- Search is the primary control because users are most likely to look for a tournament, venue, city, state, or country by text.
+- Country and state filters are select controls populated from existing tournament data instead of free-text fields, reducing typo-driven empty results.
+- The filter panel shows whether all tournaments are being shown or how many filters are active.
+- Existing `q`, `country`, and `state` query parameters remain unchanged so current links keep working.
+
+### Change Log
+- Added tournament filter option collections to `TournamentsController#index`.
+- Replaced the plain tournament filter row with a structured filter panel.
+- Added active-filter count and clearer `Apply filters`/`Clear` actions.
+- Added CSS for the new tournament filter panel, responsive layout, and focused inputs.
+- Updated tournament controller tests to cover the improved filter UI.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb`; result: 28 runs, 275 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 118 runs, 886 assertions, 0 failures, 0 errors, 0 skips.
+
 ## 2026-08-27 - Demo Seed Data For New Tournament Fields
 
 ### Reference

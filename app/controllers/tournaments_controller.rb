@@ -6,6 +6,7 @@ class TournamentsController < ApplicationController
   before_action :set_available_organizers, only: %i[new create edit update]
 
   def index
+    set_filter_options
     @tournaments = filtered_tournaments.order(tournament_sort_sql, start_date: :desc, created_at: :desc)
     @tournaments, @pagination = paginate(@tournaments)
   end
@@ -187,6 +188,11 @@ class TournamentsController < ApplicationController
     tournaments = tournaments.where("LOWER(country) = ?", params[:country].to_s.squish.downcase) if params[:country].present?
     tournaments = tournaments.where("LOWER(state) = ?", params[:state].to_s.squish.downcase) if params[:state].present?
     tournaments
+  end
+
+  def set_filter_options
+    @filter_countries = Tournament.where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
+    @filter_states = Tournament.where.not(state: [nil, ""]).distinct.order(:state).pluck(:state)
   end
 
   def tournament_sort_sql

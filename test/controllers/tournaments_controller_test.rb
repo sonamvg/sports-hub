@@ -475,6 +475,11 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, matching.name
     assert_not_includes response.body, "Dubai Open"
+    assert_includes response.body, "Tournament filters"
+    assert_includes response.body, "2 filters active"
+    assert_includes response.body, "Apply filters"
+    assert_includes response.body, "All countries"
+    assert_includes response.body, "All states"
     assert_includes response.body, "Country"
     assert_includes response.body, "State"
   end
