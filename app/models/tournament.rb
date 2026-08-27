@@ -6,6 +6,7 @@ class Tournament < ApplicationRecord
   has_many :registrations, dependent: :destroy
   has_many :tournament_organizers, dependent: :destroy
   has_many :organizer_users, through: :tournament_organizers, source: :user
+  has_many :tournament_organizer_invitations, dependent: :destroy
   has_many :tournament_referees, dependent: :destroy
   has_one_attached :logo_image
   has_one_attached :banner_image
@@ -77,6 +78,20 @@ class Tournament < ApplicationRecord
 
   def registration_closed_for_weight_check?(at: Time.current)
     registration_closes_at.present? && registration_closes_at < at
+  end
+
+  def registration_started?(at: Time.current)
+    registration_open? ||
+      registration_paused? ||
+      (registration_closes_at.present? && registration_closes_at < at) ||
+      (registration_opens_at.present? && registration_opens_at <= at)
+  end
+
+  def categories_editable_by?(user, at: Time.current)
+    return false unless user
+    return true if user.super_admin?
+
+    managed_by?(user) && !registration_started?(at: at)
   end
 
   def late_registration_allowed_for?(user)

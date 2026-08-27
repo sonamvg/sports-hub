@@ -271,8 +271,34 @@
 
     <div class="full">
       <%= form.label :organizer_user_ids, "Other organizers" %>
-      <%= form.collection_select :organizer_user_ids, @available_organizers.reject { |organizer| organizer.id == current_user.id }, :id, :name, {}, multiple: true %>
-      <p class="field-hint">Only verified organizers can be added. The creator remains the super organizer for this tournament.</p>
+      <% selected_organizers = tournament.organizer_users.reject { |organizer| organizer.id == current_user.id || organizer.id == tournament.organizer_id } %>
+      <% search_organizers = @available_organizers.reject { |organizer| organizer.id == current_user.id || organizer.id == tournament.organizer_id } %>
+      <div class="organizer-picker" data-organizer-picker data-organizers="<%= json_escape(search_organizers.map { |organizer| { id: organizer.id, label: "#{organizer.name} (#{organizer.email})" } }.to_json) %>">
+        <div class="organizer-picker-search">
+          <input type="search" placeholder="Start typing an organiser name or email" list="organizer-options">
+          <button type="button" class="secondary-button button-reset" data-add-organizer>Add</button>
+        </div>
+        <datalist id="organizer-options">
+          <% search_organizers.each do |organizer| %>
+            <option value="<%= "#{organizer.name} (#{organizer.email})" %>"></option>
+          <% end %>
+        </datalist>
+        <div class="organizer-picker-selected" data-selected-organizers>
+          <% selected_organizers.each do |organizer| %>
+            <span class="organizer-chip" data-organizer-chip="<%= organizer.id %>">
+              <%= organizer.name %>
+              <input type="hidden" name="tournament[organizer_user_ids][]" value="<%= organizer.id %>">
+              <button type="button" aria-label="Remove <%= organizer.name %>" data-remove-organizer>x</button>
+            </span>
+          <% end %>
+        </div>
+        <button type="button" class="text-link button-reset invite-toggle" data-show-organizer-invite>Invite new organiser</button>
+        <div class="organizer-invite-field" data-organizer-invite hidden>
+          <%= email_field_tag "tournament[invite_organizer_email]", nil, placeholder: "organiser@example.com" %>
+          <p class="field-hint">If the organiser is not in Sports Hub yet, enter their email. An organiser account invitation will be sent when this tournament is saved.</p>
+        </div>
+      </div>
+      <p class="field-hint">Only verified organisers can be selected. The creator remains the super organiser for this tournament.</p>
     </div>
   </div>
 
@@ -306,5 +332,53 @@
 
     row.appendChild(nextInput);
     list.appendChild(row);
+  });
+
+  document.addEventListener("click", function(event) {
+    const picker = event.target.closest("[data-organizer-picker]");
+    if (!picker) return;
+
+    if (event.target.matches("[data-add-organizer]")) {
+      const input = picker.querySelector("input[type='search']");
+      const selected = picker.querySelector("[data-selected-organizers]");
+      const organizers = JSON.parse(picker.dataset.organizers || "[]");
+      const match = organizers.find(function(organizer) {
+        return organizer.label.toLowerCase() === input.value.trim().toLowerCase();
+      });
+
+      if (!match || selected.querySelector("[data-organizer-chip='" + match.id + "']")) return;
+
+      const chip = document.createElement("span");
+      chip.className = "organizer-chip";
+      chip.dataset.organizerChip = match.id;
+
+      chip.appendChild(document.createTextNode(match.label));
+
+      const hiddenInput = document.createElement("input");
+      hiddenInput.type = "hidden";
+      hiddenInput.name = "tournament[organizer_user_ids][]";
+      hiddenInput.value = match.id;
+      chip.appendChild(hiddenInput);
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.setAttribute("aria-label", "Remove organiser");
+      removeButton.setAttribute("data-remove-organizer", "");
+      removeButton.textContent = "x";
+      chip.appendChild(removeButton);
+
+      selected.appendChild(chip);
+      input.value = "";
+    }
+
+    if (event.target.matches("[data-remove-organizer]")) {
+      event.target.closest("[data-organizer-chip]").remove();
+    }
+
+    if (event.target.matches("[data-show-organizer-invite]")) {
+      const invite = picker.querySelector("[data-organizer-invite]");
+      invite.hidden = false;
+      invite.querySelector("input[type='email']").focus();
+    }
   });
 </script>

@@ -16,6 +16,32 @@
           <%= link_to "Athletes", athletes_path, class: "side-nav-link" %>
           <%= link_to "Academies", academies_path, class: "side-nav-link" %>
           <%= link_to "Organizer", current_user&.can_organize_tournaments? ? profile_organizers_path : organizers_path, class: "side-nav-link" %>
+          <% if current_user&.can_organize_tournaments? %>
+            <% organizer_tournaments = (current_user.organized_tournaments.to_a + current_user.collaborating_tournaments.to_a).uniq(&:id).sort_by(&:created_at).reverse %>
+            <% if organizer_tournaments.any? %>
+              <div class="side-nav-group">
+                <span>My tournaments</span>
+                <% organizer_tournaments.each do |tournament| %>
+                  <details class="side-tournament">
+                    <summary><%= tournament.name %></summary>
+                    <div class="side-tournament-links">
+                      <%= link_to "Edit", edit_tournament_path(tournament) %>
+                      <%= link_to "Add referees", tournament_tournament_referees_path(tournament) %>
+                      <%= link_to "Venue setup", venue_setup_tournament_path(tournament) %>
+                      <%= link_to "Weight check", organizer_tournament_weight_checks_path(tournament) %>
+                      <% if tournament.draw_scheduling? %>
+                        <%= link_to "Set draw", draw_tournament_path(tournament) %>
+                      <% elsif tournament.registration_closed_for_weight_check? %>
+                        <%= button_to "Set draw", set_draw_tournament_path(tournament), method: :patch, class: "link-button side-action-button" %>
+                      <% else %>
+                        <span class="side-disabled">Set draw</span>
+                      <% end %>
+                    </div>
+                  </details>
+                <% end %>
+              </div>
+            <% end %>
+          <% end %>
         </nav>
 
         <div class="side-account">

@@ -22,7 +22,8 @@ class TournamentsController < ApplicationController
 
     if @tournament.save
       sync_tournament_organizers
-      redirect_to @tournament, notice: "Tournament created."
+      invite_notice, invite_alert = send_organizer_invitation
+      redirect_to @tournament, notice: ["Tournament created.", invite_notice].compact.join(" "), alert: invite_alert
     else
       render :new, status: :unprocessable_entity
     end
@@ -69,7 +70,8 @@ class TournamentsController < ApplicationController
     apply_submit_intent(@tournament)
     if @tournament.save
       sync_tournament_organizers
-      redirect_to @tournament, notice: "Tournament updated."
+      invite_notice, invite_alert = send_organizer_invitation
+      redirect_to @tournament, notice: ["Tournament updated.", invite_notice].compact.join(" "), alert: invite_alert
     else
       render :edit, status: :unprocessable_entity
     end
@@ -122,6 +124,19 @@ class TournamentsController < ApplicationController
       membership.role = user_id == @tournament.organizer_id ? :super_organizer : :collaborator
       membership.added_by ||= current_user
       membership.save!
+    end
+  end
+
+  def send_organizer_invitation
+    email = params.dig(:tournament, :invite_organizer_email).to_s.downcase.squish
+    return [nil, nil] if email.blank?
+
+    invitation = @tournament.tournament_organizer_invitations.build(email: email, invited_by: current_user)
+    if invitation.save
+      TournamentOrganizerInvitationMailer.with(invitation: invitation).invite.deliver_later
+      ["Organizer invitation sent.", nil]
+    else
+      [nil, invitation.errors.full_messages.to_sentence]
     end
   end
 

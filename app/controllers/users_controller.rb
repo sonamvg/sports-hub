@@ -1,7 +1,7 @@
 class UsersController < ApplicationController
   def new
     @account_type = account_type_param
-    @user = User.new(role: signup_role)
+    @user = User.new(role: signup_role, email: invited_email_param)
     set_available_academies
   end
 
@@ -28,6 +28,10 @@ class UsersController < ApplicationController
     return "academy_owner" if params[:account_type] == "academy_owner"
 
     "athlete"
+  end
+
+  def invited_email_param
+    params[:invited_email].to_s.downcase.squish.presence
   end
 
   def signup_role

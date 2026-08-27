@@ -92,6 +92,45 @@ class TournamentCategoriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 44, category.weight_max
   end
 
+  test "organizer cannot edit category after registration starts" do
+    @tournament.update!(status: :registration_open, registration_opens_at: 1.day.ago, registration_closes_at: 1.day.from_now)
+    category = @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+
+    patch tournament_tournament_category_path(@tournament, category), params: {
+      tournament_category: {
+        event_type: "kyorugi",
+        gender: "female",
+        age_min: 12,
+        age_max: 14,
+        weight_max: 44
+      }
+    }
+
+    assert_redirected_to tournament_tournament_categories_path(@tournament)
+    assert_equal "Categories can be edited only before registration starts.", flash[:alert]
+    assert_equal BigDecimal("41"), category.reload.weight_max
+  end
+
+  test "super admin can edit category after registration starts" do
+    super_admin = User.create!(name: "Super Admin", email: "super-category@example.test", password: "password123", role: :super_admin)
+    @tournament.update!(status: :registration_open, registration_opens_at: 1.day.ago, registration_closes_at: 1.day.from_now)
+    category = @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    sign_in_as super_admin
+
+    patch tournament_tournament_category_path(@tournament, category), params: {
+      tournament_category: {
+        event_type: "kyorugi",
+        gender: "female",
+        age_min: 12,
+        age_max: 14,
+        weight_max: 44
+      }
+    }
+
+    assert_redirected_to tournament_tournament_category_path(@tournament, category)
+    assert_equal BigDecimal("44"), category.reload.weight_max
+  end
+
   test "renders errors when update is invalid" do
     category = @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
 

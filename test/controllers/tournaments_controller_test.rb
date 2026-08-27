@@ -224,6 +224,32 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes tournament.organizer_users, collaborator
   end
 
+  test "tournament form can invite new organizer by email" do
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+
+    assert_difference("TournamentOrganizerInvitation.count", 1) do
+      patch tournament_path(tournament), params: {
+        tournament: {
+          name: "Pune Invitational",
+          start_date: "2026-12-05",
+          end_date: "2026-12-06",
+          invite_organizer_email: "new-organizer@example.test"
+        }
+      }
+    end
+
+    assert_redirected_to tournament_path(tournament)
+    invitation = TournamentOrganizerInvitation.order(:created_at).last
+    assert_equal tournament, invitation.tournament
+    assert_equal @organizer, invitation.invited_by
+    assert_equal "new-organizer@example.test", invitation.email
+  end
+
   test "tournament collaborator can edit tournament" do
     collaborator = User.create!(name: "Collaborator", email: "collaborator@example.test", password: "password123", role: :organizer)
     tournament = Tournament.create!(
@@ -363,7 +389,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "9876543210"
   end
 
-  test "logged in show keeps athlete registration actions" do
+  test "organizer show hides category registration actions" do
     tournament = Tournament.create!(
       name: "Pune Invitational",
       organizer: @organizer,
@@ -378,7 +404,28 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Registered athletes"
     assert_includes response.body, "No registered athletes yet"
-    assert_includes response.body, "Register athlete"
+    assert_not_includes response.body, "Register athlete"
+    assert_not_includes response.body, "Register →"
+  end
+
+  test "organizer sidebar lists tournament operation links" do
+    tournament = Tournament.create!(
+      name: "Sidebar Invitational",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+
+    get tournaments_path
+
+    assert_response :success
+    assert_includes response.body, "My tournaments"
+    assert_includes response.body, "Sidebar Invitational"
+    assert_includes response.body, edit_tournament_path(tournament)
+    assert_includes response.body, tournament_tournament_referees_path(tournament)
+    assert_includes response.body, venue_setup_tournament_path(tournament)
+    assert_includes response.body, organizer_tournament_weight_checks_path(tournament)
+    assert_includes response.body, "Set draw"
   end
 
   test "show uses placeholder dashes for missing optional tournament data" do
@@ -474,7 +521,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, matching.name
-    assert_not_includes response.body, "Dubai Open"
+    assert_equal 1, response.body.scan('class="entity-card tournament-card"').size
     assert_includes response.body, "Tournament filters"
     assert_includes response.body, "2 filters active"
     assert_includes response.body, "Apply filters"

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_27_101000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_28_000100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -150,6 +150,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_101000) do
     t.index ["tournament_id"], name: "index_tournament_categories_on_tournament_id"
   end
 
+  create_table "tournament_organizer_invitations", force: :cascade do |t|
+    t.datetime "accepted_at"
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.bigint "invited_by_id", null: false
+    t.integer "status", default: 0, null: false
+    t.bigint "tournament_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["invited_by_id"], name: "index_tournament_organizer_invitations_on_invited_by_id"
+    t.index ["tournament_id", "email"], name: "idx_on_tournament_id_email_385507eacd", unique: true
+    t.index ["tournament_id"], name: "index_tournament_organizer_invitations_on_tournament_id"
+  end
+
   create_table "tournament_organizers", force: :cascade do |t|
     t.bigint "added_by_id"
     t.datetime "created_at", null: false
@@ -255,6 +268,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_27_101000) do
   add_foreign_key "registrations", "tournament_categories"
   add_foreign_key "registrations", "tournaments"
   add_foreign_key "tournament_categories", "tournaments"
+  add_foreign_key "tournament_organizer_invitations", "tournaments"
+  add_foreign_key "tournament_organizer_invitations", "users", column: "invited_by_id"
   add_foreign_key "tournament_organizers", "tournaments"
   add_foreign_key "tournament_organizers", "users"
   add_foreign_key "tournament_organizers", "users", column: "added_by_id"

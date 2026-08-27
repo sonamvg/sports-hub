@@ -1464,3 +1464,35 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bin/rails test`; result: 122 runs, 930 assertions, 0 failures, 0 errors, 0 skips.
 - Attempted Rails runner render checks, but development host authorization returned `403`.
 - Verified the running server with local HTTP requests to `/` and `/tournaments`; both returned `200`, included `class="side-menu"`, excluded `site-header`, and included `app-content`.
+
+## 2026-08-28 - Organizer Tournament Operations And Category Locks
+
+### Reference
+- User request: for organiser users, show their tournaments under the organiser item in the left panel with tournament operation links; simplify the tournament main page; remove register options from categories; lock category edits once registration starts; improve other-organiser selection and invite flow.
+
+### Product Decisions
+- Organiser-created athlete profiles remain profiles owned by the organiser's account; they do not create a separate athlete login or password. Athletes who need their own password must use the public "Join as athlete" account flow.
+- Category editing is allowed for tournament organisers only before registration starts. Super admins can edit categories at any time.
+- Existing organisers are selected through a lightweight search/chip picker backed by verified organiser records.
+- New organiser invitations are stored as tournament invitations and emailed with an organiser signup link after the tournament form is saved.
+
+### Change Log
+- Added organiser tournament shortcuts under the left-panel organiser navigation, newest first, with Edit, Add referees, Venue setup, Weight check, and Set draw actions.
+- Replaced the tournament show page heading action group with a compact edit icon for tournament managers.
+- Removed category-level registration links and the empty-state register link from tournament show/category pages.
+- Added `Tournament#registration_started?` and `Tournament#categories_editable_by?`.
+- Enforced category edit/create/default-import locking in `TournamentCategoriesController`.
+- Added `TournamentOrganizerInvitation`, migration, controller, and mailer with HTML/text invite templates.
+- Updated the tournament form's other-organiser section from a multi-select to a searchable organiser picker with selected-organiser chips and invite-by-email field.
+- Prefilled organiser signup email when an invite link includes `invited_email`.
+- Added an Add athlete page note explaining that organiser-created athlete profiles do not create separate login credentials.
+- Added CSS for sidebar tournament groups, edit icon, organiser picker, and organiser chips.
+- Built organiser picker chips with DOM nodes instead of `innerHTML` so organiser names/emails are not injected as markup.
+- Added tests for organiser sidebar operations, hidden category registration actions, invite creation, invitation validation, organiser category lock, and super-admin category override.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: `tournament_organizer_invitations` table created and `db/schema.rb` updated.
+- Ran `mise exec -- bin/rails test`; first result: 127 runs, 956 assertions, 1 failure because an existing tournament filter test saw organiser sidebar tournaments outside the filtered result list.
+- Updated the filter test to assert the number of rendered tournament result cards instead of requiring sidebar text to disappear.
+- Re-ran `mise exec -- bin/rails test`; result: 127 runs, 969 assertions, 0 failures, 0 errors, 0 skips.
+- Re-ran `mise exec -- bin/rails test` after invite flash, DOM-safety, and Add athlete explanatory copy updates; result: 127 runs, 969 assertions, 0 failures, 0 errors, 0 skips.

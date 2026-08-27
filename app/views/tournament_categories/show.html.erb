@@ -19,8 +19,9 @@
       <p><strong>Belt:</strong> <%= [@category.belt_min&.titleize, @category.belt_max&.titleize].compact.join("–").presence || "Open" %></p>
 
       <div class="form-actions">
-        <%= link_to "Edit category", edit_tournament_tournament_category_path(@tournament, @category), class: "secondary-button" %>
-        <%= link_to "Register athlete", new_tournament_registration_path(@tournament, category_id: @category.id), class: "primary-button" %>
+        <% if can_edit_tournament_categories?(@tournament) %>
+          <%= link_to "Edit category", edit_tournament_tournament_category_path(@tournament, @category), class: "secondary-button" %>
+        <% end %>
       </div>
     </div>
   </div>

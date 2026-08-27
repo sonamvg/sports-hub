@@ -2,6 +2,7 @@ class TournamentCategoriesController < ApplicationController
   before_action :require_user, except: %i[index show]
   before_action :set_tournament
   before_action :require_tournament_manager, except: %i[index show]
+  before_action :require_category_editor, only: %i[new create create_defaults edit update]
   before_action :set_category, only: %i[show edit update]
 
   def index
@@ -63,6 +64,12 @@ class TournamentCategoriesController < ApplicationController
 
   def require_tournament_manager
     raise ActiveRecord::RecordNotFound unless can_manage_tournament?(@tournament)
+  end
+
+  def require_category_editor
+    return if can_edit_tournament_categories?(@tournament)
+
+    redirect_to tournament_tournament_categories_path(@tournament), alert: "Categories can be edited only before registration starts."
   end
 
   def category_params

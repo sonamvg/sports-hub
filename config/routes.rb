@@ -35,6 +35,7 @@ Rails.application.routes.draw do
         post :create_defaults
       end
     end
+    resources :tournament_organizer_invitations, path: "organizer-invitations", only: %i[create]
     resources :tournament_referees, path: "referees"
     resources :registrations, only: %i[index new create]
   end
