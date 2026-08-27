@@ -1443,3 +1443,24 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bin/rails test`; first result: 122 runs, 912 assertions, 1 failure because an existing test still expected the old `ORGANIZER PROFILE` text.
 - Updated the test expectation to the new organiser profile behavior.
 - Re-ran `mise exec -- bin/rails test`; result: 122 runs, 930 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-28 - Global Left-Hand Menu
+
+### Reference
+- User request: change the menu from the top to a left-hand menu for the entire website.
+
+### Product Decisions
+- Replaced the global sticky top header with a persistent left sidebar so public, logged-in, and account-specific navigation all share one site-wide layout.
+- Kept the same navigation destinations and role-aware organiser link behavior.
+- Kept authentication actions in the same global menu, pinned near the bottom of the sidebar.
+
+### Change Log
+- Updated the application layout to wrap every page in an `app-frame` with a `side-menu` and `app-content`.
+- Moved Tournaments, Athletes, Academies, Organizer, sign-in/sign-out, and account creation links into the left-hand sidebar.
+- Reworked global navigation CSS from top-header styles to sidebar styles with responsive left rail widths and independent sidebar scrolling.
+- Kept `app-content` as a `div` to avoid nested `<main>` landmarks on pages that already define their own main content.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 122 runs, 930 assertions, 0 failures, 0 errors, 0 skips.
+- Attempted Rails runner render checks, but development host authorization returned `403`.
+- Verified the running server with local HTTP requests to `/` and `/tournaments`; both returned `200`, included `class="side-menu"`, excluded `site-header`, and included `app-content`.

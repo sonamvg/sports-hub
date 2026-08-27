@@ -8,19 +8,22 @@
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
   </head>
   <body>
-    <header class="site-header">
-      <div class="container nav">
+    <div class="app-frame">
+      <aside class="side-menu" aria-label="Primary navigation">
         <%= link_to root_path, class: "brand" do %>SPORTS <span>HUB</span><% end %>
-        <nav>
-          <%= link_to "Tournaments", tournaments_path %>
-          <%= link_to "Athletes", athletes_path %>
-          <%= link_to "Academies", academies_path %>
-          <%= link_to "Organizer", current_user&.can_organize_tournaments? ? profile_organizers_path : organizers_path %>
+        <nav class="side-nav">
+          <%= link_to "Tournaments", tournaments_path, class: "side-nav-link" %>
+          <%= link_to "Athletes", athletes_path, class: "side-nav-link" %>
+          <%= link_to "Academies", academies_path, class: "side-nav-link" %>
+          <%= link_to "Organizer", current_user&.can_organize_tournaments? ? profile_organizers_path : organizers_path, class: "side-nav-link" %>
+        </nav>
+
+        <div class="side-account">
           <% if current_user %>
             <span class="status-pill"><%= current_user.role.humanize %></span>
             <%= button_to "Sign out", logout_path, method: :delete, class: "link-button" %>
           <% else %>
-            <%= link_to "Sign in", login_path %>
+            <%= link_to "Sign in", login_path, class: "side-nav-link" %>
             <% if params[:return_to] == new_tournament_path %>
               <%= link_to "Create organizer account", new_user_path(account_type: "organizer", return_to: params[:return_to]), class: "nav-button" %>
             <% elsif params[:return_to] == new_academy_path %>
@@ -29,11 +32,13 @@
               <%= link_to "Join as athlete", new_user_path, class: "nav-button" %>
             <% end %>
           <% end %>
-        </nav>
-      </div>
-    </header>
+        </div>
+      </aside>
 
-    <%= render "shared/flash" %>
-    <%= yield %>
+      <div class="app-content">
+        <%= render "shared/flash" %>
+        <%= yield %>
+      </div>
+    </div>
   </body>
 </html>
