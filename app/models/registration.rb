@@ -59,6 +59,42 @@ class Registration < ApplicationRecord
     "#{fee_currency.presence || tournament.currency.presence || "INR"} #{formatted_currency(fee_amount || 0)}"
   end
 
+  def athlete_status_label
+    case status
+    when "pending" then "Application submitted"
+    when "approved" then "Registered"
+    when "rejected" then "Declined"
+    when "weight_verified" then "Weight verified"
+    when "disqualified" then "Disqualified"
+    when "withdrawn" then "Withdrawn"
+    when "draft" then "Draft"
+    else status.to_s.humanize
+    end
+  end
+
+  def athlete_status_detail
+    if rejected?
+      "Your registration was not approved by the tournament organiser."
+    elsif weight_verified?
+      "Weight check is complete. You are cleared for the draw."
+    elsif disqualified?
+      "Weight check is complete. This entry was disqualified."
+    elsif approved?
+      "Your registration has been accepted by the organiser."
+    elsif pending?
+      "Waiting for organiser review."
+    elsif withdrawn?
+      "This registration was withdrawn."
+    end
+  end
+
+  def weight_check_summary
+    registration_weight_checks.order(:attempt_number).map do |check|
+      result = check.passed? ? "passed" : "failed"
+      "Attempt #{check.attempt_number}: #{formatted_weight(check.weight)} kg #{result}"
+    end
+  end
+
   private
 
   def category_belongs_to_tournament

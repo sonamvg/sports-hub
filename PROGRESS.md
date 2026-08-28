@@ -1777,3 +1777,36 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bin/rails test test/controllers/home_controller_test.rb`; result: 7 runs, 67 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `git diff --check`; result: no whitespace errors.
 - Ran `mise exec -- bin/rails test`; result: 152 runs, 1142 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-29 - Athlete Tournament Status and Flash Auto-Dismiss
+
+### Reference
+- User request: after sign in, the green banner should disappear after 5 seconds; athletes should see upcoming tournaments they registered for and application status such as registered, declined, verified; after weight check, the athlete should see the updated weight-check status.
+
+### Product Decisions
+- Flash messages now auto-dismiss on the client after 5 seconds while keeping the server flash behavior unchanged.
+- Athlete profile now separates future/current tournament registrations from completed past competitions.
+- Athlete-facing registration status labels are different from internal enum names:
+  - `pending` is shown as "Application submitted".
+  - `approved` is shown as "Registered".
+  - `rejected` is shown as "Declined".
+  - `weight_verified` is shown as "Weight verified".
+  - `disqualified` is shown as "Disqualified".
+- Weight-check attempts are shown on athlete profile rows once organisers record them.
+- Association ID remains hidden from an athlete viewing their own logged-in profile.
+
+### Change Log
+- Added `data-auto-dismiss="5000"` to rendered flash messages.
+- Extended `app/assets/javascripts/application.js` to remove auto-dismiss flash elements after five seconds with a short fade.
+- Added flash fade styling.
+- Added registration helper methods for athlete-facing status labels, status details, and weight-check attempt summaries.
+- Updated `AthletesController#show` to prepare upcoming and previous registration collections.
+- Updated the athlete profile page to show upcoming tournament registrations with category, date, application status, organiser review message, and weight-check attempts.
+- Added tests for sign-in flash auto-dismiss markup and athlete-facing upcoming/past tournament status display, including verified and disqualified weight-check outcomes.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb test/controllers/sessions_controller_test.rb`; first result after upcoming status work: 27 runs, 191 assertions, 0 failures, 0 errors, 0 skips.
+- Added disqualified weight-check assertions to the athlete profile status test.
+- Reran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb test/controllers/sessions_controller_test.rb`; result: 27 runs, 195 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `git diff --check`; result: no whitespace errors.
+- Ran `mise exec -- bin/rails test`; result: 153 runs, 1173 assertions, 0 failures, 0 errors, 0 skips.

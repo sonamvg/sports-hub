@@ -62,6 +62,49 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to athlete_path(athlete)
   end
 
+  test "athlete profile shows upcoming tournament application and weight check statuses" do
+    athlete_user = User.create!(name: "Athlete User", email: "athlete-status@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", association_id: "TKD-123", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    organizer = User.create!(name: "Organizer", email: "athlete-status-organizer@example.test", password: "password123", role: :organizer)
+    upcoming = Tournament.create!(name: "Future Open", organizer: organizer, start_date: 20.days.from_now.to_date, end_date: 21.days.from_now.to_date)
+    pending_category = upcoming.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    approved_category = upcoming.tournament_categories.create!(event_type: "poomsae", gender: "female", age_min: 12, age_max: 14)
+    declined_category = upcoming.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 37, weight_max: 41)
+    verified_category = upcoming.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 33)
+    disqualified_category = upcoming.tournament_categories.create!(event_type: "kyorugi", gender: "male", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    upcoming.registrations.create!(athlete: athlete, tournament_category: pending_category, status: :pending, payment_receipt: payment_receipt_upload)
+    upcoming.registrations.create!(athlete: athlete, tournament_category: approved_category, status: :approved, payment_receipt: payment_receipt_upload)
+    upcoming.registrations.create!(athlete: athlete, tournament_category: declined_category, status: :rejected, payment_receipt: payment_receipt_upload)
+    verified_registration = upcoming.registrations.create!(athlete: athlete, tournament_category: verified_category, status: :approved, payment_receipt: payment_receipt_upload)
+    verified_registration.registration_weight_checks.create!(checked_by: organizer, weight: 32.8)
+    disqualified_registration = upcoming.registrations.create!(athlete: athlete, tournament_category: disqualified_category, status: :approved, payment_receipt: payment_receipt_upload)
+    disqualified_registration.registration_weight_checks.create!(checked_by: organizer, weight: 38.5)
+    disqualified_registration.registration_weight_checks.create!(checked_by: organizer, weight: 38.1)
+    disqualified_registration.registration_weight_checks.create!(checked_by: organizer, weight: 38.0)
+    past = Tournament.create!(name: "Past Open", organizer: organizer, start_date: 20.days.ago.to_date, end_date: 19.days.ago.to_date)
+    past_category = past.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 37)
+    past.registrations.create!(athlete: athlete, tournament_category: past_category, status: :approved, payment_receipt: payment_receipt_upload)
+    sign_in_as athlete_user
+
+    get athlete_path(athlete)
+
+    assert_response :success
+    assert_includes response.body, "Upcoming tournaments"
+    assert_includes response.body, "Future Open"
+    assert_includes response.body, "Application submitted"
+    assert_includes response.body, "Waiting for organiser review."
+    assert_includes response.body, "Registered"
+    assert_includes response.body, "Declined"
+    assert_includes response.body, "Weight verified"
+    assert_includes response.body, "Attempt 1: 32.8 kg passed"
+    assert_includes response.body, "Disqualified"
+    assert_includes response.body, "Attempt 3: 38 kg failed"
+    assert_includes response.body, "Previous competitions"
+    assert_includes response.body, "Past Open"
+    assert_not_includes response.body, "Association ID"
+    assert_not_includes response.body, "TKD-123"
+  end
+
   test "athlete account with profile cannot add another athlete" do
     athlete_user = User.create!(name: "Athlete User", email: "athlete-extra@example.test", phone: "9876543210", password: "password123", role: :athlete)
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")

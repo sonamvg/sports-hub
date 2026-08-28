@@ -18,7 +18,9 @@
       <div><dt>Belt</dt><dd><%= @athlete.belt&.titleize || "Not set" %></dd></div>
       <div><dt>Weight</dt><dd><%= @athlete.weight ? "#{@athlete.weight} kg" : "Not set" %></dd></div>
       <div><dt>Blood group</dt><dd><%= @athlete.blood_group || "Not set" %></dd></div>
-      <div><dt>Association ID</dt><dd><%= @athlete.association_id || "Not set" %></dd></div>
+      <% unless current_user.athlete? %>
+        <div><dt>Association ID</dt><dd><%= @athlete.association_id || "Not set" %></dd></div>
+      <% end %>
       <div><dt>Contact number</dt><dd><%= @athlete.contact_number || "Not set" %></dd></div>
       <div><dt>Emergency contact</dt><dd><%= [@athlete.emergency_contact_name, @athlete.emergency_contact_phone].compact_blank.join(" · ").presence || "Not set" %></dd></div>
       <div><dt>Address</dt><dd><%= [@athlete.address, @athlete.city, @athlete.state, @athlete.country].compact_blank.join(", ").presence || "Not set" %></dd></div>
@@ -27,12 +29,47 @@
     <div class="form-actions"><%= link_to edit_athlete_path(@athlete), class: "primary-button icon-label" do %><%= ui_icon("edit") %><span>Edit profile</span><% end %><%= link_to tournaments_path, class: "secondary-button icon-label" do %><%= ui_icon("trophy") %><span>Find tournaments</span><% end %></div>
   </div>
   <div class="section-compact">
+    <h2 class="section-title">Upcoming tournaments</h2>
+    <div class="approval-table">
+      <% if @upcoming_registrations.any? %>
+        <% @upcoming_registrations.each do |registration| %>
+          <div class="approval-row">
+            <div>
+              <strong><%= registration.tournament.name %></strong>
+              <span><%= registration.tournament_category.name %> · <%= registration.tournament.start_date.strftime("%d %b %Y") %></span>
+              <% if registration.athlete_status_detail.present? %>
+                <span><%= registration.athlete_status_detail %></span>
+              <% end %>
+              <% registration.weight_check_summary.each do |attempt| %>
+                <span><%= attempt %></span>
+              <% end %>
+            </div>
+            <span class="status-pill status-<%= registration.status %>"><%= registration.athlete_status_label %></span>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="approval-row">
+          <div><strong>No upcoming tournaments yet</strong><span>Find an open tournament and submit your registration.</span></div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  <div class="section-compact">
     <h2 class="section-title">Previous competitions</h2>
     <div class="approval-table">
-      <% @athlete.registrations.includes(:tournament, :tournament_category).order(created_at: :desc).each do |registration| %>
+      <% if @previous_registrations.any? %>
+        <% @previous_registrations.each do |registration| %>
+          <div class="approval-row">
+            <div>
+              <strong><%= registration.tournament.name %></strong>
+              <span><%= registration.tournament_category.name %> · <%= registration.tournament.start_date.strftime("%d %b %Y") %></span>
+            </div>
+            <span class="status-pill status-<%= registration.status %>"><%= registration.athlete_status_label %></span>
+          </div>
+        <% end %>
+      <% else %>
         <div class="approval-row">
-          <div><strong><%= registration.tournament.name %></strong><span><%= registration.tournament_category.name %></span></div>
-          <span class="status-pill status-<%= registration.status %>"><%= registration.status.humanize %></span>
+          <div><strong>No previous competitions yet</strong><span>Completed tournaments will appear here.</span></div>
         </div>
       <% end %>
     </div>

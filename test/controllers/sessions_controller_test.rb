@@ -37,6 +37,9 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to tournaments_path
     assert_equal user.id, session[:user_id]
     assert_equal "Signed in as Demo Super Admin.", flash[:notice]
+
+    follow_redirect!
+    assert_includes response.body, 'data-auto-dismiss="5000"'
   end
 
   test "athlete sign in defaults to own profile" do

@@ -12,7 +12,11 @@ class AthletesController < ApplicationController
     @athletes, @pagination = paginate(@athletes)
   end
 
-  def show; end
+  def show
+    registrations = @athlete.registrations.includes(:tournament, :tournament_category, :registration_weight_checks)
+    @upcoming_registrations = registrations.select { |registration| registration.tournament.end_date >= Date.current }.sort_by { |registration| [registration.tournament.start_date, registration.created_at] }
+    @previous_registrations = registrations.select { |registration| registration.tournament.end_date < Date.current }.sort_by { |registration| [registration.tournament.start_date, registration.created_at] }.reverse
+  end
 
   def new
     @athlete = current_user.athletes.build
