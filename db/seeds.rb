@@ -86,6 +86,20 @@ def seed_registration(tournament:, athlete:, category:, status:, actor:)
   registration
 end
 
+def seed_weight_checks(registration:, actor:, weights:)
+  registration.registration_weight_checks.destroy_all
+  registration.registration_action_logs.where(action: %w[weight_verified disqualified]).destroy_all
+  registration.update!(status: :approved, verified_at: Time.current)
+
+  weights.each do |weight|
+    registration.registration_weight_checks.create!(checked_by: actor, weight: weight)
+    registration.reload
+    break unless registration.approved?
+  end
+
+  registration
+end
+
 super_admin = seed_user(
   email: "admin@sportshub.test",
   name: "Sports Hub Admin",
@@ -207,7 +221,7 @@ athletes = [
 open_tournament = seed_tournament(
   name: "Pune Open Taekwondo Championship",
   organizer: organizer,
-  description: "Demo registration-open tournament with categories, payment details, referees, and athletes.",
+  description: "Demo post-registration tournament with categories, payment details, referees, athletes, and weight-check data.",
   venue: "Balewadi Sports Complex",
   city: "Pune",
   state: "Maharashtra",
@@ -215,8 +229,8 @@ open_tournament = seed_tournament(
   start_date: 45.days.from_now.to_date,
   end_date: 46.days.from_now.to_date,
   registration_opens_at: 3.days.ago,
-  registration_closes_at: 30.days.from_now,
-  status: :registration_open,
+  registration_closes_at: 1.day.ago,
+  status: :registration_closed,
   tournament_level: "State",
   organizing_organization: "Maharashtra Taekwondo Association",
   time_zone: "Mumbai",
@@ -339,13 +353,131 @@ seed_registration(
   actor: organizer
 )
 
-seed_registration(
+vihaan_pune_registration = seed_registration(
   tournament: open_tournament,
   athlete: athletes.second,
   category: open_categories.second,
   status: :approved,
   actor: organizer
 )
+
+weight_check_athlete_specs = [
+  {
+    email: "anaya.kulkarni@sportshub.test",
+    first_name: "Anaya",
+    last_name: "Kulkarni",
+    date_of_birth: Date.new(2012, 2, 18),
+    gender: "female",
+    belt: "blue",
+    weight: 38.5,
+    blood_group: "AB+",
+    association_id: "MTA-WC-2001",
+    contact_number: "9000000501",
+    emergency_contact_name: "Priya Kulkarni",
+    emergency_contact_phone: "9000000591",
+    address: "Aundh",
+    category: open_categories.first,
+    status: :approved,
+    weights: [38.5, 38.3]
+  },
+  {
+    email: "saanvi.joshi@sportshub.test",
+    first_name: "Saanvi",
+    last_name: "Joshi",
+    date_of_birth: Date.new(2012, 8, 9),
+    gender: "female",
+    belt: "red",
+    weight: 37.0,
+    blood_group: "O-",
+    association_id: "MTA-WC-2002",
+    contact_number: "9000000502",
+    emergency_contact_name: "Neha Joshi",
+    emergency_contact_phone: "9000000592",
+    address: "Wakad",
+    category: open_categories.first,
+    status: :approved,
+    weights: [37.0]
+  },
+  {
+    email: "ishaan.deshmukh@sportshub.test",
+    first_name: "Ishaan",
+    last_name: "Deshmukh",
+    date_of_birth: Date.new(2011, 11, 25),
+    gender: "male",
+    belt: "red",
+    weight: 42.2,
+    blood_group: "B-",
+    association_id: "MTA-WC-2003",
+    contact_number: "9000000503",
+    emergency_contact_name: "Rohan Deshmukh",
+    emergency_contact_phone: "9000000593",
+    address: "Viman Nagar",
+    category: open_categories.second,
+    status: :approved,
+    weights: [42.2, 41.8, 41.4]
+  },
+  {
+    email: "rehan.shaikh@sportshub.test",
+    first_name: "Rehan",
+    last_name: "Shaikh",
+    date_of_birth: Date.new(2009, 3, 14),
+    gender: "male",
+    belt: "black",
+    weight: 54.2,
+    blood_group: "A-",
+    association_id: "MTA-WC-2004",
+    contact_number: "9000000504",
+    emergency_contact_name: "Aamir Shaikh",
+    emergency_contact_phone: "9000000594",
+    address: "Hadapsar",
+    category: open_categories.third,
+    status: :approved,
+    weights: []
+  }
+]
+
+weight_check_registrations = weight_check_athlete_specs.map do |spec|
+  user = seed_user(
+    email: spec[:email],
+    name: "#{spec[:first_name]} #{spec[:last_name]}",
+    role: :athlete,
+    phone: spec[:contact_number]
+  )
+
+  athlete = seed_athlete(
+    user: user,
+    academy: academy,
+    first_name: spec[:first_name],
+    last_name: spec[:last_name],
+    date_of_birth: spec[:date_of_birth],
+    gender: spec[:gender],
+    belt: spec[:belt],
+    weight: spec[:weight],
+    blood_group: spec[:blood_group],
+    association_id: spec[:association_id],
+    contact_number: spec[:contact_number],
+    emergency_contact_name: spec[:emergency_contact_name],
+    emergency_contact_phone: spec[:emergency_contact_phone],
+    address: spec[:address],
+    city: "Pune",
+    state: "Maharashtra",
+    country: "India",
+    government_id_document_type: "Aadhaar"
+  )
+
+  registration = seed_registration(
+    tournament: open_tournament,
+    athlete: athlete,
+    category: spec[:category],
+    status: spec[:status],
+    actor: organizer
+  )
+
+  seed_weight_checks(registration: registration, actor: assistant_organizer, weights: spec[:weights]) if spec[:weights].any?
+  registration
+end
+
+seed_weight_checks(registration: vihaan_pune_registration, actor: organizer, weights: [41.5, 40.9])
 
 seed_registration(
   tournament: closed_tournament,

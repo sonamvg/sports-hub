@@ -1700,3 +1700,33 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Attempted focused controller tests inside the sandbox after the final duplicate-request hardening; Rails could not access the local PostgreSQL socket from the sandbox, so the command was rerun with database access.
 - Reran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb test/controllers/academies_controller_test.rb`; result: 29 runs, 195 assertions, 0 failures, 0 errors, 0 skips.
 - Reran `mise exec -- bin/rails test`; result: 150 runs, 1118 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-28 - Pune Open Weight Check Seed Data
+
+### Reference
+- User request: create seed data for weight check for Pune Open Taekwondo Championship.
+
+### Product Decisions
+- Converted the seeded Pune Open Taekwondo Championship into a registration-closed demo tournament so organisers can open the weight-check flow immediately.
+- Kept Pune Open future-dated so it still behaves like an upcoming event after registration has closed.
+- Seeded weight-check examples across the main organiser states: accepted with no attempts, accepted with failed attempts remaining, weight verified after passing, and disqualified after three failed attempts.
+- Kept the seed script idempotent by clearing and recreating demo weight-check attempts for the seeded registrations before applying the scripted attempts.
+
+### Change Log
+- Added `seed_weight_checks` helper to reset seeded weight-check attempts and replay attempt sequences.
+- Updated Pune Open dates/status to `registration_closed` with registration closing one day ago.
+- Added four additional Pune Open athlete users and athlete profiles for weight-check testing.
+- Added Pune Open registrations for Anaya Kulkarni, Saanvi Joshi, Ishaan Deshmukh, and Rehan Shaikh.
+- Added seeded attempt data:
+  - Vihaan Mehta: one failed attempt, then passed on attempt 2.
+  - Anaya Kulkarni: two failed attempts, still approved for attempt 3.
+  - Saanvi Joshi: passed on attempt 1.
+  - Ishaan Deshmukh: failed all three attempts and is disqualified.
+  - Rehan Shaikh: accepted registration with no weight-check attempts yet.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:seed`; result: seed completed successfully and printed demo credentials.
+- Ran a Rails runner verification for Pune Open; result: tournament status is `registration_closed`, registration closes in the past, and 6 registrations exist with expected weight-check statuses and attempts.
+- Reran `mise exec -- bin/rails db:seed`; result: seed completed successfully again, confirming repeatability.
+- Ran `git diff --check`; result: no whitespace errors.
+- Ran `mise exec -- bin/rails test`; result: 150 runs, 1118 assertions, 0 failures, 0 errors, 0 skips.
