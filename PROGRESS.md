@@ -1599,3 +1599,21 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Added explicit open tournament and category setup to the athlete registration prompt-hiding test.
 - Re-ran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb test/controllers/home_controller_test.rb test/controllers/sessions_controller_test.rb test/controllers/organizers_controller_test.rb test/controllers/registrations_controller_test.rb`; result: 43 runs, 317 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails test`; result: 144 runs, 1057 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-28 - Athlete Tournament Registration Entry Point
+
+### Reference
+- User request: athletes should be able to register for a tournament.
+
+### Product Decisions
+- Athlete users can register for open tournaments from the tournament detail page, not only from the tournament list.
+- Athlete registration uses the signed-in athlete's own profile as a read-only field with a hidden id, avoiding a dropdown that suggests they can select or add other athletes.
+
+### Change Log
+- Added a "Register for tournament" CTA on tournament detail pages when the signed-in user can register and is not managing that tournament.
+- Updated the registration form to render the signed-in athlete's own profile as read-only when the account has exactly one athlete profile.
+- Expanded controller tests to cover the tournament detail registration CTA and the read-only athlete registration field.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/registrations_controller_test.rb`; result: 45 runs, 407 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 145 runs, 1070 assertions, 0 failures, 0 errors, 0 skips.

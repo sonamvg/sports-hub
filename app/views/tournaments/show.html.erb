@@ -17,6 +17,8 @@
       <%= link_to edit_tournament_path(@tournament), class: "icon-button", title: "Edit tournament", aria: { label: "Edit tournament" } do %>
         <span aria-hidden="true">✎</span>
       <% end %>
+    <% elsif can_register_for_tournament?(@tournament) %>
+      <%= link_to "Register for tournament", new_tournament_registration_path(@tournament), class: "primary-button" %>
     <% end %>
   </div>
 

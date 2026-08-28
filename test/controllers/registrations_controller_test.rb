@@ -111,7 +111,7 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
 
   test "athlete registration does not offer adding another athlete" do
     athlete_user = User.create!(name: "Athlete User", email: "single-athlete-registration@example.test", phone: "9876543210", password: "password123", role: :athlete)
-    athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     tournament = Tournament.create!(
       name: "Pune Invitational",
       organizer: @organizer,
@@ -127,6 +127,10 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     get new_tournament_registration_path(tournament)
 
     assert_response :success
+    assert_includes response.body, "Aarohi Shah"
+    assert_includes response.body, "registration_athlete_id"
+    assert_includes response.body, "value=\"#{athlete.id}\""
+    assert_not_includes response.body, "Choose athlete"
     assert_not_includes response.body, "Add another athlete"
   end
 

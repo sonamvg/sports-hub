@@ -22,10 +22,17 @@
   <% end %>
   <div class="form-grid">
     <div>
-      <%= form.label :athlete_id, "Athlete" %>
-      <%= form.collection_select :athlete_id, @athletes, :id, :full_name, { prompt: "Choose athlete" }, data: { athlete_select: true } %>
-      <% if @athletes.any? && !current_user.athlete? %>
-        <p class="field-hint"><%= link_to "Add another athlete", new_athlete_path(return_to: request.fullpath), class: "text-link" %></p>
+      <% if current_user.athlete? && @athletes.one? %>
+        <% athlete = @athletes.first %>
+        <%= form.hidden_field :athlete_id, value: athlete.id %>
+        <label>Athlete</label>
+        <div class="readonly-field"><%= athlete.full_name %></div>
+      <% else %>
+        <%= form.label :athlete_id, "Athlete" %>
+        <%= form.collection_select :athlete_id, @athletes, :id, :full_name, { prompt: "Choose athlete" }, data: { athlete_select: true } %>
+        <% if @athletes.any? %>
+          <p class="field-hint"><%= link_to "Add another athlete", new_athlete_path(return_to: request.fullpath), class: "text-link" %></p>
+        <% end %>
       <% end %>
     </div>
     <div class="full">
