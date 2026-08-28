@@ -1,4 +1,6 @@
 class Athlete < ApplicationRecord
+  attr_accessor :account_email
+
   GENDERS = %w[female male other].freeze
   BELTS = %w[white yellow green blue red black].freeze
   BLOOD_GROUPS = %w[A+ A- B+ B- AB+ AB- O+ O-].freeze

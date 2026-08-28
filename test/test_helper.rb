@@ -22,8 +22,10 @@ end
 
 class ActionDispatch::IntegrationTest
   include AuthenticationTestHelper
+  include ActionMailer::TestHelper
 end
 
 class ActiveSupport::TestCase
   include AuthenticationTestHelper
+  include ActionMailer::TestHelper
 end

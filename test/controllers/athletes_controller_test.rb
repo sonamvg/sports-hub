@@ -281,6 +281,33 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Aarohi Shah"
   end
 
+  test "academy owner cannot edit athletes assigned to owned academy" do
+    owner = User.create!(name: "Academy Owner", email: "academy-owner-no-edit@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Owned Academy", city: "Pune", status: :approved, owner: owner)
+    athlete_user = User.create!(name: "Athlete User", email: "academy-athlete-no-edit@example.test", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    sign_in_as owner
+
+    get athlete_path(athlete)
+
+    assert_response :success
+    assert_not_includes response.body, edit_athlete_path(athlete)
+
+    get edit_athlete_path(athlete)
+    assert_response :not_found
+
+    patch athlete_path(athlete), params: {
+      athlete: {
+        first_name: "Changed",
+        last_name: "Shah",
+        date_of_birth: Date.new(2014, 5, 12),
+        gender: "female"
+      }
+    }
+    assert_response :not_found
+    assert_equal "Aarohi", athlete.reload.first_name
+  end
+
   test "organizer cannot search athletes from athletes tab" do
     organizer = User.create!(name: "Organizer", email: "athlete-search-organizer@example.test", password: "password123", role: :organizer)
     sign_in_as organizer

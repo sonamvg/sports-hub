@@ -5,13 +5,19 @@ class AcademiesController < ApplicationController
   before_action :require_super_admin, only: %i[approve reject]
 
   def index
-    @academies = filtered_academies.order(:created_at, :id)
+    if current_user&.academy_owner?
+      @my_academies = filtered_academies(visible_academies.where(owner: current_user)).order(:created_at, :id)
+      @academies = filtered_academies(Academy.approved.where("owner_id IS NULL OR owner_id != ?", current_user.id)).order(:created_at, :id)
+    else
+      @academies = filtered_academies.order(:created_at, :id)
+    end
     @academies, @pagination = paginate(@academies)
   end
 
   def show
     @athletes = @academy.athletes.order(:first_name, :last_name) if can_manage_academy?(@academy)
     @membership_requests = @academy.academy_membership_requests.pending.includes(:athlete).order(:created_at) if can_manage_academy?(@academy)
+    @athlete_registrations = academy_athlete_registrations if can_manage_academy?(@academy)
   end
 
   def new
@@ -68,8 +74,7 @@ class AcademiesController < ApplicationController
     Academy.approved
   end
 
-  def filtered_academies
-    academies = visible_academies
+  def filtered_academies(academies = visible_academies)
     query = params[:q].to_s.squish.downcase
     return academies if query.blank?
 
@@ -94,5 +99,13 @@ class AcademiesController < ApplicationController
       :name, :registration_number, :city, :state, :country,
       :contact_name, :phone, :email
     )
+  end
+
+  def academy_athlete_registrations
+    Registration
+      .joins(:athlete)
+      .includes(:tournament, :tournament_category, :registration_weight_checks, :athlete)
+      .where(athletes: { academy_id: @academy.id })
+      .order(created_at: :desc)
   end
 end

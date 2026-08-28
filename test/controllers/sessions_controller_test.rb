@@ -52,6 +52,15 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal user.id, session[:user_id]
   end
 
+  test "academy owner sign in defaults to academies page" do
+    user = User.create!(name: "Academy Owner", email: "academy-login@example.com", phone: "9876543210", password: "password123", role: :academy_owner)
+
+    post login_path, params: { email: "academy-login@example.com", password: "password123" }
+
+    assert_redirected_to academies_path
+    assert_equal user.id, session[:user_id]
+  end
+
   test "rejects invalid credentials" do
     User.create!(name: "Demo Super Admin", email: "admin@example.com", password: "password123", role: :super_admin)
 

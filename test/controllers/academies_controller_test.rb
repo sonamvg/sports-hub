@@ -114,13 +114,22 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
 
     get academies_path
     assert_response :success
+    assert_includes response.body, "My academies"
+    assert_includes response.body, "Other academies"
     assert_includes response.body, "Owned Academy"
     assert_includes response.body, "Other Academy"
+    assert_includes response.body, edit_academy_path(owned_academy)
+    assert_includes response.body, new_athlete_path(academy_id: owned_academy.id)
+    assert_includes response.body, "Edit academy"
+    assert_includes response.body, "My athletes"
+    assert_includes response.body, "Notifications"
+    assert_includes response.body, academy_path(owned_academy, anchor: "academy-athletes")
+    assert_includes response.body, academy_path(owned_academy, anchor: "academy-notifications")
 
     get academy_path(other_academy)
     assert_response :success
     assert_not_includes response.body, "Hidden Athlete"
-    assert_not_includes response.body, "My athletes"
+    assert_not_includes response.body, "registered-athlete-list"
   end
 
   test "academy owner sees owned academy athletes in list view with profile links" do
@@ -136,6 +145,31 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "registered-athlete-list"
     assert_includes response.body, "Aarohi Shah"
     assert_includes response.body, athlete_path(athlete)
+  end
+
+  test "academy owner sees athlete tournament registration statuses for owned academy" do
+    owner = User.create!(name: "Academy Owner", email: "academy-status-owner@example.com", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
+    athlete_user = User.create!(name: "Athlete User", email: "academy-status-athlete@example.test", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    organizer = User.create!(name: "Organizer", email: "academy-status-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(name: "Pune Open", organizer: organizer, start_date: 20.days.from_now.to_date, end_date: 21.days.from_now.to_date)
+    pending_category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    verified_category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 33)
+    tournament.registrations.create!(athlete: athlete, tournament_category: pending_category, status: :pending, payment_receipt: payment_receipt_upload)
+    verified_registration = tournament.registrations.create!(athlete: athlete, tournament_category: verified_category, status: :approved, payment_receipt: payment_receipt_upload)
+    verified_registration.registration_weight_checks.create!(checked_by: organizer, weight: 32.5)
+    sign_in_as owner
+
+    get academy_path(academy)
+
+    assert_response :success
+    assert_includes response.body, "Athlete tournament status"
+    assert_includes response.body, "Aarohi Shah"
+    assert_includes response.body, "Pune Open"
+    assert_includes response.body, "Application submitted"
+    assert_includes response.body, "Weight verified"
+    assert_includes response.body, "Attempt 1: 32.5 kg passed"
   end
 
   test "academy owner can approve athlete join request" do
@@ -188,8 +222,42 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("AcademyMembershipRequest.count") do
       assert_difference("Athlete.count", 1) do
+        assert_difference("User.athlete.count", 1) do
+          assert_enqueued_emails 1 do
+            post athletes_path, params: {
+              athlete: {
+                account_email: "academy-created-athlete@example.test",
+                first_name: "Aarohi",
+                last_name: "Shah",
+                date_of_birth: Date.new(2014, 5, 12),
+                gender: "female",
+                academy_id: academy.id
+              }
+            }
+          end
+        end
+      end
+    end
+
+    athlete = Athlete.order(:created_at).last
+    assert_equal academy, athlete.academy
+    assert_equal "academy-created-athlete@example.test", athlete.user.email
+    assert_predicate athlete.user, :athlete?
+    assert_redirected_to academy_path(academy)
+    assert_equal "Athlete account created and sign-in details sent.", flash[:notice]
+  end
+
+  test "academy owner cannot create athlete with email already used by another role" do
+    owner = User.create!(name: "Academy Owner", email: "direct-add-duplicate-owner@example.com", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
+    User.create!(name: "Existing Organizer", email: "used-email@example.test", password: "password123", role: :organizer)
+    sign_in_as owner
+
+    assert_no_difference(["User.count", "Athlete.count"]) do
+      assert_no_enqueued_emails do
         post athletes_path, params: {
           athlete: {
+            account_email: "used-email@example.test",
             first_name: "Aarohi",
             last_name: "Shah",
             date_of_birth: Date.new(2014, 5, 12),
@@ -200,7 +268,29 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_equal academy, Athlete.order(:created_at).last.academy
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Account email is already used by another account"
+  end
+
+  test "academy owner removing athlete detaches academy and notifies athlete" do
+    owner = User.create!(name: "Academy Owner", email: "remove-athlete-owner@example.com", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
+    athlete_user = User.create!(name: "Athlete User", email: "removed-athlete@example.test", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    membership_request = academy.academy_membership_requests.create!(athlete: athlete, requested_by: athlete_user, status: :approved, reviewed_by: owner, reviewed_at: Time.current)
+    sign_in_as owner
+
+    assert_no_difference("Athlete.count") do
+      assert_enqueued_emails 1 do
+        delete athlete_path(athlete)
+      end
+    end
+
+    assert_redirected_to academy_path(academy)
+    assert_equal "Athlete removed from academy.", flash[:notice]
+    assert_nil athlete.reload.academy_id
+    assert_nil athlete.external_academy_name
+    assert_predicate membership_request.reload, :rejected?
   end
 
   test "index searches academies and orders oldest first" do

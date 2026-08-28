@@ -33,6 +33,7 @@ class SessionsController < ApplicationController
   def default_after_login_path(user)
     return athlete_path(user.athletes.order(:created_at).first) if user.athlete? && user.athletes.exists?
     return new_athlete_path(profile_setup: true) if user.athlete?
+    return academies_path if user.academy_owner?
 
     tournaments_path
   end

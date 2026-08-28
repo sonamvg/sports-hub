@@ -4,6 +4,13 @@
   <% athlete_self_service = current_user.athlete? %>
   <div class="form-grid two-col">
     <div class="form-section-heading full"><h2>Personal details</h2></div>
+    <% if current_user.academy_owner? && athlete.new_record? %>
+      <div class="full">
+        <%= form.label :account_email, "Athlete email" %>
+        <%= form.email_field :account_email, required: true, autocomplete: "email" %>
+        <p class="field-hint">This creates the athlete's own sign-in account. The email must not already be used in Sports Hub.</p>
+      </div>
+    <% end %>
     <div><%= form.label :first_name %><%= form.text_field :first_name, required: true %></div>
     <div><%= form.label :last_name %><%= form.text_field :last_name, required: true %></div>
     <div><%= form.label :date_of_birth %><%= form.date_field :date_of_birth, required: true %></div>

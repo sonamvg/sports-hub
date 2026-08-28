@@ -1,8 +1,11 @@
+require "securerandom"
+
 class AthletesController < ApplicationController
   before_action :require_user
   before_action :redirect_athlete_index_to_profile, only: %i[index]
   before_action :prevent_extra_athlete_profile, only: %i[new create]
   before_action :set_athlete, only: %i[show edit update destroy]
+  before_action :require_athlete_editor, only: %i[edit update]
   before_action :set_available_academies, only: %i[new create edit update]
 
   def index
@@ -19,12 +22,14 @@ class AthletesController < ApplicationController
   end
 
   def new
-    @athlete = current_user.athletes.build
+    @athlete = current_user.academy_owner? ? Athlete.new(academy_id: academy_owner_default_academy_id) : current_user.athletes.build
     assign_name_from_user(@athlete) if params[:profile_setup].present?
     @return_to = safe_return_path(params[:return_to])
   end
 
   def create
+    return create_academy_owned_athlete if current_user.academy_owner?
+
     @athlete = current_user.athletes.build(athlete_params)
     @return_to = safe_return_path(params[:return_to])
     requested_academy_id = academy_request_id
@@ -54,11 +59,55 @@ class AthletesController < ApplicationController
   end
 
   def destroy
-    @athlete.destroy
-    redirect_to athletes_path, notice: "Athlete profile removed."
+    if super_admin? || @athlete.user_id == current_user.id
+      @athlete.destroy
+      redirect_to athletes_path, notice: "Athlete profile removed."
+    elsif current_user.academy_owner? && can_manage_academy?(@athlete.academy)
+      academy = @athlete.academy
+      @athlete.academy_membership_requests.where(academy: academy, status: %i[pending approved]).update_all(status: AcademyMembershipRequest.statuses[:rejected], reviewed_by_id: current_user.id, reviewed_at: Time.current, updated_at: Time.current)
+      @athlete.update!(academy: nil, external_academy_name: nil)
+      AthleteAccountMailer.with(athlete: @athlete, academy: academy).academy_removed.deliver_later
+      redirect_to academy_path(academy), notice: "Athlete removed from academy."
+    else
+      raise ActiveRecord::RecordNotFound
+    end
   end
 
   private
+
+  def create_academy_owned_athlete
+    @athlete = Athlete.new(athlete_params)
+    @athlete.account_email = athlete_account_email
+    @return_to = safe_return_path(params[:return_to])
+    validate_academy_owned_athlete
+
+    if @athlete.errors.any?
+      render :new, status: :unprocessable_entity
+      return
+    end
+
+    password = SecureRandom.alphanumeric(12)
+    academy = @athlete.academy
+
+    ActiveRecord::Base.transaction do
+      user = User.create!(
+        name: @athlete.full_name,
+        email: @athlete.account_email,
+        role: :athlete,
+        phone: @athlete.contact_number,
+        password: password,
+        password_confirmation: password
+      )
+      @athlete.user = user
+      @athlete.save!
+    end
+
+    AthleteAccountMailer.with(athlete: @athlete, academy: academy, password: password).academy_created_account.deliver_later
+    redirect_to academy_path(academy), notice: "Athlete account created and sign-in details sent."
+  rescue ActiveRecord::RecordInvalid => error
+    @athlete.errors.merge!(error.record.errors)
+    render :new, status: :unprocessable_entity
+  end
 
   def redirect_athlete_index_to_profile
     return unless current_user.athlete?
@@ -75,6 +124,10 @@ class AthletesController < ApplicationController
 
   def set_athlete
     @athlete = visible_athletes.find(params[:id])
+  end
+
+  def require_athlete_editor
+    raise ActiveRecord::RecordNotFound unless super_admin? || @athlete.user_id == current_user.id
   end
 
   def visible_athletes
@@ -140,7 +193,11 @@ class AthletesController < ApplicationController
   end
 
   def set_available_academies
-    @available_academies = Academy.approved.order(:name)
+    @available_academies = if current_user.academy_owner? && !super_admin?
+      current_user.owned_academies.approved.order(:name)
+    else
+      Academy.approved.order(:name)
+    end
   end
 
   def academy_request_id
@@ -179,5 +236,22 @@ class AthletesController < ApplicationController
     return if path.blank?
 
     path.to_s.start_with?("/") && !path.to_s.start_with?("//") ? path : nil
+  end
+
+  def academy_owner_default_academy_id
+    academy_id = params[:academy_id].presence
+    return academy_id if current_user.owned_academies.approved.exists?(id: academy_id)
+
+    current_user.owned_academies.approved.order(:name).first&.id
+  end
+
+  def athlete_account_email
+    params.dig(:athlete, :account_email).to_s.downcase.squish
+  end
+
+  def validate_academy_owned_athlete
+    @athlete.errors.add(:academy, "must be one of your approved academies") unless @athlete.academy.present? && can_manage_academy?(@athlete.academy) && @athlete.academy.approved?
+    @athlete.errors.add(:account_email, "must be provided for the athlete account") if @athlete.account_email.blank?
+    @athlete.errors.add(:account_email, "is already used by another account") if @athlete.account_email.present? && User.exists?(email: @athlete.account_email)
   end
 end

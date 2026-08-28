@@ -1830,3 +1830,40 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb`; result: 19 runs, 153 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `git diff --check`; result: no whitespace errors.
 - Ran `mise exec -- bin/rails test`; result: 154 runs, 1190 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-29 - Academy Owner Home and Athlete Account Flow
+
+### Reference
+- User request: academy owners should land on academy pages after login, see their academies separately from other academies, manage multiple academies, edit owned academies, see/add/remove their athletes, receive athlete join requests, create athlete accounts with emailed passwords, avoid duplicate emails across roles, view athlete tournament statuses, register academy athletes using the existing flow, and not view other academies' athlete profiles.
+
+### Product Decisions
+- Academy owner login now defaults to the academies page, where owned academies are shown separately from other approved academies.
+- One owner can own multiple academies; the left menu lists every owned academy with Edit academy, My athletes, and Notifications links.
+- Academy owners can create athletes only for their own approved academies.
+- When an academy owner creates an athlete, Sports Hub creates a separate `athlete` user account and emails temporary sign-in details.
+- Athlete account email must be globally unique across all user roles. If an email already belongs to an organiser, academy owner, parent, super admin, or athlete account, the academy-owner add flow is rejected.
+- Academy owners can view athlete profiles assigned to their academies, but cannot edit those profiles. Profile edits remain available to the athlete's own login and super admin.
+- Academy owner removal detaches the athlete from the academy instead of deleting the athlete profile/user. The athlete's academy link and external academy text are cleared, related pending/approved academy membership requests are marked rejected, and an email notification is queued.
+- Academy owners continue to use the existing tournament registration flow for their academy athletes.
+- Academy-owned athlete rows now include tournament registration statuses using the same athlete-facing status labels and weight-check attempt summaries.
+
+### Change Log
+- Added `Athlete#account_email` as a transient form attribute.
+- Added `AthleteAccountMailer` with account-created and academy-removed email templates.
+- Updated session default routing for academy owners to `academies_path`.
+- Updated academies index with "My academies" and "Other academies" sections for academy owners.
+- Updated academy show with stable anchors for notifications and athletes, remove-from-academy actions, and athlete tournament status rows.
+- Added academy owner left-menu shortcuts for every owned academy.
+- Updated athlete creation so academy owners create a dedicated athlete user account, require unique email, restrict academy selection to owned approved academies, and enqueue sign-in details email.
+- Updated athlete editing permissions so academy owners cannot edit athletes assigned to their academies.
+- Updated athlete destroy behavior so academy owners remove the academy link and notify the athlete, while super admins and owning users can still delete profiles.
+- Added tests for academy-owner default login, academy dashboard separation, left-menu academy shortcuts, academy-created athlete accounts, duplicate email rejection, academy removal notification, academy-level registration statuses, and edit blocking.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb test/controllers/athletes_controller_test.rb test/controllers/sessions_controller_test.rb`; first result: 47 runs, 373 assertions, 1 failure because the "other academies" query excluded academies with `owner_id` null.
+- Updated the other-academies query to include approved academies with no owner.
+- Reran the focused controller tests; second result: 47 runs, 392 assertions, 1 failure because a privacy assertion matched the left-menu "My athletes" label instead of the other-academy content area.
+- Tightened the privacy assertion to check the absence of the registered-athlete list/content.
+- Reran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb test/controllers/athletes_controller_test.rb test/controllers/sessions_controller_test.rb`; result: 47 runs, 392 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `git diff --check`; result: no whitespace errors.
+- Ran `mise exec -- bin/rails test`; result: 159 runs, 1262 assertions, 0 failures, 0 errors, 0 skips.

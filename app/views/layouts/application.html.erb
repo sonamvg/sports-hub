@@ -17,6 +17,24 @@
           <%= link_to current_user&.athlete? ? athlete_home_path : athletes_path, class: "side-nav-link" do %><%= ui_icon("medal") %><span>Athletes</span><% end %>
           <%= link_to academies_path, class: "side-nav-link" do %><%= ui_icon("academy") %><span>Academies</span><% end %>
           <%= link_to current_user&.can_organize_tournaments? ? profile_organizers_path : organizers_path, class: "side-nav-link" do %><%= ui_icon("shield") %><span>Organizer</span><% end %>
+          <% if current_user&.academy_owner? %>
+            <% owned_academies = current_user.owned_academies.order(:created_at) %>
+            <% if owned_academies.any? %>
+              <div class="side-nav-group">
+                <span>My academies</span>
+                <% owned_academies.each do |academy| %>
+                  <details class="side-tournament">
+                    <summary><%= academy.name %></summary>
+                    <div class="side-tournament-links">
+                      <%= link_to edit_academy_path(academy) do %><%= ui_icon("edit") %><span>Edit academy</span><% end %>
+                      <%= link_to academy_path(academy, anchor: "academy-athletes") do %><%= ui_icon("medal") %><span>My athletes</span><% end %>
+                      <%= link_to academy_path(academy, anchor: "academy-notifications") do %><%= ui_icon("user") %><span>Notifications</span><% end %>
+                    </div>
+                  </details>
+                <% end %>
+              </div>
+            <% end %>
+          <% end %>
           <% if current_user&.can_organize_tournaments? %>
             <% organizer_tournaments = (current_user.organized_tournaments.to_a + current_user.collaborating_tournaments.to_a).uniq(&:id).sort_by(&:created_at).reverse %>
             <% if organizer_tournaments.any? %>

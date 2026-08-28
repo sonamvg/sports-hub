@@ -7,6 +7,7 @@
     <% if @academy.rejected? && @academy.rejection_reason.present? %><div><dt>Reason</dt><dd><%= @academy.rejection_reason %></dd></div><% end %>
   </dl>
   <% if can_manage_academy?(@academy) %>
+    <div id="academy-notifications"></div>
     <% if @membership_requests.any? %>
       <h3>Join requests</h3>
       <div class="approval-table">
@@ -23,6 +24,7 @@
         <% end %>
       </div>
     <% end %>
+    <div id="academy-athletes"></div>
     <h3>My athletes</h3>
     <% if @athletes.any? %>
       <div class="registered-athlete-list academy-athlete-list">
@@ -32,12 +34,34 @@
             <span><strong>Belt</strong><%= athlete.belt&.titleize || "--" %></span>
             <span><strong>Weight</strong><%= athlete.weight ? "#{athlete.weight} kg" : "--" %></span>
             <span><strong>City</strong><%= athlete.city || "--" %></span>
-            <%= link_to "View", athlete_path(athlete), class: "text-link" %>
+            <div class="row-actions">
+              <%= link_to "View", athlete_path(athlete), class: "text-link" %>
+              <%= button_to "Remove", athlete_path(athlete), method: :delete, class: "reject-button", form: { data: { turbo_confirm: "Remove #{athlete.full_name} from #{@academy.name}?" } } %>
+            </div>
           </article>
         <% end %>
       </div>
     <% else %>
       <p class="muted">No athlete profiles assigned yet.</p>
+    <% end %>
+    <h3>Athlete tournament status</h3>
+    <% if @athlete_registrations.any? %>
+      <div class="approval-table">
+        <% @athlete_registrations.each do |registration| %>
+          <div class="approval-row">
+            <div>
+              <strong><%= registration.athlete.full_name %></strong>
+              <span><%= registration.tournament.name %> · <%= registration.tournament_category.name %></span>
+              <% registration.weight_check_summary.each do |attempt| %>
+                <span><%= attempt %></span>
+              <% end %>
+            </div>
+            <span class="status-pill status-<%= registration.status %>"><%= registration.athlete_status_label %></span>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="muted">No tournament registrations yet.</p>
     <% end %>
   <% end %>
   <div class="form-actions">

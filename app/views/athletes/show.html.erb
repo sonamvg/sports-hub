@@ -26,7 +26,12 @@
       <div><dt>Address</dt><dd><%= [@athlete.address, @athlete.city, @athlete.state, @athlete.country].compact_blank.join(", ").presence || "Not set" %></dd></div>
       <div><dt>Government ID</dt><dd><%= @athlete.government_id_document_type || "Not set" %><%= @athlete.identity_document.attached? ? " · Uploaded" : "" %></dd></div>
     </dl>
-    <div class="form-actions"><%= link_to edit_athlete_path(@athlete), class: "primary-button icon-label" do %><%= ui_icon("edit") %><span>Edit profile</span><% end %><%= link_to tournaments_path, class: "secondary-button icon-label" do %><%= ui_icon("trophy") %><span>Find tournaments</span><% end %></div>
+    <div class="form-actions">
+      <% if super_admin? || @athlete.user_id == current_user.id %>
+        <%= link_to edit_athlete_path(@athlete), class: "primary-button icon-label" do %><%= ui_icon("edit") %><span>Edit profile</span><% end %>
+      <% end %>
+      <%= link_to tournaments_path, class: "secondary-button icon-label" do %><%= ui_icon("trophy") %><span>Find tournaments</span><% end %>
+    </div>
   </div>
   <div class="section-compact">
     <h2 class="section-title">Upcoming tournaments</h2>

@@ -4,6 +4,33 @@
     <div><%= form.label :q do %><%= ui_icon("search") %><span>Search academies</span><% end %><%= form.search_field :q, value: params[:q], placeholder: "Name, city, state, country" %></div>
     <div class="filter-actions"><%= button_tag type: "submit", class: "primary-button button-reset icon-label" do %><%= ui_icon("search") %><span>Search</span><% end %><%= link_to "Clear", academies_path, class: "secondary-button" %></div>
   <% end %>
+  <% if current_user&.academy_owner? %>
+    <div class="section-compact">
+      <h2 class="section-title">My academies</h2>
+      <% if @my_academies.any? %>
+        <div class="list-grid">
+          <% @my_academies.each do |academy| %>
+            <article class="entity-card">
+              <span class="status-pill status-<%= academy.status %>"><%= academy.status.humanize %></span>
+              <h2><%= academy.name %></h2>
+              <p><%= [academy.city, academy.state].compact.join(", ") %></p>
+              <p class="muted"><%= pluralize(academy.athletes.count, "athlete") %></p>
+              <div class="row-actions">
+                <%= link_to "Open", academy_path(academy), class: "text-link" %>
+                <%= link_to "Edit", edit_academy_path(academy), class: "text-link" %>
+                <%= link_to "Add athlete", new_athlete_path(academy_id: academy.id), class: "text-link" if academy.approved? %>
+              </div>
+            </article>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="muted">No academies registered yet.</p>
+      <% end %>
+    </div>
+    <div class="section-compact">
+      <h2 class="section-title">Other academies</h2>
+    </div>
+  <% end %>
   <div class="list-grid"><% @academies.each do |academy| %><article class="entity-card"><span class="status-pill status-<%= academy.status %>"><%= academy.status.humanize %></span><h2><%= academy.name %></h2><p><%= [academy.city, academy.state].compact.join(", ") %></p><% if can_manage_academy?(academy) %><p class="muted"><%= pluralize(academy.athletes.count, "athlete") %></p><% end %><%= link_to academy_path(academy), class: "text-link icon-label" do %><span>View academy</span><%= ui_icon("arrow-right") %><% end %></article><% end %></div>
   <%= render "shared/pagination", pagination: @pagination %>
 </div></section>
