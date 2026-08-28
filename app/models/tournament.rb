@@ -80,20 +80,6 @@ class Tournament < ApplicationRecord
     registration_closes_at.present? && registration_closes_at < at
   end
 
-  def registration_started?(at: Time.current)
-    registration_open? ||
-      registration_paused? ||
-      (registration_closes_at.present? && registration_closes_at < at) ||
-      (registration_opens_at.present? && registration_opens_at <= at)
-  end
-
-  def categories_editable_by?(user, at: Time.current)
-    return false unless user
-    return true if user.super_admin?
-
-    managed_by?(user) && !registration_started?(at: at)
-  end
-
   def late_registration_allowed_for?(user)
     return false unless user
     return false if draw_scheduling?

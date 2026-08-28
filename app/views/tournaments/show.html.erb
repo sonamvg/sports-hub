@@ -51,7 +51,7 @@
   <div class="detail-card detail-list">
     <div><dt>Competition formats</dt><dd><%= display_value.call(@tournament.competition_formats) %></dd></div>
     <div><dt>Basic eligibility</dt><dd><%= display_value.call(@tournament.eligibility_summary) %></dd></div>
-    <div><dt>Category generation</dt><dd><%= display_value.call(@tournament.category_generation_method) %></dd></div>
+    <div><dt>Categories</dt><dd>Default categories</dd></div>
     <div><dt>Required documents</dt><dd><%= display_value.call(@tournament.required_documents) %></dd></div>
     <div><dt>Refund policy</dt><dd><%= display_value.call(@tournament.refund_policy) %></dd></div>
   </div>
@@ -96,9 +96,6 @@
   <div class="section-compact">
     <div class="page-heading compact-heading">
       <h2 class="section-title">Categories</h2>
-      <% if can_edit_tournament_categories?(@tournament) %>
-        <%= link_to "Manage categories", tournament_tournament_categories_path(@tournament), class: "primary-button" %>
-      <% end %>
     </div>
     <div class="category-list">
       <% @categories.each do |category| %>
@@ -112,11 +109,6 @@
             <span><strong>Age</strong><%= [category.age_min, category.age_max].compact.any? ? [category.age_min, category.age_max].compact.join("-") : "Open" %></span>
             <span><strong>Weight</strong><%= category.weight_min.present? && category.weight_max.present? ? "#{category.weight_min}-#{category.weight_max} kg" : (category.weight_max ? "Up to #{category.weight_max} kg" : "Open") %></span>
           </div>
-          <% if can_edit_tournament_categories?(@tournament) %>
-            <div class="category-actions">
-              <%= link_to "Edit category", edit_tournament_tournament_category_path(@tournament, category), class: "text-link" %>
-            </div>
-          <% end %>
         </article>
       <% end %>
     </div>

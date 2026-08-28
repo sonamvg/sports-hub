@@ -23,7 +23,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       "Primary contact",
       "Competition formats",
       "Basic eligibility",
-      "Category generation",
+      "Default categories",
       "Registration capacity",
       "Fee per category",
       "Currency",
@@ -70,7 +70,6 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
           competition_format_other: ["Breaking"],
           eligibility_options: ["Age proof required"],
           eligibility_other: ["Red belt and above", "State ranking required"],
-          category_generation_method: "Auto-generate from eligibility rules",
           registration_capacity: 400,
           registration_fee: "1500.00",
           currency: "inr",
@@ -99,7 +98,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "events@example.com", tournament.primary_contact_email
     assert_equal "Kyorugi, Individual Poomsae, Breaking", tournament.competition_formats
     assert_equal "Age proof required, Red belt and above, State ranking required", tournament.eligibility_summary
-    assert_equal "Auto-generate from eligibility rules", tournament.category_generation_method
+    assert_equal "Default categories", tournament.category_generation_method
     assert_equal 400, tournament.registration_capacity
     assert_equal BigDecimal("1500.0"), tournament.registration_fee
     assert_equal "INR", tournament.currency
@@ -107,86 +106,36 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Full refund before registration closes, No refund after draws are published", tournament.refund_policy
     assert_equal @organizer, tournament.tournament_organizers.super_organizer.sole.user
     assert_includes tournament.organizer_users, collaborator
+    assert_equal TournamentCategory::DEFAULT_CATEGORY_TEMPLATES.size, tournament.tournament_categories.count
   end
 
-  test "creates checked default categories during auto generation" do
-    assert_difference("TournamentCategory.count", 1) do
+  test "creates all default categories for every tournament" do
+    assert_difference("TournamentCategory.count", TournamentCategory::DEFAULT_CATEGORY_TEMPLATES.size) do
       post tournaments_path, params: {
         commit: "Publish",
         tournament: {
           name: "Auto Category Open",
           start_date: "2026-12-05",
-          end_date: "2026-12-06",
-          category_generation_method: "Auto-generate from eligibility rules",
-          default_category_templates: {
-            "0" => {
-              selected: "1",
-              event_type: "kyorugi",
-              gender: "female",
-              age_min: "12",
-              age_max: "14",
-              weight_min: "33",
-              weight_max: "37"
-            },
-            "1" => {
-              event_type: "kyorugi",
-              gender: "male",
-              age_min: "12",
-              age_max: "14",
-              weight_min: "33",
-              weight_max: "37"
-            }
-          }
+          end_date: "2026-12-06"
         }
       }
     end
 
     tournament = Tournament.order(:created_at).last
-    assert_equal ["Kyorugi Female Age 12-14 33-37kg"], tournament.tournament_categories.pluck(:name)
+    assert_equal "Default categories", tournament.category_generation_method
+    assert_includes tournament.tournament_categories.pluck(:name), "Kyorugi Female Age 12-14 33-37kg"
+    assert_includes tournament.tournament_categories.pluck(:name), "Kyorugi Male Age 15-17 51-55kg"
   end
 
-  test "creates manual categories from tournament form" do
-    assert_difference("TournamentCategory.count", 1) do
-      post tournaments_path, params: {
-        commit: "Publish",
-        tournament: {
-          name: "Manual Category Open",
-          start_date: "2026-12-05",
-          end_date: "2026-12-06",
-          category_generation_method: "Manual categories",
-          manual_categories: {
-            "0" => {
-              event_type: "kyorugi",
-              gender: "male",
-              age_min: "15",
-              age_max: "17",
-              weight_max: "55"
-            }
-          }
-        }
-      }
-    end
+  test "new tournament form hides category creation controls" do
+    get new_tournament_path
 
-    tournament = Tournament.order(:created_at).last
-    assert_equal ["Kyorugi Male Age 15-17 U55"], tournament.tournament_categories.pluck(:name)
-  end
-
-  test "imports categories from csv during tournament form save" do
-    assert_difference("TournamentCategory.count", 1) do
-      post tournaments_path, params: {
-        commit: "Publish",
-        tournament: {
-          name: "Import Category Open",
-          start_date: "2026-12-05",
-          end_date: "2026-12-06",
-          category_generation_method: "Import categories",
-          category_import_file: Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/categories.csv"), "text/csv")
-        }
-      }
-    end
-
-    tournament = Tournament.order(:created_at).last
-    assert_equal ["Kyorugi Female Age 12-14 33-37kg Red-Black"], tournament.tournament_categories.pluck(:name)
+    assert_response :success
+    assert_no_match(/Manual categories/, response.body)
+    assert_no_match(/Import categories/, response.body)
+    assert_no_match(/category_import_file/, response.body)
+    assert_no_match(/data-category-generation-select/, response.body)
+    assert_no_match(/Copy from previous tournament/, response.body)
   end
 
   test "publish button moves draft tournament to scheduled" do

@@ -11,37 +11,9 @@
       <div>
         <p class="eyebrow">CATEGORIES</p>
         <h1 class="page-title"><%= @tournament.name %></h1>
-        <% if can_edit_tournament_categories?(@tournament) %>
-          <p class="page-copy">Select default taekwondo categories for this tournament, then add custom categories only where the event needs something specific.</p>
-        <% elsif can_manage_tournament?(@tournament) %>
-          <p class="page-copy">Categories are locked because registration has started.</p>
-        <% end %>
+        <p class="page-copy">This tournament uses Sports Hub default categories.</p>
       </div>
-      <% if can_edit_tournament_categories?(@tournament) %>
-        <%= link_to "Add category", new_tournament_tournament_category_path(@tournament), class: "primary-button" %>
-      <% end %>
     </div>
-
-    <% if can_edit_tournament_categories?(@tournament) %>
-      <%= form_with url: create_defaults_tournament_tournament_categories_path(@tournament), method: :post, class: "form-card default-category-card" do %>
-        <div class="form-section-heading">
-          <h2>Default categories</h2>
-        </div>
-        <div class="default-category-grid">
-          <% @default_templates.each do |template| %>
-            <% preview = TournamentCategory.new(template.except(:key).merge(tournament: @tournament)) %>
-            <% existing = @tournament.tournament_categories.exists?(template.except(:key)) %>
-            <label class="checkbox-option default-category-option <%= "muted" if existing %>">
-              <%= check_box_tag "template_keys[]", template[:key], false, disabled: existing %>
-              <span><%= preview.generated_name %><%= " (already added)" if existing %></span>
-            </label>
-          <% end %>
-        </div>
-        <div class="form-actions">
-          <%= submit_tag "Add selected defaults", class: "primary-button button-reset" %>
-        </div>
-      <% end %>
-    <% end %>
 
     <div class="section-compact">
       <div class="page-heading compact-heading">
@@ -62,11 +34,7 @@
             <span><strong>Age</strong><%= [category.age_min, category.age_max].compact.any? ? [category.age_min, category.age_max].compact.join("-") : "Open" %></span>
             <span><strong>Weight</strong><%= category.weight_min.present? && category.weight_max.present? ? "#{category.weight_min}-#{category.weight_max} kg" : (category.weight_max ? "Up to #{category.weight_max} kg" : "Open") %></span>
           </div>
-          <% if can_edit_tournament_categories?(@tournament) %>
-            <%= link_to "Edit →", edit_tournament_tournament_category_path(@tournament, category), class: "text-link" %>
-          <% else %>
-            <%= link_to "View →", tournament_tournament_category_path(@tournament, category), class: "text-link" %>
-          <% end %>
+          <%= link_to "View ->", tournament_tournament_category_path(@tournament, category), class: "text-link" %>
         </article>
       <% end %>
     </div>

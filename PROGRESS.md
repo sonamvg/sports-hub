@@ -1867,3 +1867,33 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Reran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb test/controllers/athletes_controller_test.rb test/controllers/sessions_controller_test.rb`; result: 47 runs, 392 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `git diff --check`; result: no whitespace errors.
 - Ran `mise exec -- bin/rails test`; result: 159 runs, 1262 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-29 - Default-Only Tournament Categories
+
+### Reference
+- User request: in the tournament flow, remove all code and UI related to adding or editing categories because tournaments should always use default categories only.
+- Annotation context: the earlier category edit work is now superseded by a default-only tournament category flow.
+
+### Product Decisions
+- Tournament organisers no longer choose category generation mode, add manual categories, import category files, select default templates, or edit categories.
+- Every tournament save now ensures the full Sports Hub default category set exists for that tournament.
+- Category records and read-only category pages remain because athlete registration, academy registration, and weight-check flows still depend on tournament category records.
+- The existing `category_generation_method` database column remains for compatibility, but the app forces it to "Default categories" on tournament save.
+
+### Change Log
+- Removed category add/edit/import routes and simplified `TournamentCategoriesController` to read-only `index` and `show`.
+- Deleted tournament category `new`, `edit`, and `_form` views.
+- Removed the category generation selector, default-template modal, manual category modal, category import UI, and associated JavaScript from the tournament form.
+- Added a simple read-only note on the tournament form that default categories are attached automatically.
+- Removed old category-edit permission helpers and stale category editor CSS.
+- Deleted the now-unused category CSV fixture.
+- Updated tournament and category controller tests to cover default-only category creation and read-only category pages.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/tournament_categories_controller_test.rb`; first sandboxed attempt could not access the local PostgreSQL socket.
+- Reran focused tests with normal local DB access; first result found expected test mismatches after removing the category editor.
+- Updated the test expectations and tournament form default-category copy.
+- Reran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/tournament_categories_controller_test.rb`; result: 40 runs, 362 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 153 runs, 1240 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `git diff --check`; result: no whitespace errors.
+- Ran a final reference sweep for removed category add/edit/import terms; remaining matches are negative test assertions only.

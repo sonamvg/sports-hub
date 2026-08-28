@@ -3,7 +3,7 @@ class ApplicationController < ActionController::Base
 
   before_action :require_athlete_profile_completion
 
-  helper_method :current_user, :super_admin?, :can_manage_academy?, :can_manage_tournament?, :can_edit_tournament_categories?, :can_register_for_tournament?, :athlete_home_path
+  helper_method :current_user, :super_admin?, :can_manage_academy?, :can_manage_tournament?, :can_register_for_tournament?, :athlete_home_path
 
   private
 
@@ -33,10 +33,6 @@ class ApplicationController < ActionController::Base
     return false unless current_user
 
     super_admin? || tournament.managed_by?(current_user)
-  end
-
-  def can_edit_tournament_categories?(tournament)
-    tournament.categories_editable_by?(current_user)
   end
 
   def can_register_for_tournament?(tournament)

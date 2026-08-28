@@ -110,6 +110,11 @@
       <h2>Registration setup</h2>
     </div>
 
+    <div class="full inline-notice">
+      <strong>Default categories</strong>
+      <span>Sports Hub attaches the standard tournament category set automatically when this tournament is saved.</span>
+    </div>
+
     <div>
       <%= form.label :registration_capacity, "Registration capacity" %>
       <%= form.number_field :registration_capacity, required: true, min: 1, step: 1, placeholder: "Maximum entries" %>
@@ -154,89 +159,6 @@
       <%= form.label :payment_instructions, "Payment instructions" %>
       <%= form.text_area :payment_instructions, rows: 3, placeholder: "Mention any UPI ID, reference format, or organizer payment note." %>
       <p class="field-hint">These details are shown only to signed-in athletes during registration.</p>
-    </div>
-
-    <div>
-      <%= form.label :category_generation_method, "Category generation" %>
-      <%= form.select :category_generation_method, [
-        "Auto-generate from eligibility rules",
-        "Manual categories",
-        "Import categories"
-      ], { include_blank: "Select category generation method" }, required: true, data: { category_generation_select: true } %>
-    </div>
-
-    <div class="full category-generation-panel" data-category-generation-panel="Auto-generate from eligibility rules" hidden>
-      <div class="modal-panel">
-        <div class="modal-panel-header">
-          <h2>Auto-generate categories</h2>
-          <span class="status-pill">Check and edit</span>
-        </div>
-        <div class="category-modal-grid">
-          <% TournamentCategory::DEFAULT_CATEGORY_TEMPLATES.each_with_index do |template, index| %>
-            <% preview = TournamentCategory.new(template.except(:key).merge(tournament: tournament)) %>
-            <div class="default-category-editor">
-              <label class="checkbox-option">
-                <%= check_box_tag "tournament[default_category_templates][#{index}][selected]", "1", false %>
-                <span><%= preview.generated_name %></span>
-              </label>
-              <div class="compact-category-fields">
-                <%= text_field_tag "tournament[default_category_templates][#{index}][event_type]", template[:event_type], placeholder: "Event" %>
-                <%= text_field_tag "tournament[default_category_templates][#{index}][gender]", template[:gender], placeholder: "Gender" %>
-                <%= number_field_tag "tournament[default_category_templates][#{index}][age_min]", template[:age_min], placeholder: "Min age" %>
-                <%= number_field_tag "tournament[default_category_templates][#{index}][age_max]", template[:age_max], placeholder: "Max age" %>
-                <%= number_field_tag "tournament[default_category_templates][#{index}][weight_min]", template[:weight_min], step: 0.1, placeholder: "Min kg" %>
-                <%= number_field_tag "tournament[default_category_templates][#{index}][weight_max]", template[:weight_max], step: 0.1, placeholder: "Max kg" %>
-                <%= text_field_tag "tournament[default_category_templates][#{index}][belt_min]", template[:belt_min], placeholder: "Min belt" %>
-                <%= text_field_tag "tournament[default_category_templates][#{index}][belt_max]", template[:belt_max], placeholder: "Max belt" %>
-              </div>
-            </div>
-          <% end %>
-        </div>
-      </div>
-    </div>
-
-    <div class="full category-generation-panel" data-category-generation-panel="Import categories" hidden>
-      <div class="modal-panel">
-        <div class="modal-panel-header">
-          <h2>Import categories</h2>
-          <span class="status-pill">CSV or TSV</span>
-        </div>
-        <%= file_field_tag "tournament[category_import_file]", accept: ".csv,.tsv,.xls,.xlsx,text/csv,text/tab-separated-values" %>
-        <p class="field-hint">Use headers: event_type, gender, age_min, age_max, weight_min, weight_max, belt_min, belt_max. CSV/TSV imports are processed now; XLSX needs a spreadsheet parser gem.</p>
-      </div>
-    </div>
-
-    <div class="full category-generation-panel" data-category-generation-panel="Manual categories" hidden>
-      <div class="modal-panel">
-        <div class="modal-panel-header">
-          <h2>Manual categories</h2>
-          <button type="button" class="secondary-button button-reset" data-add-manual-category>Add category</button>
-        </div>
-        <div data-manual-category-list>
-          <div class="manual-category-row" data-manual-category-row>
-            <%= text_field_tag "tournament[manual_categories][0][event_type]", nil, placeholder: "Event type" %>
-            <%= text_field_tag "tournament[manual_categories][0][gender]", nil, placeholder: "Gender" %>
-            <%= number_field_tag "tournament[manual_categories][0][age_min]", nil, placeholder: "Min age" %>
-            <%= number_field_tag "tournament[manual_categories][0][age_max]", nil, placeholder: "Max age" %>
-            <%= number_field_tag "tournament[manual_categories][0][weight_min]", nil, step: 0.1, placeholder: "Min kg" %>
-            <%= number_field_tag "tournament[manual_categories][0][weight_max]", nil, step: 0.1, placeholder: "Max kg" %>
-            <%= text_field_tag "tournament[manual_categories][0][belt_min]", nil, placeholder: "Min belt" %>
-            <%= text_field_tag "tournament[manual_categories][0][belt_max]", nil, placeholder: "Max belt" %>
-          </div>
-        </div>
-        <template data-manual-category-template>
-          <div class="manual-category-row" data-manual-category-row>
-            <input type="text" name="tournament[manual_categories][INDEX][event_type]" placeholder="Event type">
-            <input type="text" name="tournament[manual_categories][INDEX][gender]" placeholder="Gender">
-            <input type="number" name="tournament[manual_categories][INDEX][age_min]" placeholder="Min age">
-            <input type="number" name="tournament[manual_categories][INDEX][age_max]" placeholder="Max age">
-            <input type="number" name="tournament[manual_categories][INDEX][weight_min]" step="0.1" placeholder="Min kg">
-            <input type="number" name="tournament[manual_categories][INDEX][weight_max]" step="0.1" placeholder="Max kg">
-            <input type="text" name="tournament[manual_categories][INDEX][belt_min]" placeholder="Min belt">
-            <input type="text" name="tournament[manual_categories][INDEX][belt_max]" placeholder="Max belt">
-          </div>
-        </template>
-      </div>
     </div>
 
     <div class="full">
@@ -424,39 +346,6 @@
     group.insertBefore(label, input.closest("[data-other-list]"));
     input.value = "";
   });
-
-  document.addEventListener("change", function(event) {
-    if (!event.target.matches("[data-category-generation-select]")) return;
-
-    updateCategoryGenerationPanels(event.target.value);
-  });
-
-  document.addEventListener("DOMContentLoaded", function() {
-    const select = document.querySelector("[data-category-generation-select]");
-    if (select) updateCategoryGenerationPanels(select.value);
-  });
-
-  document.addEventListener("click", function(event) {
-    if (!event.target.matches("[data-add-manual-category]")) return;
-
-    const panel = event.target.closest("[data-category-generation-panel]");
-    const list = panel.querySelector("[data-manual-category-list]");
-    const template = panel.querySelector("[data-manual-category-template]");
-    const nextIndex = list.querySelectorAll("[data-manual-category-row]").length;
-    const fragment = template.content.cloneNode(true);
-
-    fragment.querySelectorAll("[name]").forEach(function(input) {
-      input.name = input.name.replace("INDEX", nextIndex);
-    });
-
-    list.appendChild(fragment);
-  });
-
-  function updateCategoryGenerationPanels(value) {
-    document.querySelectorAll("[data-category-generation-panel]").forEach(function(panel) {
-      panel.hidden = panel.dataset.categoryGenerationPanel !== value;
-    });
-  }
 
   document.addEventListener("click", function(event) {
     const picker = event.target.closest("[data-organizer-picker]");

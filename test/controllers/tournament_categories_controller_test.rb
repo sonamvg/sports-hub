@@ -9,11 +9,39 @@ class TournamentCategoriesControllerTest < ActionDispatch::IntegrationTest
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6)
     )
+    @category = @tournament.tournament_categories.create!(
+      event_type: "kyorugi",
+      gender: "female",
+      age_min: 12,
+      age_max: 14,
+      weight_min: 33,
+      weight_max: 37
+    )
     sign_in_as @organizer
   end
 
-  test "creates category" do
-    assert_difference("@tournament.tournament_categories.count", 1) do
+  test "lists tournament categories as read only defaults" do
+    get tournament_tournament_categories_path(@tournament)
+
+    assert_response :success
+    assert_includes response.body, "This tournament uses Sports Hub default categories."
+    assert_includes response.body, @category.name
+    assert_includes response.body, "View -&gt;"
+    assert_no_match(/Add category/, response.body)
+    assert_no_match(/Edit category/, response.body)
+  end
+
+  test "shows category details without edit action" do
+    get tournament_tournament_category_path(@tournament, @category)
+
+    assert_response :success
+    assert_includes response.body, @category.name
+    assert_includes response.body, "Back to categories"
+    assert_no_match(/Edit category/, response.body)
+  end
+
+  test "category create route is not available" do
+    assert_no_difference("@tournament.tournament_categories.count") do
       post tournament_tournament_categories_path(@tournament), params: {
         tournament_category: {
           event_type: "kyorugi",
@@ -25,135 +53,12 @@ class TournamentCategoriesControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to tournament_path(@tournament)
-    category = @tournament.tournament_categories.order(:created_at).last
-    assert_equal "Kyorugi Female Age 12-14 U41", category.name
-    assert_equal "female", category.gender
+    assert_response :not_found
   end
 
-  test "creates selected default categories" do
-    assert_difference("@tournament.tournament_categories.count", 2) do
-      post create_defaults_tournament_tournament_categories_path(@tournament), params: {
-        template_keys: ["cadet-female-u37", "cadet-male-u37"]
-      }
+  test "category edit route is not available" do
+    assert_raises(NoMethodError) do
+      edit_tournament_tournament_category_path(@tournament, @category)
     end
-
-    assert_redirected_to tournament_tournament_categories_path(@tournament)
-    assert_equal "2 default categories added.", flash[:notice]
-    assert_includes @tournament.tournament_categories.pluck(:name), "Kyorugi Female Age 12-14 33-37kg"
-    assert_includes @tournament.tournament_categories.pluck(:name), "Kyorugi Male Age 12-14 33-37kg"
-  end
-
-  test "default category import skips existing categories" do
-    @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
-
-    assert_no_difference("@tournament.tournament_categories.count") do
-      post create_defaults_tournament_tournament_categories_path(@tournament), params: {
-        template_keys: ["cadet-female-u37"]
-      }
-    end
-
-    assert_redirected_to tournament_tournament_categories_path(@tournament)
-    assert_equal "Select at least one new default category.", flash[:alert]
-  end
-
-  test "renders errors when category is invalid" do
-    assert_no_difference("@tournament.tournament_categories.count") do
-      post tournament_tournament_categories_path(@tournament), params: {
-        tournament_category: {
-          event_type: "",
-          age_min: 15,
-          age_max: 12
-        }
-      }
-    end
-
-    assert_response :unprocessable_entity
-    assert_includes response.body, "Event type can&#39;t be blank"
-    assert_includes response.body, "Age max cannot be below minimum age"
-  end
-
-  test "updates category" do
-    category = @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
-
-    patch tournament_tournament_category_path(@tournament, category), params: {
-      tournament_category: {
-        event_type: "kyorugi",
-        gender: "female",
-        age_min: 12,
-        age_max: 14,
-        weight_max: 44
-      }
-    }
-
-    assert_redirected_to tournament_tournament_category_path(@tournament, category)
-    category.reload
-    assert_equal "Kyorugi Female Age 12-14 U44", category.name
-    assert_equal 44, category.weight_max
-  end
-
-  test "edit form previews generated name from editable fields" do
-    category = @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
-
-    get edit_tournament_tournament_category_path(@tournament, category)
-
-    assert_response :success
-    assert_includes response.body, "data-generated-category-name"
-    assert_includes response.body, "data-category-name-source"
-    assert_includes response.body, "updateGeneratedCategoryName"
-  end
-
-  test "organizer cannot edit category after registration starts" do
-    @tournament.update!(status: :registration_open, registration_opens_at: 1.day.ago, registration_closes_at: 1.day.from_now)
-    category = @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
-
-    patch tournament_tournament_category_path(@tournament, category), params: {
-      tournament_category: {
-        event_type: "kyorugi",
-        gender: "female",
-        age_min: 12,
-        age_max: 14,
-        weight_max: 44
-      }
-    }
-
-    assert_redirected_to tournament_tournament_categories_path(@tournament)
-    assert_equal "Categories can be edited only before registration starts.", flash[:alert]
-    assert_equal BigDecimal("41"), category.reload.weight_max
-  end
-
-  test "super admin can edit category after registration starts" do
-    super_admin = User.create!(name: "Super Admin", email: "super-category@example.test", password: "password123", role: :super_admin)
-    @tournament.update!(status: :registration_open, registration_opens_at: 1.day.ago, registration_closes_at: 1.day.from_now)
-    category = @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
-    sign_in_as super_admin
-
-    patch tournament_tournament_category_path(@tournament, category), params: {
-      tournament_category: {
-        event_type: "kyorugi",
-        gender: "female",
-        age_min: 12,
-        age_max: 14,
-        weight_max: 44
-      }
-    }
-
-    assert_redirected_to tournament_tournament_category_path(@tournament, category)
-    assert_equal BigDecimal("44"), category.reload.weight_max
-  end
-
-  test "renders errors when update is invalid" do
-    category = @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
-
-    patch tournament_tournament_category_path(@tournament, category), params: {
-      tournament_category: {
-        event_type: "kyorugi",
-        weight_min: 45,
-        weight_max: 41
-      }
-    }
-
-    assert_response :unprocessable_entity
-    assert_includes response.body, "Weight max cannot be below minimum weight"
   end
 end

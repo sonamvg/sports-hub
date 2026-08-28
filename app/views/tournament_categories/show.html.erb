@@ -19,9 +19,7 @@
       <p><strong>Belt:</strong> <%= [@category.belt_min&.titleize, @category.belt_max&.titleize].compact.join("–").presence || "Open" %></p>
 
       <div class="form-actions">
-        <% if can_edit_tournament_categories?(@tournament) %>
-          <%= link_to "Edit category", edit_tournament_tournament_category_path(@tournament, @category), class: "secondary-button" %>
-        <% end %>
+        <%= link_to "Back to categories", tournament_tournament_categories_path(@tournament), class: "secondary-button" %>
       </div>
     </div>
   </div>
