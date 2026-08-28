@@ -326,6 +326,32 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Anaya Iyer"
   end
 
+  test "super admin can see and delete all athletes" do
+    first_user = User.create!(name: "First Parent", email: "first-parent@example.test", password: "password123", role: :parent)
+    second_user = User.create!(name: "Second Parent", email: "second-parent@example.test", password: "password123", role: :parent)
+    first_athlete = first_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    second_athlete = second_user.athletes.create!(first_name: "Vihaan", last_name: "Mehta", date_of_birth: Date.new(2013, 7, 2), gender: "male")
+    super_admin = User.create!(name: "Super Admin", email: "all-athletes-admin@example.test", password: "password123", role: :super_admin)
+    sign_in_as super_admin
+
+    get athletes_path
+
+    assert_response :success
+    assert_includes response.body, "All athletes"
+    assert_includes response.body, first_athlete.full_name
+    assert_includes response.body, second_athlete.full_name
+    assert_includes response.body, "Delete"
+
+    assert_difference("Athlete.count", -1) do
+      delete athlete_path(first_athlete)
+    end
+
+    assert_redirected_to athletes_path
+    assert_equal "Athlete profile removed.", flash[:notice]
+    assert_not Athlete.exists?(first_athlete.id)
+    assert Athlete.exists?(second_athlete.id)
+  end
+
   test "index filters athletes by search age weight and belt" do
     matching = @parent.athletes.create!(
       first_name: "Aarohi",

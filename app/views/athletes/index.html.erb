@@ -1,7 +1,11 @@
 <section class="page-shell">
   <div class="container">
     <div class="page-heading">
-      <div><p class="eyebrow">ATHLETES</p><h1 class="page-title">My athletes</h1><p class="page-copy">Manage eligible athletes and keep competition details ready.</p></div>
+      <div>
+        <p class="eyebrow">ATHLETES</p>
+        <h1 class="page-title"><%= super_admin? ? "All athletes" : "My athletes" %></h1>
+        <p class="page-copy"><%= super_admin? ? "Review and manage every athlete profile in Sports Hub." : "Manage eligible athletes and keep competition details ready." %></p>
+      </div>
       <%= link_to new_athlete_path, class: "primary-button icon-label" do %><%= ui_icon("plus") %><span>Add athlete</span><% end %>
     </div>
 
@@ -27,7 +31,12 @@
         <article class="entity-card">
           <div><span class="status-pill"><%= athlete.belt.presence || "Belt not set" %></span><h2><%= athlete.full_name %></h2><p><%= athlete.academy_display_name || "No academy selected" %></p></div>
           <div class="entity-meta"><span><strong>DOB</strong><%= athlete.date_of_birth.strftime("%d %b %Y") %></span><span><strong>Weight</strong><%= athlete.weight ? "#{athlete.weight} kg" : "—" %></span></div>
-          <%= link_to athlete_path(athlete), class: "text-link icon-label" do %><span>View profile</span><%= ui_icon("arrow-right") %><% end %>
+          <div class="row-actions">
+            <%= link_to athlete_path(athlete), class: "text-link icon-label" do %><span>View profile</span><%= ui_icon("arrow-right") %><% end %>
+            <% if super_admin? %>
+              <%= button_to "Delete", athlete_path(athlete), method: :delete, class: "reject-button", form: { data: { turbo_confirm: "Delete #{athlete.full_name}?" } } %>
+            <% end %>
+          </div>
         </article>
       <% end %>
     </div>

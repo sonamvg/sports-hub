@@ -1810,3 +1810,23 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Reran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb test/controllers/sessions_controller_test.rb`; result: 27 runs, 195 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `git diff --check`; result: no whitespace errors.
 - Ran `mise exec -- bin/rails test`; result: 153 runs, 1173 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-29 - Super Admin Athlete Management
+
+### Reference
+- User request: as super user, I should be able to see all athletes and delete all athletes.
+
+### Product Decisions
+- Kept the existing super-admin controller visibility rule that exposes all athlete records.
+- Updated the athlete index page to make the super-admin context explicit with an "All athletes" heading.
+- Added per-athlete delete controls for super admins instead of a bulk delete button, so destructive actions stay deliberate.
+
+### Change Log
+- Updated athlete index heading/copy for super admins.
+- Added a delete action button to each athlete card when the current user is a super admin.
+- Added regression coverage that a super admin sees athletes owned by different users and can delete a selected athlete.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb`; result: 19 runs, 153 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `git diff --check`; result: no whitespace errors.
+- Ran `mise exec -- bin/rails test`; result: 154 runs, 1190 assertions, 0 failures, 0 errors, 0 skips.
