@@ -3,7 +3,7 @@ class ApplicationController < ActionController::Base
 
   before_action :require_athlete_profile_completion
 
-  helper_method :current_user, :super_admin?, :can_manage_academy?, :can_manage_tournament?, :can_edit_tournament_categories?, :can_register_for_tournament?
+  helper_method :current_user, :super_admin?, :can_manage_academy?, :can_manage_tournament?, :can_edit_tournament_categories?, :can_register_for_tournament?, :athlete_home_path
 
   private
 
@@ -63,6 +63,13 @@ class ApplicationController < ActionController::Base
         per_page: per_page
       }
     ]
+  end
+
+  def athlete_home_path
+    return athletes_path unless current_user&.athlete?
+
+    athlete = current_user.athletes.order(:created_at).first
+    athlete ? athlete_path(athlete) : new_athlete_path(profile_setup: true)
   end
 
   def require_athlete_profile_completion

@@ -13,7 +13,7 @@
         <%= link_to root_path, class: "brand" do %>SPORTS <span>HUB</span><% end %>
         <nav class="side-nav">
           <%= link_to "Tournaments", tournaments_path, class: "side-nav-link" %>
-          <%= link_to "Athletes", athletes_path, class: "side-nav-link" %>
+          <%= link_to "Athletes", current_user&.athlete? ? athlete_home_path : athletes_path, class: "side-nav-link" %>
           <%= link_to "Academies", academies_path, class: "side-nav-link" %>
           <%= link_to "Organizer", current_user&.can_organize_tournaments? ? profile_organizers_path : organizers_path, class: "side-nav-link" %>
           <% if current_user&.can_organize_tournaments? %>

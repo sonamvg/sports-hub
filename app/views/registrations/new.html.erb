@@ -24,7 +24,7 @@
     <div>
       <%= form.label :athlete_id, "Athlete" %>
       <%= form.collection_select :athlete_id, @athletes, :id, :full_name, { prompt: "Choose athlete" }, data: { athlete_select: true } %>
-      <% if @athletes.any? %>
+      <% if @athletes.any? && !current_user.athlete? %>
         <p class="field-hint"><%= link_to "Add another athlete", new_athlete_path(return_to: request.fullpath), class: "text-link" %></p>
       <% end %>
     </div>

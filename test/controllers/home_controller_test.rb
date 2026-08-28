@@ -33,6 +33,16 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "View tournaments"
   end
 
+  test "athlete account uses own profile as home page" do
+    user = User.create!(name: "Athlete User", email: "athlete-home@example.com", phone: "9876543210", password: "password123", role: :athlete)
+    athlete = user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    sign_in_as user
+
+    get root_path
+
+    assert_redirected_to athlete_path(athlete)
+  end
+
   test "homepage shows previous competitions" do
     get root_path
 

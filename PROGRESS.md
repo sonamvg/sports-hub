@@ -1572,3 +1572,30 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 ### Verification Log
 - Ran `mise exec -- bin/rails test test/controllers/home_controller_test.rb test/controllers/sessions_controller_test.rb test/controllers/users_controller_test.rb`; result: 23 runs, 203 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails test`; result: 138 runs, 1032 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-28 - Athlete Account Home And Single-Profile Flow
+
+### Reference
+- User request: signed-in athletes should not see organiser or other registration options, should land on their own athlete home/profile, should not search athletes, and should not add more athletes.
+
+### Product Decisions
+- Athlete accounts are single-profile accounts: they can complete and edit their own athlete profile, but cannot create additional athlete profiles.
+- The athlete home page is the athlete profile page. It is used for the root path redirect, default login destination, and left-menu Athletes link.
+- Past tournament history remains on the athlete profile through the existing previous competitions section.
+- Signed-in users no longer see the organiser directory registration CTA.
+
+### Change Log
+- Added `athlete_home_path` as a helper for the athlete account destination.
+- Redirected athlete users with profiles from the public home page and Athletes index to their own profile.
+- Updated login defaults so athlete users land on their own profile after sign-in.
+- Blocked athlete users with an existing profile from opening or posting the Add athlete flow.
+- Updated the left-menu Athletes link to point directly to the signed-in athlete profile.
+- Hid the organiser registration CTA from signed-in users on the organiser directory.
+- Hid the Add another athlete prompt during tournament registration for athlete accounts.
+- Added integration tests for athlete home routing, athlete index redirect, single-profile enforcement, hidden organiser CTA, athlete login default, and registration prompt hiding.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb test/controllers/home_controller_test.rb test/controllers/sessions_controller_test.rb test/controllers/organizers_controller_test.rb test/controllers/registrations_controller_test.rb`; first result: 43 runs, 314 assertions, 0 failures, 1 error because the new athlete registration test needed its own tournament setup.
+- Added explicit open tournament and category setup to the athlete registration prompt-hiding test.
+- Re-ran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb test/controllers/home_controller_test.rb test/controllers/sessions_controller_test.rb test/controllers/organizers_controller_test.rb test/controllers/registrations_controller_test.rb`; result: 43 runs, 317 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 144 runs, 1057 assertions, 0 failures, 0 errors, 0 skips.

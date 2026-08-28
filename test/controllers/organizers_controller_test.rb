@@ -89,6 +89,17 @@ class OrganizersControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Pending Organizer"
   end
 
+  test "organizer directory hides registration CTA for signed in users" do
+    user = User.create!(name: "Athlete User", email: "signed-in-organizer-directory@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    sign_in_as user
+
+    get organizers_path
+
+    assert_response :success
+    assert_not_includes response.body, "Register as organizer"
+  end
+
   test "super admin can verify pending organizer" do
     super_admin = User.create!(name: "Super Admin", email: "admin@example.test", password: "password123", role: :super_admin)
     organizer = User.create!(

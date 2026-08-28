@@ -6,7 +6,9 @@
         <h1 class="page-title">Event organizers</h1>
         <p class="page-copy">Have an event in mind? Register yourself as an organizer. Super admins verify organizer accounts before they can create tournaments.</p>
       </div>
-      <%= link_to "Register as organizer", login_path(return_to: new_tournament_path), class: "primary-button" %>
+      <% unless current_user %>
+        <%= link_to "Register as organizer", login_path(return_to: new_tournament_path), class: "primary-button" %>
+      <% end %>
     </div>
 
     <% if super_admin? && @pending_organizers.any? %>

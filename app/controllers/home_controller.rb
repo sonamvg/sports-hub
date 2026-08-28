@@ -1,4 +1,6 @@
 class HomeController < ApplicationController
+  before_action :redirect_athlete_to_profile
+
   def index
     @previous_competitions = [
       {
@@ -148,5 +150,14 @@ class HomeController < ApplicationController
         url: "https://www.youtube.com/results?search_query=523+W-49kg+QF+KANG+Bora+KOR+vs+WONGPATTANAKIT+Panipak+THA+Guadalajara+2022+WT+Championships"
       }
     ]
+  end
+
+  private
+
+  def redirect_athlete_to_profile
+    return unless current_user&.athlete?
+    return unless current_user.athletes.exists?
+
+    redirect_to athlete_home_path
   end
 end

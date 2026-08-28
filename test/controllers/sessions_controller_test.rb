@@ -39,6 +39,16 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Signed in as Demo Super Admin.", flash[:notice]
   end
 
+  test "athlete sign in defaults to own profile" do
+    user = User.create!(name: "Athlete User", email: "athlete-login@example.com", phone: "9876543210", password: "password123", role: :athlete)
+    athlete = user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+
+    post login_path, params: { email: "athlete-login@example.com", password: "password123" }
+
+    assert_redirected_to athlete_path(athlete)
+    assert_equal user.id, session[:user_id]
+  end
+
   test "rejects invalid credentials" do
     User.create!(name: "Demo Super Admin", email: "admin@example.com", password: "password123", role: :super_admin)
 

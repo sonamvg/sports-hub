@@ -10,7 +10,7 @@ class SessionsController < ApplicationController
     elsif user&.authenticate(params[:password])
       reset_session
       session[:user_id] = user.id
-      redirect_to safe_return_path(params[:return_to]) || tournaments_path, notice: "Signed in as #{user.name}."
+      redirect_to safe_return_path(params[:return_to]) || default_after_login_path(user), notice: "Signed in as #{user.name}."
     else
       flash.now[:alert] = "Invalid email or password."
       render :new, status: :unprocessable_entity
@@ -28,5 +28,12 @@ class SessionsController < ApplicationController
     return if path.blank?
 
     path.to_s.start_with?("/") && !path.to_s.start_with?("//") ? path : nil
+  end
+
+  def default_after_login_path(user)
+    return athlete_path(user.athletes.order(:created_at).first) if user.athlete? && user.athletes.exists?
+    return new_athlete_path(profile_setup: true) if user.athlete?
+
+    tournaments_path
   end
 end

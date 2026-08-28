@@ -1,5 +1,7 @@
 class AthletesController < ApplicationController
   before_action :require_user
+  before_action :redirect_athlete_index_to_profile, only: %i[index]
+  before_action :prevent_extra_athlete_profile, only: %i[new create]
   before_action :set_athlete, only: %i[show edit update destroy]
   before_action :set_available_academies, only: %i[new create edit update]
 
@@ -29,7 +31,9 @@ class AthletesController < ApplicationController
     end
   end
 
-  def edit; end
+  def edit
+    @return_to = athlete_path(@athlete) if current_user.athlete?
+  end
 
   def update
     @return_to = safe_return_path(params[:return_to])
@@ -47,6 +51,19 @@ class AthletesController < ApplicationController
   end
 
   private
+
+  def redirect_athlete_index_to_profile
+    return unless current_user.athlete?
+
+    redirect_to athlete_home_path
+  end
+
+  def prevent_extra_athlete_profile
+    return unless current_user.athlete?
+    return unless current_user.athletes.exists?
+
+    redirect_to athlete_home_path, alert: "Athlete accounts can manage only their own profile."
+  end
 
   def set_athlete
     @athlete = visible_athletes.find(params[:id])

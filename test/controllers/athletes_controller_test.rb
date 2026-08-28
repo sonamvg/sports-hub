@@ -52,6 +52,40 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Complete your athlete profile to continue.", flash[:alert]
   end
 
+  test "athlete account with profile is redirected from athletes index to own profile" do
+    athlete_user = User.create!(name: "Athlete User", email: "athlete-index@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    sign_in_as athlete_user
+
+    get athletes_path(q: "aarohi", belt: "red")
+
+    assert_redirected_to athlete_path(athlete)
+  end
+
+  test "athlete account with profile cannot add another athlete" do
+    athlete_user = User.create!(name: "Athlete User", email: "athlete-extra@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    sign_in_as athlete_user
+
+    get new_athlete_path
+
+    assert_redirected_to athlete_path(athlete)
+    assert_equal "Athlete accounts can manage only their own profile.", flash[:alert]
+
+    assert_no_difference("Athlete.count") do
+      post athletes_path, params: {
+        athlete: {
+          first_name: "Second",
+          last_name: "Athlete",
+          date_of_birth: Date.new(2015, 5, 12),
+          gender: "female"
+        }
+      }
+    end
+
+    assert_redirected_to athlete_path(athlete)
+  end
+
   test "returns to registration flow after creating athlete from registration page" do
     return_path = "/tournaments/42/registrations/new"
 
