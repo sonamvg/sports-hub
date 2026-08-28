@@ -1757,3 +1757,23 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Reran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb`; result: 17 runs, 107 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `git diff --check`; result: no whitespace errors.
 - Ran `mise exec -- bin/rails test`; result: 152 runs, 1138 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-28 - Left Menu Signed-In Name
+
+### Reference
+- User request: when someone signs in, show their first name at the end of the left menu instead of "Athlete" or "Organiser".
+
+### Product Decisions
+- Replaced the signed-in role label in the left menu with the user's first name.
+- Added a fallback to the email prefix if a user name is unexpectedly blank.
+- Kept the existing pill styling so the footer layout remains stable.
+
+### Change Log
+- Added `user_first_name` helper for first-name display.
+- Updated the application layout side-account footer to render `user_first_name(current_user)`.
+- Added a homepage regression assertion that signed-in users see their first name and not the role label in the menu footer.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/home_controller_test.rb`; result: 7 runs, 67 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `git diff --check`; result: no whitespace errors.
+- Ran `mise exec -- bin/rails test`; result: 152 runs, 1142 assertions, 0 failures, 0 errors, 0 skips.

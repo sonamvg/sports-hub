@@ -47,7 +47,7 @@
 
         <div class="side-account">
           <% if current_user %>
-            <span class="status-pill"><%= current_user.role.humanize %></span>
+            <span class="status-pill"><%= user_first_name(current_user) %></span>
             <%= button_to logout_path, method: :delete, class: "link-button account-action" do %><%= ui_icon("log-out") %><span>Sign out</span><% end %>
           <% else %>
             <%= link_to login_path, class: "side-nav-link" do %><%= ui_icon("user") %><span>Sign in</span><% end %>

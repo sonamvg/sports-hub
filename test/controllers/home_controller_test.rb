@@ -31,6 +31,8 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Register academy"
     assert_not_includes response.body, "Submit academy"
     assert_includes response.body, "View tournaments"
+    assert_includes response.body, "Signed"
+    assert_not_includes response.body, "Super admin"
   end
 
   test "athlete account uses own profile as home page" do

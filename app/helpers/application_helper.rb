@@ -55,4 +55,8 @@ module ApplicationHelper
       }.merge(options)
     )
   end
+
+  def user_first_name(user)
+    user.name.to_s.squish.split.first.presence || user.email.to_s.split("@").first
+  end
 end
