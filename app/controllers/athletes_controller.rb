@@ -23,9 +23,11 @@ class AthletesController < ApplicationController
   def create
     @athlete = current_user.athletes.build(athlete_params)
     @return_to = safe_return_path(params[:return_to])
+    requested_academy_id = academy_request_id
 
     if @athlete.save
-      redirect_to(@return_to.presence || @athlete, notice: "Athlete profile created.")
+      create_academy_request_if_needed(@athlete, requested_academy_id)
+      redirect_to(@return_to.presence || @athlete, notice: athlete_saved_notice(requested_academy_id, created: true))
     else
       render :new, status: :unprocessable_entity
     end
@@ -37,9 +39,11 @@ class AthletesController < ApplicationController
 
   def update
     @return_to = safe_return_path(params[:return_to])
+    requested_academy_id = academy_request_id
 
     if @athlete.update(athlete_params)
-      redirect_to(@return_to.presence || @athlete, notice: "Athlete profile updated.")
+      create_academy_request_if_needed(@athlete, requested_academy_id)
+      redirect_to(@return_to.presence || @athlete, notice: athlete_saved_notice(requested_academy_id, created: false))
     else
       render :edit, status: :unprocessable_entity
     end
@@ -108,13 +112,17 @@ class AthletesController < ApplicationController
   end
 
   def athlete_params
-    params.require(:athlete).permit(
+    permitted = params.require(:athlete).permit(
       :academy_id, :first_name, :last_name, :date_of_birth, :gender,
       :belt, :weight, :association_id, :city, :state, :country,
       :contact_number, :blood_group, :emergency_contact_name,
       :emergency_contact_phone, :address, :government_id_document_type,
-      :profile_photo, :identity_document
+      :external_academy_name, :profile_photo, :identity_document
     )
+    return permitted unless athlete_account_self_service?
+
+    permitted.delete(:academy_id) if permitted[:academy_id].present?
+    permitted
   end
 
   def assign_name_from_user(athlete)
@@ -126,6 +134,35 @@ class AthletesController < ApplicationController
 
   def set_available_academies
     @available_academies = Academy.approved.order(:name)
+  end
+
+  def academy_request_id
+    return unless athlete_account_self_service?
+
+    params.dig(:athlete, :academy_id).presence
+  end
+
+  def athlete_account_self_service?
+    current_user.athlete?
+  end
+
+  def create_academy_request_if_needed(athlete, academy_id)
+    return if academy_id.blank?
+
+    academy = Academy.approved.find_by(id: academy_id)
+    return unless academy
+    return if athlete.academy_id == academy.id
+
+    athlete.academy_membership_requests.pending.where.not(academy: academy).update_all(status: AcademyMembershipRequest.statuses[:rejected], reviewed_at: Time.current, updated_at: Time.current)
+    membership_request = athlete.academy_membership_requests.find_or_initialize_by(academy: academy, status: :pending)
+    membership_request.requested_by ||= current_user
+    membership_request.save!
+  end
+
+  def athlete_saved_notice(academy_id, created:)
+    return "Academy join request sent to the academy owner." if academy_id.present?
+
+    created ? "Athlete profile created." : "Athlete profile updated."
   end
 
   def safe_return_path(path)

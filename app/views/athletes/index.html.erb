@@ -25,7 +25,7 @@
     <div class="list-grid">
       <% @athletes.each do |athlete| %>
         <article class="entity-card">
-          <div><span class="status-pill"><%= athlete.belt.presence || "Belt not set" %></span><h2><%= athlete.full_name %></h2><p><%= athlete.academy&.name || "No academy selected" %></p></div>
+          <div><span class="status-pill"><%= athlete.belt.presence || "Belt not set" %></span><h2><%= athlete.full_name %></h2><p><%= athlete.academy_display_name || "No academy selected" %></p></div>
           <div class="entity-meta"><span><strong>DOB</strong><%= athlete.date_of_birth.strftime("%d %b %Y") %></span><span><strong>Weight</strong><%= athlete.weight ? "#{athlete.weight} kg" : "—" %></span></div>
           <%= link_to athlete_path(athlete), class: "text-link icon-label" do %><span>View profile</span><%= ui_icon("arrow-right") %><% end %>
         </article>

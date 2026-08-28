@@ -138,6 +138,71 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, athlete_path(athlete)
   end
 
+  test "academy owner can approve athlete join request" do
+    owner = User.create!(name: "Academy Owner", email: "membership-owner@example.com", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
+    athlete_user = User.create!(name: "Athlete User", email: "membership-athlete@example.test", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    membership_request = academy.academy_membership_requests.create!(athlete: athlete, requested_by: athlete_user)
+    sign_in_as owner
+
+    get academy_path(academy)
+
+    assert_response :success
+    assert_includes response.body, "Join requests"
+    assert_includes response.body, "Aarohi Shah"
+    assert_includes response.body, approve_academy_academy_membership_request_path(academy, membership_request)
+    assert_includes response.body, reject_academy_academy_membership_request_path(academy, membership_request)
+
+    patch approve_academy_academy_membership_request_path(academy, membership_request)
+
+    assert_redirected_to academy_path(academy)
+    assert_equal "Athlete added to academy.", flash[:notice]
+    assert_equal academy, athlete.reload.academy
+    assert_predicate membership_request.reload, :approved?
+    assert_equal owner, membership_request.reviewed_by
+    assert_not_nil membership_request.reviewed_at
+  end
+
+  test "academy owner can reject athlete join request" do
+    owner = User.create!(name: "Academy Owner", email: "membership-reject-owner@example.com", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
+    athlete_user = User.create!(name: "Athlete User", email: "membership-reject-athlete@example.test", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    membership_request = academy.academy_membership_requests.create!(athlete: athlete, requested_by: athlete_user)
+    sign_in_as owner
+
+    patch reject_academy_academy_membership_request_path(academy, membership_request)
+
+    assert_redirected_to academy_path(academy)
+    assert_equal "Athlete request rejected.", flash[:notice]
+    assert_nil athlete.reload.academy_id
+    assert_predicate membership_request.reload, :rejected?
+    assert_equal owner, membership_request.reviewed_by
+  end
+
+  test "academy owner assigning athlete to own academy does not need approval" do
+    owner = User.create!(name: "Academy Owner", email: "direct-add-owner@example.com", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
+    sign_in_as owner
+
+    assert_no_difference("AcademyMembershipRequest.count") do
+      assert_difference("Athlete.count", 1) do
+        post athletes_path, params: {
+          athlete: {
+            first_name: "Aarohi",
+            last_name: "Shah",
+            date_of_birth: Date.new(2014, 5, 12),
+            gender: "female",
+            academy_id: academy.id
+          }
+        }
+      end
+    end
+
+    assert_equal academy, Athlete.order(:created_at).last.academy
+  end
+
   test "index searches academies and orders oldest first" do
     newer = Academy.create!(name: "Newer Academy", city: "Pune", state: "Maharashtra", status: :approved)
     older = Academy.create!(name: "Older Academy", city: "Pune", state: "Maharashtra", status: :approved)

@@ -1,6 +1,7 @@
 class Academy < ApplicationRecord
   belongs_to :owner, class_name: "User", optional: true
   has_many :athletes, dependent: :nullify
+  has_many :academy_membership_requests, dependent: :destroy
 
   enum :status, { pending: 0, approved: 1, rejected: 2 }, default: :pending
 

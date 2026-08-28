@@ -11,7 +11,18 @@
     <div><%= form.label :weight, "Current weight (kg)" %><%= form.number_field :weight, step: 0.1, min: 1 %></div>
     <div><%= form.label :blood_group %><%= form.select :blood_group, Athlete::BLOOD_GROUPS, include_blank: "Select blood group" %></div>
     <div><%= form.label :contact_number, "Contact number" %><%= form.telephone_field :contact_number %></div>
-    <div class="full"><%= form.label :academy_id, "Approved academy" %><%= form.collection_select :academy_id, @available_academies, :id, :name, include_blank: "No academy yet" %></div>
+    <div class="full">
+      <%= form.label :academy_id, current_user.athlete? ? "Request registered academy" : "Approved academy" %>
+      <%= form.collection_select :academy_id, @available_academies, :id, :name, include_blank: "No registered academy" %>
+      <% if current_user.athlete? %>
+        <p class="field-hint">Registered academy changes are sent to the academy owner for approval.</p>
+      <% end %>
+    </div>
+    <div class="full">
+      <%= form.label :external_academy_name, "Academy not in Sports Hub" %>
+      <%= form.text_field :external_academy_name, placeholder: "Enter academy name if it is not registered here" %>
+      <p class="field-hint">Use this only when the academy is not listed above. It will be shown as plain text without an academy link.</p>
+    </div>
     <div><%= form.label :association_id, "Association ID" %><%= form.text_field :association_id %></div>
     <div class="form-section-heading full"><h2>Address</h2></div>
     <div class="full"><%= form.label :address, "Address" %><%= form.text_area :address, rows: 3 %></div>

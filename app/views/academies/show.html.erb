@@ -7,6 +7,22 @@
     <% if @academy.rejected? && @academy.rejection_reason.present? %><div><dt>Reason</dt><dd><%= @academy.rejection_reason %></dd></div><% end %>
   </dl>
   <% if can_manage_academy?(@academy) %>
+    <% if @membership_requests.any? %>
+      <h3>Join requests</h3>
+      <div class="approval-table">
+        <% @membership_requests.each do |membership_request| %>
+          <% athlete = membership_request.athlete %>
+          <div class="approval-row">
+            <div><strong><%= athlete.full_name %></strong><span>Requested <%= membership_request.created_at.strftime("%d %b %Y") %></span></div>
+            <span class="status-pill status-pending">Pending</span>
+            <div class="row-actions">
+              <%= button_to "Approve", approve_academy_academy_membership_request_path(@academy, membership_request), method: :patch, class: "approve-button" %>
+              <%= button_to "Reject", reject_academy_academy_membership_request_path(@academy, membership_request), method: :patch, class: "reject-button" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
     <h3>My athletes</h3>
     <% if @athletes.any? %>
       <div class="registered-athlete-list academy-athlete-list">

@@ -86,6 +86,56 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to athlete_path(athlete)
   end
 
+  test "athlete selecting registered academy creates membership request instead of direct link" do
+    owner = User.create!(name: "Academy Owner", email: "request-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
+    athlete_user = User.create!(name: "Athlete User", email: "academy-request-athlete@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    sign_in_as athlete_user
+
+    assert_difference("AcademyMembershipRequest.pending.count", 1) do
+      patch athlete_path(athlete), params: {
+        athlete: {
+          first_name: "Aarohi",
+          last_name: "Shah",
+          date_of_birth: Date.new(2014, 5, 12),
+          gender: "female",
+          academy_id: academy.id
+        }
+      }
+    end
+
+    assert_redirected_to athlete_path(athlete)
+    assert_equal "Academy join request sent to the academy owner.", flash[:notice]
+    assert_nil athlete.reload.academy_id
+    request = AcademyMembershipRequest.pending.order(:created_at).last
+    assert_equal academy, request.academy
+    assert_equal athlete, request.athlete
+    assert_equal athlete_user, request.requested_by
+  end
+
+  test "athlete can save unregistered academy name without membership request" do
+    athlete_user = User.create!(name: "Athlete User", email: "external-academy-athlete@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    sign_in_as athlete_user
+
+    assert_no_difference("AcademyMembershipRequest.count") do
+      patch athlete_path(athlete), params: {
+        athlete: {
+          first_name: "Aarohi",
+          last_name: "Shah",
+          date_of_birth: Date.new(2014, 5, 12),
+          gender: "female",
+          external_academy_name: "Independent Dojang"
+        }
+      }
+    end
+
+    assert_redirected_to athlete_path(athlete)
+    assert_equal "Independent Dojang", athlete.reload.external_academy_name
+    assert_nil athlete.academy_id
+  end
+
   test "returns to registration flow after creating athlete from registration page" do
     return_path = "/tournaments/42/registrations/new"
 

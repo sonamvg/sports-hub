@@ -17,6 +17,13 @@ Rails.application.routes.draw do
 
   resources :athletes
   resources :academies do
+    resources :academy_membership_requests, only: [] do
+      member do
+        patch :approve
+        patch :reject
+      end
+    end
+
     member do
       patch :approve
       patch :reject

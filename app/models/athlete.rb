@@ -16,6 +16,7 @@ class Athlete < ApplicationRecord
   belongs_to :user
   belongs_to :academy, optional: true
   has_many :registrations, dependent: :destroy
+  has_many :academy_membership_requests, dependent: :destroy
   has_one_attached :profile_photo
   has_one_attached :identity_document
 
@@ -37,6 +38,14 @@ class Athlete < ApplicationRecord
     [first_name, last_name].compact_blank.join(" ")
   end
 
+  def academy_display_name
+    academy&.name || external_academy_name
+  end
+
+  def pending_academy_request
+    academy_membership_requests.pending.includes(:academy).order(created_at: :desc).first
+  end
+
   private
 
   def normalize_profile_fields
@@ -45,6 +54,7 @@ class Athlete < ApplicationRecord
     self.gender = gender.to_s.downcase.presence
     self.belt = belt.to_s.downcase.presence
     self.association_id = association_id.to_s.squish.presence
+    self.external_academy_name = external_academy_name.to_s.squish.presence
     self.city = city.to_s.squish.presence
     self.state = state.to_s.squish.presence
     self.country = country.to_s.squish.presence || "India"

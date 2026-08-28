@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_28_000100) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_28_000200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -30,6 +30,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_28_000100) do
     t.integer "status", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["owner_id"], name: "index_academies_on_owner_id"
+  end
+
+  create_table "academy_membership_requests", force: :cascade do |t|
+    t.bigint "academy_id", null: false
+    t.bigint "athlete_id", null: false
+    t.datetime "created_at", null: false
+    t.bigint "requested_by_id", null: false
+    t.datetime "reviewed_at"
+    t.bigint "reviewed_by_id"
+    t.integer "status", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["academy_id", "athlete_id", "status"], name: "idx_pending_academy_membership_requests", unique: true, where: "(status = 0)"
+    t.index ["academy_id"], name: "index_academy_membership_requests_on_academy_id"
+    t.index ["athlete_id"], name: "index_academy_membership_requests_on_athlete_id"
+    t.index ["requested_by_id"], name: "index_academy_membership_requests_on_requested_by_id"
+    t.index ["reviewed_by_id"], name: "index_academy_membership_requests_on_reviewed_by_id"
   end
 
   create_table "active_storage_attachments", force: :cascade do |t|
@@ -73,6 +89,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_28_000100) do
     t.date "date_of_birth", null: false
     t.string "emergency_contact_name"
     t.string "emergency_contact_phone"
+    t.string "external_academy_name"
     t.string "first_name", null: false
     t.string "gender", null: false
     t.string "government_id_document_type"
@@ -256,6 +273,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_28_000100) do
   end
 
   add_foreign_key "academies", "users", column: "owner_id"
+  add_foreign_key "academy_membership_requests", "academies"
+  add_foreign_key "academy_membership_requests", "athletes"
+  add_foreign_key "academy_membership_requests", "users", column: "requested_by_id"
+  add_foreign_key "academy_membership_requests", "users", column: "reviewed_by_id"
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "athletes", "academies"

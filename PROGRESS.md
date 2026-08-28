@@ -1669,3 +1669,34 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 
 ### Verification Log
 - Not run. This is a future requirement note only.
+
+## 2026-08-28 - Academy Athlete Membership Requests
+
+### Reference
+- User request: athletes can change academies; unregistered academies should be accepted without links; registered academy changes should notify the academy owner for approval/rejection; academy-created athletes should not require approval.
+
+### Product Decisions
+- Added explicit academy membership requests instead of directly changing `athletes.academy_id` when an athlete self-selects a registered academy.
+- An athlete's current linked academy remains unchanged while a new registered-academy request is pending.
+- Unregistered academy names are stored on the athlete profile as plain text in `external_academy_name`.
+- Academy owners see pending join requests on their academy page and can approve or reject them.
+- Academy owners and super admins can still directly assign athletes to approved academies without membership approval.
+
+### Change Log
+- Added `external_academy_name` to athletes.
+- Added `AcademyMembershipRequest` with pending, approved, and rejected statuses, reviewer metadata, and a partial unique index for pending academy/athlete requests.
+- Added approve/reject routes and controller actions for academy membership requests.
+- Updated athlete create/update flow so athlete accounts generate registered-academy join requests and save unregistered academy text directly.
+- Updated athlete forms and profile/list displays for registered academy requests and external academy names.
+- Updated academy show page to display pending join requests with approve/reject actions for academy managers.
+- Added integration tests for athlete registered-academy requests, unregistered academy text, academy-owner approval/rejection, and direct academy-owner athlete assignment.
+- Tightened membership request creation so an existing pending request is reused instead of attempting to create a duplicate row.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: added `athletes.external_academy_name`, created `academy_membership_requests`, and updated `db/schema.rb`.
+- Ran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb test/controllers/academies_controller_test.rb`; result: 29 runs, 195 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 150 runs, 1118 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `git diff --check`; result: no whitespace errors.
+- Attempted focused controller tests inside the sandbox after the final duplicate-request hardening; Rails could not access the local PostgreSQL socket from the sandbox, so the command was rerun with database access.
+- Reran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb test/controllers/academies_controller_test.rb`; result: 29 runs, 195 assertions, 0 failures, 0 errors, 0 skips.
+- Reran `mise exec -- bin/rails test`; result: 150 runs, 1118 assertions, 0 failures, 0 errors, 0 skips.

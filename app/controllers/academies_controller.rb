@@ -11,6 +11,7 @@ class AcademiesController < ApplicationController
 
   def show
     @athletes = @academy.athletes.order(:first_name, :last_name) if can_manage_academy?(@academy)
+    @membership_requests = @academy.academy_membership_requests.pending.includes(:athlete).order(:created_at) if can_manage_academy?(@academy)
   end
 
   def new
