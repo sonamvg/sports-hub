@@ -121,7 +121,10 @@ class AthletesController < ApplicationController
     )
     return permitted unless athlete_account_self_service?
 
-    permitted.delete(:academy_id) if permitted[:academy_id].present?
+    academy_choice = params.dig(:athlete, :academy_id).to_s
+    permitted.delete(:association_id)
+    permitted.delete(:academy_id)
+    permitted[:external_academy_name] = nil unless academy_choice == "other"
     permitted
   end
 
@@ -139,7 +142,10 @@ class AthletesController < ApplicationController
   def academy_request_id
     return unless athlete_account_self_service?
 
-    params.dig(:athlete, :academy_id).presence
+    academy_id = params.dig(:athlete, :academy_id).to_s
+    return if academy_id == "other"
+
+    academy_id.presence
   end
 
   def athlete_account_self_service?

@@ -1730,3 +1730,30 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Reran `mise exec -- bin/rails db:seed`; result: seed completed successfully again, confirming repeatability.
 - Ran `git diff --check`; result: no whitespace errors.
 - Ran `mise exec -- bin/rails test`; result: 150 runs, 1118 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-28 - Athlete Self-Service Academy Selection
+
+### Reference
+- User request: in the athlete logged-in flow, remove Association ID; show an "Academy" header with a dropdown of registered academies; keep "Other" in the dropdown and reveal a text field only when Other is selected.
+
+### Product Decisions
+- Kept `association_id` in the data model and non-athlete management flows, but removed it from the logged-in athlete self-service form and ignored self-service attempts to update it.
+- Registered academy selection by an athlete still creates an academy membership request instead of directly linking the athlete to the academy.
+- The Other academy option stores a plain-text `external_academy_name` and creates no academy membership request.
+- When an athlete selects a registered academy or no academy, stale external academy text is cleared.
+- Added a small global JavaScript asset loaded by the layout, scoped to forms that declare the academy choice data attributes.
+
+### Change Log
+- Updated the athlete form to render a single "Academy" dropdown with approved academies plus Other for athlete accounts.
+- Added conditional display for the external academy name field when Other is selected.
+- Hid Association ID from athlete self-service forms.
+- Added JavaScript to toggle the Other academy text field and disable it when not selected.
+- Updated athlete controller params so self-service athletes cannot assign academies directly or update Association ID.
+- Added tests for the athlete edit form, Other academy submission, registered academy membership requests, stale external academy clearing, and Association ID protection.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb`; first result: 17 runs, 106 assertions, 1 failure because the existing unregistered-academy test did not submit the new `academy_id: "other"` dropdown choice.
+- Updated the unregistered-academy test to select Other before submitting the external academy name.
+- Reran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb`; result: 17 runs, 107 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `git diff --check`; result: no whitespace errors.
+- Ran `mise exec -- bin/rails test`; result: 152 runs, 1138 assertions, 0 failures, 0 errors, 0 skips.

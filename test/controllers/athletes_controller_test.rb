@@ -114,6 +114,24 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_equal athlete_user, request.requested_by
   end
 
+  test "athlete edit form shows academy dropdown with other and hides association id" do
+    owner = User.create!(name: "Academy Owner", email: "athlete-form-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Registered Academy", city: "Pune", status: :approved, owner: owner)
+    athlete_user = User.create!(name: "Athlete User", email: "athlete-form-self@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", association_id: "TKD-123")
+    sign_in_as athlete_user
+
+    get edit_athlete_path(athlete)
+
+    assert_response :success
+    assert_includes response.body, "Academy"
+    assert_includes response.body, "Registered Academy"
+    assert_includes response.body, "Other"
+    assert_includes response.body, "data-academy-choice-select"
+    assert_not_includes response.body, "Association ID"
+    assert_not_includes response.body, "TKD-123"
+  end
+
   test "athlete can save unregistered academy name without membership request" do
     athlete_user = User.create!(name: "Athlete User", email: "external-academy-athlete@example.test", phone: "9876543210", password: "password123", role: :athlete)
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
@@ -126,6 +144,7 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
           last_name: "Shah",
           date_of_birth: Date.new(2014, 5, 12),
           gender: "female",
+          academy_id: "other",
           external_academy_name: "Independent Dojang"
         }
       }
@@ -134,6 +153,32 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to athlete_path(athlete)
     assert_equal "Independent Dojang", athlete.reload.external_academy_name
     assert_nil athlete.academy_id
+  end
+
+  test "athlete registered academy request clears external academy text" do
+    owner = User.create!(name: "Academy Owner", email: "clear-external-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Linked Academy", city: "Pune", status: :approved, owner: owner)
+    athlete_user = User.create!(name: "Athlete User", email: "clear-external-athlete@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", external_academy_name: "Old External", association_id: "TKD-123")
+    sign_in_as athlete_user
+
+    assert_difference("AcademyMembershipRequest.pending.count", 1) do
+      patch athlete_path(athlete), params: {
+        athlete: {
+          first_name: "Aarohi",
+          last_name: "Shah",
+          date_of_birth: Date.new(2014, 5, 12),
+          gender: "female",
+          academy_id: academy.id,
+          external_academy_name: "Should Not Persist",
+          association_id: "CHANGED"
+        }
+      }
+    end
+
+    assert_redirected_to athlete_path(athlete)
+    assert_nil athlete.reload.external_academy_name
+    assert_equal "TKD-123", athlete.association_id
   end
 
   test "returns to registration flow after creating athlete from registration page" do
