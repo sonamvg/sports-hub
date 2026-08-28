@@ -1648,3 +1648,24 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Started a temporary Rails server on port 3001 with `PIDFILE=/tmp/sports-hub-ui-smoke-3001.pid mise exec -- bin/rails server -b 127.0.0.1 -p 3001`.
 - Verified the tournament index rendered successfully on port 3001 with the refreshed markup: icon SVGs emitted valid `stroke-width` attributes, the filter panel rendered as `tournament-filter-panel`, and the search heading rendered as "Find competitions".
 - Stopped the temporary port 3001 Rails server after smoke verification.
+
+## 2026-08-28 - Future Athlete Tournament Status Flow
+
+### Reference
+- User request: do not implement now, but remember the future athlete-facing tournament status flow after organiser approval, rejection, weight check, draw setup, match completion, and certificates.
+
+### Future Product Requirements
+- When an athlete submits a tournament registration, the request should go to that tournament's organisers.
+- If an organiser rejects the registration, the athlete should see a "Not approved" status and the tournament should move into the athlete's past tournaments list.
+- If an organiser accepts the registration, the athlete should see the tournament under upcoming events on their athlete profile.
+- If a tournament has a weight check date, the athlete should see that date in the upcoming event details.
+- If the organiser records weight check attempts and accepts the athlete after any valid attempt, the athlete should continue seeing the tournament in upcoming events and should see match dates when available.
+- If the athlete is disqualified during weight check, the athlete should see a "Disqualified" status and the entered weight attempts.
+- After set draw is implemented, the athlete should be able to see their schedule and competitors.
+- After match completion is implemented, the athlete should be able to see their own match result/status and download a certificate.
+
+### Change Log
+- Documentation only. No code changes were made for this future flow.
+
+### Verification Log
+- Not run. This is a future requirement note only.
