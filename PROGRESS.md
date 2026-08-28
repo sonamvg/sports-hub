@@ -1617,3 +1617,34 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 ### Verification Log
 - Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/registrations_controller_test.rb`; result: 45 runs, 407 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails test`; result: 145 runs, 1070 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-28 - Professional UI Foundation Pass
+
+### Reference
+- User request: use Miru and The Athletic as UI references, keep the existing font family, improve search, icons, styling, and remove unnecessary clutter.
+- Reference scan: Miru emphasizes compact operational UI, icon consistency, calm app surfaces, and searchable work tables. The Athletic emphasizes strong editorial hierarchy, restrained black/red contrast, clean card/list density, and crisp navigation.
+
+### Product Decisions
+- Kept the existing Arial/Helvetica font stack.
+- Added a lightweight inline SVG icon helper instead of adding a new frontend library or gem.
+- Reduced visible copy on core index pages and kept labels action-oriented.
+- Kept the left menu but made it more app-like with icon-led navigation and compact tournament actions.
+
+### Change Log
+- Added reusable `ui_icon` helper with a small internal icon set for search, filters, navigation, tournaments, academies, athletes, organiser, edit, logout, and primary actions.
+- Added icons to the left navigation, organiser tournament shortcuts, account actions, search labels, and primary CTAs.
+- Refined tournament, academy, and athlete index copy and action presentation.
+- Converted search submit controls on key index pages to icon+text buttons.
+- Added icon-led text links for common "view" actions.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; first result: 145 runs, 1058 assertions, 1 failure because an existing tournament filter test expected the old "Tournament filters" and "Apply filters" copy.
+- Updated the tournament filter test to expect the refreshed "Find competitions" and "Apply" UI copy.
+- Ran `mise exec -- bin/rails test`; second result: 145 runs, 401 assertions, 0 failures, 75 errors because the initial SVG helper used the Rails `tag.svg` API incorrectly.
+- Reworked `ui_icon` to use `content_tag(:svg, ...)`, which emits proper hyphenated SVG attributes such as `stroke-width`.
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/users_controller_test.rb`; result: 46 runs, 420 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 145 runs, 1070 assertions, 0 failures, 0 errors, 0 skips.
+- Attempted curl smoke checks against the existing Rails server on port 3000. The server process was still listening, but curl body checks were inconsistent after the dev-server state changed.
+- Started a temporary Rails server on port 3001 with `PIDFILE=/tmp/sports-hub-ui-smoke-3001.pid mise exec -- bin/rails server -b 127.0.0.1 -p 3001`.
+- Verified the tournament index rendered successfully on port 3001 with the refreshed markup: icon SVGs emitted valid `stroke-width` attributes, the filter panel rendered as `tournament-filter-panel`, and the search heading rendered as "Find competitions".
+- Stopped the temporary port 3001 Rails server after smoke verification.

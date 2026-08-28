@@ -648,9 +648,9 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, matching.name
     assert_equal 1, response.body.scan('class="entity-card tournament-card"').size
-    assert_includes response.body, "Tournament filters"
+    assert_includes response.body, "Find competitions"
     assert_includes response.body, "2 filters active"
-    assert_includes response.body, "Apply filters"
+    assert_includes response.body, "Apply"
     assert_includes response.body, "All countries"
     assert_includes response.body, "All states"
     assert_includes response.body, "Country"

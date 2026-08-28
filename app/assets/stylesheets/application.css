@@ -313,3 +313,124 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
   .entity-meta { flex-direction:column; gap:10px; }
   .detail-list div { grid-template-columns:1fr; gap:5px; }
 }
+
+/* Professional UI refresh */
+:root {
+  --red:#c9162b;
+  --ink:#101114;
+  --muted:#686d76;
+  --line:#e5e7eb;
+  --paper:#f6f6f3;
+  --panel:#ffffff;
+  --soft:#fafafa;
+  --shadow:0 18px 45px rgba(16,17,20,.07);
+}
+body { background:#f4f4f1; }
+.app-frame { grid-template-columns:264px minmax(0,1fr); background:#f4f4f1; }
+.side-menu { background:#fff; padding:26px 18px; gap:28px; }
+.brand { padding:0 10px 20px; border-bottom:1px solid var(--line); }
+.ui-icon { width:18px; height:18px; flex:0 0 auto; }
+.icon-label { display:inline-flex!important; align-items:center; justify-content:center; gap:8px; }
+.side-nav-link { gap:10px; border-radius:8px; color:#4c515a; padding:10px 12px; }
+.side-nav-link:hover { background:#f7f7f5; }
+.side-tournament { border-radius:8px; overflow:hidden; }
+.side-tournament-links { padding:8px; gap:4px; }
+.side-tournament-links a,.side-action-button,.side-disabled {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:7px 8px;
+  border-radius:7px;
+}
+.side-tournament-links a:hover,.side-action-button:hover { background:#f7f7f5; }
+.account-action { display:flex; align-items:center; gap:8px; padding:10px 12px; color:var(--muted); }
+.nav-button,.primary-button {
+  border:1px solid var(--red);
+  border-radius:8px;
+  padding:12px 17px;
+  font-weight:800;
+  box-shadow:0 10px 20px rgba(201,22,43,.12);
+}
+.nav-button:hover,.primary-button:hover { background:#a81122; border-color:#a81122; }
+.secondary-button {
+  border:1px solid #cfd3d9;
+  border-radius:8px;
+  padding:12px 17px;
+  font-weight:800;
+  background:white;
+  color:#20242a;
+}
+.secondary-button:hover { border-color:#aeb4bd; background:#fafafa; }
+.icon-button { border-radius:8px; }
+.page-shell,.page-shell.organizer-page,.page-shell.organizer-directory-page { background:#f4f4f1; padding:64px 0 96px; }
+.page-heading { margin-bottom:34px; }
+.page-title { font-size:clamp(40px,5.2vw,68px); letter-spacing:-.045em; margin-bottom:14px; }
+.page-copy { font-size:17px; line-height:1.55; max-width:680px; }
+.breadcrumbs { margin-bottom:24px; font-size:12px; }
+.list-grid { gap:18px; }
+.entity-card {
+  border-radius:8px;
+  padding:24px;
+  min-height:220px;
+  box-shadow:0 1px 0 rgba(16,17,20,.02);
+  transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+.entity-card:hover {
+  transform:translateY(-2px);
+  border-color:#d2d6dd;
+  box-shadow:var(--shadow);
+}
+.tournament-visual {
+  width:calc(100% + 48px);
+  height:142px;
+  margin:0 -24px 22px;
+  background:linear-gradient(135deg,#101114 0%,#343842 62%,#c9162b 100%);
+}
+.tournament-banner,.organizer-profile-panel,.organizer-event-list,.category-list,.referee-list,.registered-athlete-list,.approval-table {
+  border-radius:8px;
+  overflow:hidden;
+}
+.organizer-profile-panel,.athlete-photo { box-shadow:var(--shadow); }
+.form-card,.detail-card {
+  margin-top:30px;
+  border-radius:8px;
+  padding:30px;
+  box-shadow:0 1px 0 rgba(16,17,20,.02);
+}
+.form-grid input,.form-grid select,.form-grid textarea,
+.filter-bar input,.filter-bar select,
+.filter-field input,.filter-field select,
+.search-bar input[type="search"],
+.readonly-field,
+.category-picker-select {
+  border-radius:8px;
+}
+.filter-bar,.tournament-filter-panel {
+  border-radius:8px;
+  background:white;
+  box-shadow:0 1px 0 rgba(16,17,20,.02);
+}
+.filter-bar label,.filter-field label {
+  display:flex;
+  align-items:center;
+  gap:7px;
+  color:#343842;
+}
+.filter-panel-header strong { font-size:21px; }
+.search-field input { font-weight:800; }
+.checklist-group,.organizer-picker,.modal-panel,.payment-instructions,.category-picker,.registration-total,.inline-empty-state,.inline-notice,.weight-check-row,.athlete-photo {
+  border-radius:8px;
+}
+.status-pill { align-items:center; }
+.text-link.icon-label .ui-icon { width:16px; height:16px; }
+.text-link:hover { text-decoration:none; color:#a81122; }
+
+@media (max-width: 800px) {
+  .app-frame { grid-template-columns:180px minmax(0,1fr); }
+}
+@media (max-width:650px) {
+  .app-frame { grid-template-columns:76px minmax(0,1fr); }
+  .brand { font-size:11px; padding:0 6px 14px; }
+  .side-nav-link span,.side-account .nav-button,.side-nav-group > span,.side-tournament summary,.side-tournament-links span,.side-disabled span,.account-action span { display:none; }
+  .side-nav-link,.side-tournament-links a,.side-action-button,.side-disabled,.account-action { justify-content:center; padding:10px; }
+}

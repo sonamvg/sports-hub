@@ -1,8 +1,8 @@
 <section class="page-shell">
   <div class="container">
     <div class="page-heading">
-      <div><p class="eyebrow">ATHLETES</p><h1 class="page-title">My athletes</h1><p class="page-copy">Create and manage athlete profiles before registering for competitions.</p></div>
-      <%= link_to "Add athlete", new_athlete_path, class: "primary-button" %>
+      <div><p class="eyebrow">ATHLETES</p><h1 class="page-title">My athletes</h1><p class="page-copy">Manage eligible athletes and keep competition details ready.</p></div>
+      <%= link_to new_athlete_path, class: "primary-button icon-label" do %><%= ui_icon("plus") %><span>Add athlete</span><% end %>
     </div>
 
     <% if @organizer_restricted_index %>
@@ -12,13 +12,13 @@
       </div>
     <% else %>
       <%= form_with url: athletes_path, method: :get, class: "filter-bar" do |form| %>
-        <div><%= form.label :q, "Search" %><%= form.search_field :q, value: params[:q], placeholder: "Name, academy, association ID" %></div>
+        <div><%= form.label :q do %><%= ui_icon("search") %><span>Search</span><% end %><%= form.search_field :q, value: params[:q], placeholder: "Name, academy, association ID" %></div>
         <div><%= form.label :age_min, "Min age" %><%= form.number_field :age_min, value: params[:age_min], min: 1 %></div>
         <div><%= form.label :age_max, "Max age" %><%= form.number_field :age_max, value: params[:age_max], min: 1 %></div>
         <div><%= form.label :weight_min, "Min weight" %><%= form.number_field :weight_min, value: params[:weight_min], min: 1, step: 0.1 %></div>
         <div><%= form.label :weight_max, "Max weight" %><%= form.number_field :weight_max, value: params[:weight_max], min: 1, step: 0.1 %></div>
         <div><%= form.label :belt %><%= form.select :belt, Athlete::BELTS.map { |belt| [belt.titleize, belt] }, { include_blank: "Any belt", selected: params[:belt] } %></div>
-        <div class="filter-actions"><%= form.submit "Search", class: "primary-button button-reset" %><%= link_to "Clear", athletes_path, class: "secondary-button" %></div>
+        <div class="filter-actions"><%= button_tag type: "submit", class: "primary-button button-reset icon-label" do %><%= ui_icon("search") %><span>Search</span><% end %><%= link_to "Clear", athletes_path, class: "secondary-button" %></div>
       <% end %>
     <% end %>
 
@@ -27,7 +27,7 @@
         <article class="entity-card">
           <div><span class="status-pill"><%= athlete.belt.presence || "Belt not set" %></span><h2><%= athlete.full_name %></h2><p><%= athlete.academy&.name || "No academy selected" %></p></div>
           <div class="entity-meta"><span><strong>DOB</strong><%= athlete.date_of_birth.strftime("%d %b %Y") %></span><span><strong>Weight</strong><%= athlete.weight ? "#{athlete.weight} kg" : "—" %></span></div>
-          <%= link_to "View profile →", athlete_path(athlete), class: "text-link" %>
+          <%= link_to athlete_path(athlete), class: "text-link icon-label" do %><span>View profile</span><%= ui_icon("arrow-right") %><% end %>
         </article>
       <% end %>
     </div>

@@ -9,17 +9,19 @@
       <div>
         <p class="eyebrow">COMPETITIONS</p>
         <h1 class="page-title">Upcoming tournaments</h1>
-        <p class="page-copy">Find a tournament, review its categories and register an athlete.</p>
+        <p class="page-copy">Find open events, review categories, and register for the right competition.</p>
       </div>
-      <%= link_to "Create tournament", new_tournament_path, class: "primary-button" %>
+      <% if current_user&.can_organize_tournaments? %>
+        <%= link_to new_tournament_path, class: "primary-button icon-label" do %><%= ui_icon("plus") %><span>Create tournament</span><% end %>
+      <% end %>
     </div>
 
     <% active_filters = [params[:q], params[:country], params[:state]].compact_blank.count %>
     <%= form_with url: tournaments_path, method: :get, class: "tournament-filter-panel" do |form| %>
       <div class="filter-panel-header">
         <div>
-          <span class="small-label">FIND COMPETITIONS</span>
-          <strong>Tournament filters</strong>
+          <span class="small-label">SEARCH</span>
+          <strong>Find competitions</strong>
         </div>
         <% if active_filters.positive? %>
           <span class="status-pill"><%= pluralize(active_filters, "filter") %> active</span>
@@ -30,22 +32,22 @@
 
       <div class="tournament-filter-grid">
         <div class="filter-field search-field">
-          <%= form.label :q, "Search" %>
+          <%= form.label :q do %><%= ui_icon("search") %><span>Search</span><% end %>
           <%= form.search_field :q, value: params[:q], placeholder: "Search tournament, venue, city, state or country" %>
         </div>
 
         <div class="filter-field">
-          <%= form.label :country %>
+          <%= form.label :country do %><%= ui_icon("globe") %><span>Country</span><% end %>
           <%= form.select :country, options_for_select(@filter_countries, params[:country]), { include_blank: "All countries" } %>
         </div>
 
         <div class="filter-field">
-          <%= form.label :state %>
+          <%= form.label :state do %><%= ui_icon("filter") %><span>State</span><% end %>
           <%= form.select :state, options_for_select(@filter_states, params[:state]), { include_blank: "All states" } %>
         </div>
 
         <div class="filter-actions tournament-filter-actions">
-          <%= form.submit "Apply filters", class: "primary-button button-reset" %>
+          <%= button_tag type: "submit", class: "primary-button button-reset icon-label" do %><%= ui_icon("search") %><span>Apply</span><% end %>
           <%= link_to "Clear", tournaments_path, class: "secondary-button" %>
         </div>
       </div>
@@ -70,7 +72,7 @@
             <span><strong>Categories</strong><%= tournament.tournament_categories.count %></span>
           </div>
           <div class="card-links">
-            <%= link_to "View tournament →", tournament_path(tournament), class: "text-link" %>
+            <%= link_to tournament_path(tournament), class: "text-link icon-label" do %><span>View tournament</span><%= ui_icon("arrow-right") %><% end %>
             <% if can_register_for_tournament?(tournament) %>
               <%= link_to "Register", new_tournament_registration_path(tournament), class: "text-link" %>
             <% end %>
