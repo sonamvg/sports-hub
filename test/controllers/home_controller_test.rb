@@ -20,6 +20,19 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Submit academy"
   end
 
+  test "homepage hides other account registration buttons when signed in" do
+    user = User.create!(name: "Signed In User", email: "signed-in@example.com", password: "password123", role: :super_admin)
+    sign_in_as user
+
+    get root_path
+
+    assert_response :success
+    assert_not_includes response.body, "Join as athlete"
+    assert_not_includes response.body, "Register academy"
+    assert_not_includes response.body, "Submit academy"
+    assert_includes response.body, "View tournaments"
+  end
+
   test "homepage shows previous competitions" do
     get root_path
 

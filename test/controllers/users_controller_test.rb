@@ -36,6 +36,36 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'value="academy_owner"'
   end
 
+  test "signed in user cannot open another account registration page" do
+    user = User.create!(name: "Existing User", email: "existing-user@example.com", password: "password123", role: :super_admin)
+    sign_in_as user
+
+    get new_user_path(account_type: "organizer", return_to: new_tournament_path)
+
+    assert_redirected_to tournaments_path
+    assert_equal "You are already signed in.", flash[:alert]
+  end
+
+  test "signed in user cannot create another account by posting directly" do
+    user = User.create!(name: "Existing Direct User", email: "existing-direct-user@example.com", password: "password123", role: :super_admin)
+    sign_in_as user
+
+    assert_no_difference("User.count") do
+      post users_path, params: {
+        user: {
+          name: "Second Account",
+          email: "second-account@example.com",
+          phone: "9876543210",
+          password: "password123",
+          password_confirmation: "password123"
+        }
+      }
+    end
+
+    assert_redirected_to tournaments_path
+    assert_equal "You are already signed in.", flash[:alert]
+  end
+
   test "creates athlete account and sends user to profile completion" do
     assert_difference("User.count", 1) do
       post users_path, params: {

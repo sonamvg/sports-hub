@@ -7,8 +7,10 @@
         <p class="hero-copy">A simple platform for athletes, parents, academies and organizers to discover tournaments, register athletes and manage competition journeys.</p>
         <div class="hero-actions">
           <a class="primary-button" href="<%= tournaments_path %>">Find competitions</a>
-          <a class="secondary-button" href="<%= current_user ? new_athlete_path : new_user_path %>">Join as athlete</a>
-          <a class="secondary-button" href="<%= current_user ? new_academy_path : login_path(return_to: new_academy_path) %>">Register academy</a>
+          <% unless current_user %>
+            <a class="secondary-button" href="<%= new_user_path %>">Join as athlete</a>
+            <a class="secondary-button" href="<%= login_path(return_to: new_academy_path) %>">Register academy</a>
+          <% end %>
         </div>
       </div>
       <div class="hero-photo-card">
@@ -123,8 +125,12 @@
   <section class="section" id="get-started">
     <div class="container cta">
       <div><p class="eyebrow">SPORTS HUB</p><h2>Your competition journey, in one place.</h2></div>
-      <%= link_to "Join as athlete", current_user ? new_athlete_path : new_user_path, class: "primary-button" %>
-      <%= link_to "Submit academy", current_user ? new_academy_path : login_path(return_to: new_academy_path), class: "secondary-button" %>
+      <% if current_user %>
+        <%= link_to "View tournaments", tournaments_path, class: "primary-button" %>
+      <% else %>
+        <%= link_to "Join as athlete", new_user_path, class: "primary-button" %>
+        <%= link_to "Submit academy", login_path(return_to: new_academy_path), class: "secondary-button" %>
+      <% end %>
     </div>
   </section>
 </main>

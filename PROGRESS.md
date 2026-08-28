@@ -1550,3 +1550,25 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 
 ### Verification Log
 - Ran `mise exec -- bin/rails test`; result: 134 runs, 1004 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-28 - Hide Cross-Role Registration For Signed-In Users
+
+### Reference
+- User request: if a user is already signed in, they should not see registration buttons for other user types because it can create flow problems.
+
+### Product Decisions
+- Signed-in users stay inside their existing account context instead of being offered athlete, organiser, or academy-owner account creation CTAs.
+- Public visitors still see signup and academy-registration entry points.
+- Academy registration remains available from the academies list only for signed-out visitors, academy owners, and super admins.
+- Direct access to the account signup page is blocked for signed-in users to prevent accidental duplicate accounts.
+
+### Change Log
+- Hid homepage athlete and academy signup CTAs for signed-in users and replaced the lower CTA with a neutral tournaments link.
+- Hid login-page secondary registration links when a signed-in user visits the login page directly.
+- Hid the academy registration button from signed-in users who are not academy owners or super admins.
+- Added a `UsersController` guard that redirects signed-in users away from `new` and `create`.
+- Added integration tests for signed-in homepage CTA hiding, signed-in login-page CTA hiding, and direct signup guard behavior.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/home_controller_test.rb test/controllers/sessions_controller_test.rb test/controllers/users_controller_test.rb`; result: 23 runs, 203 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 138 runs, 1032 assertions, 0 failures, 0 errors, 0 skips.

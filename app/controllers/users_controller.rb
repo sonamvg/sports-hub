@@ -1,4 +1,6 @@
 class UsersController < ApplicationController
+  before_action :redirect_authenticated_user, only: %i[new create]
+
   def new
     @account_type = account_type_param
     @user = User.new(role: signup_role, email: invited_email_param)
@@ -22,6 +24,12 @@ class UsersController < ApplicationController
   end
 
   private
+
+  def redirect_authenticated_user
+    return unless current_user
+
+    redirect_to tournaments_path, alert: "You are already signed in."
+  end
 
   def account_type_param
     return "organizer" if params[:account_type] == "organizer"

@@ -1,5 +1,5 @@
 <section class="page-shell"><div class="container">
-  <div class="page-heading"><div><p class="eyebrow">ACADEMIES</p><h1 class="page-title">Sports academies</h1><p class="page-copy">Public visitors can browse approved academies. Academy owners can submit their academy for super admin approval.</p></div><%= link_to "Register academy", new_academy_path, class: "primary-button" %></div>
+  <div class="page-heading"><div><p class="eyebrow">ACADEMIES</p><h1 class="page-title">Sports academies</h1><p class="page-copy">Public visitors can browse approved academies. Academy owners can submit their academy for super admin approval.</p></div><% if current_user.nil? || current_user.academy_owner? || super_admin? %><%= link_to "Register academy", new_academy_path, class: "primary-button" %><% end %></div>
   <%= form_with url: academies_path, method: :get, class: "filter-bar compact-filter" do |form| %>
     <div><%= form.label :q, "Search academies" %><%= form.search_field :q, value: params[:q], placeholder: "Name, city, state, country" %></div>
     <div class="filter-actions"><%= form.submit "Search", class: "primary-button button-reset" %><%= link_to "Clear", academies_path, class: "secondary-button" %></div>

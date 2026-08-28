@@ -22,12 +22,14 @@
       </div>
       <div class="form-actions">
         <%= form.submit organizer_flow ? "Sign in as organizer" : (academy_flow ? "Sign in as academy owner" : "Sign in"), class: "primary-button button-reset" %>
-        <% if organizer_flow %>
-          <%= link_to "Create organizer account", new_user_path(account_type: "organizer", return_to: params[:return_to]), class: "secondary-button" %>
-        <% elsif academy_flow %>
-          <%= link_to "Create academy owner account", new_user_path(account_type: "academy_owner", return_to: params[:return_to]), class: "secondary-button" %>
-        <% else %>
-          <%= link_to "Join as athlete", new_user_path, class: "secondary-button" %>
+        <% unless current_user %>
+          <% if organizer_flow %>
+            <%= link_to "Create organizer account", new_user_path(account_type: "organizer", return_to: params[:return_to]), class: "secondary-button" %>
+          <% elsif academy_flow %>
+            <%= link_to "Create academy owner account", new_user_path(account_type: "academy_owner", return_to: params[:return_to]), class: "secondary-button" %>
+          <% else %>
+            <%= link_to "Join as athlete", new_user_path, class: "secondary-button" %>
+          <% end %>
         <% end %>
       </div>
     <% end %>

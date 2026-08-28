@@ -50,6 +50,19 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Join as athlete"
   end
 
+  test "new session page hides registration links when signed in" do
+    user = User.create!(name: "Signed In Organizer", email: "signed-in-organizer@example.com", password: "password123", role: :organizer, organizer_status: :verified)
+    sign_in_as user
+
+    get login_path(return_to: new_tournament_path)
+
+    assert_response :success
+    assert_includes response.body, "Sign in as organizer"
+    assert_not_includes response.body, "Create organizer account"
+    assert_not_includes response.body, "Create academy owner account"
+    assert_not_includes response.body, "Join as athlete"
+  end
+
   test "blank sign in submit asks user to sign in before continuing" do
     post login_path, params: { email: "", password: "", return_to: new_tournament_path }
 
