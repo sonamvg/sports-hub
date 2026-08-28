@@ -92,6 +92,17 @@ class TournamentCategoriesControllerTest < ActionDispatch::IntegrationTest
     assert_equal 44, category.weight_max
   end
 
+  test "edit form previews generated name from editable fields" do
+    category = @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+
+    get edit_tournament_tournament_category_path(@tournament, category)
+
+    assert_response :success
+    assert_includes response.body, "data-generated-category-name"
+    assert_includes response.body, "data-category-name-source"
+    assert_includes response.body, "updateGeneratedCategoryName"
+  end
+
   test "organizer cannot edit category after registration starts" do
     @tournament.update!(status: :registration_open, registration_opens_at: 1.day.ago, registration_closes_at: 1.day.from_now)
     category = @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)

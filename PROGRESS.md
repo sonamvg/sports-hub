@@ -1533,3 +1533,20 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bin/rails test`; first result after new tests: 133 runs, 997 assertions, 1 failure because the CSV import expectation did not include the belt range from the fixture.
 - Corrected category import expectations.
 - Re-ran `mise exec -- bin/rails test`; result: 133 runs, 997 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-28 - Category Edit Generated Name Preview
+
+### Reference
+- User request: when a category is edited, the name should be edited accordingly.
+
+### Product Decisions
+- Kept category name read-only and model-generated so organisers cannot introduce naming discrepancies.
+- Added live preview in the category form so the generated name changes as event type, gender, age, weight, and belt fields are edited.
+
+### Change Log
+- Added category-name source data attributes to editable category fields.
+- Added a generated-name preview script to the category form.
+- Added controller coverage that the edit form exposes the generated-name preview wiring.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 134 runs, 1004 assertions, 0 failures, 0 errors, 0 skips.
