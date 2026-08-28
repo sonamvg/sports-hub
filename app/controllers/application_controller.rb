@@ -3,7 +3,7 @@ class ApplicationController < ActionController::Base
 
   before_action :require_athlete_profile_completion
 
-  helper_method :current_user, :super_admin?, :can_manage_academy?, :can_manage_tournament?, :can_edit_tournament_categories?
+  helper_method :current_user, :super_admin?, :can_manage_academy?, :can_manage_tournament?, :can_edit_tournament_categories?, :can_register_for_tournament?
 
   private
 
@@ -37,6 +37,13 @@ class ApplicationController < ActionController::Base
 
   def can_edit_tournament_categories?(tournament)
     tournament.categories_editable_by?(current_user)
+  end
+
+  def can_register_for_tournament?(tournament)
+    return false unless current_user
+    return false if current_user.can_organize_tournaments? && !current_user.academy_owner? && !current_user.athlete?
+
+    tournament.accepting_registrations?
   end
 
   def paginate(scope, per_page: 12)

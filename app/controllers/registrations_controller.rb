@@ -35,7 +35,7 @@ class RegistrationsController < ApplicationController
   end
 
   def ensure_registration_open
-    return if @tournament.accepting_registrations?
+    return if can_register_for_tournament?(@tournament)
     return if @tournament.late_registration_allowed_for?(current_user)
 
     redirect_to @tournament, alert: "Registration is not open for this tournament."

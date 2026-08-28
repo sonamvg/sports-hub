@@ -1,4 +1,6 @@
 class TournamentsController < ApplicationController
+  require "csv"
+
   before_action :require_user, except: %i[index show]
   before_action :require_verified_organizer, only: %i[new create]
   before_action :set_tournament, only: %i[show edit update venue_setup update_venue_setup draw set_draw]
@@ -22,8 +24,9 @@ class TournamentsController < ApplicationController
 
     if @tournament.save
       sync_tournament_organizers
+      category_alert = sync_category_setup
       invite_notice, invite_alert = send_organizer_invitation
-      redirect_to @tournament, notice: ["Tournament created.", invite_notice].compact.join(" "), alert: invite_alert
+      redirect_to @tournament, notice: ["Tournament created.", invite_notice].compact.join(" "), alert: [category_alert, invite_alert].compact.to_sentence.presence
     else
       render :new, status: :unprocessable_entity
     end
@@ -70,8 +73,9 @@ class TournamentsController < ApplicationController
     apply_submit_intent(@tournament)
     if @tournament.save
       sync_tournament_organizers
+      category_alert = sync_category_setup
       invite_notice, invite_alert = send_organizer_invitation
-      redirect_to @tournament, notice: ["Tournament updated.", invite_notice].compact.join(" "), alert: invite_alert
+      redirect_to @tournament, notice: ["Tournament updated.", invite_notice].compact.join(" "), alert: [category_alert, invite_alert].compact.to_sentence.presence
     else
       render :edit, status: :unprocessable_entity
     end
@@ -137,6 +141,94 @@ class TournamentsController < ApplicationController
       ["Organizer invitation sent.", nil]
     else
       [nil, invitation.errors.full_messages.to_sentence]
+    end
+  end
+
+  def sync_category_setup
+    return unless can_edit_tournament_categories?(@tournament)
+
+    case @tournament.category_generation_method
+    when "Auto-generate from eligibility rules"
+      create_default_categories_from_form
+    when "Manual categories"
+      create_manual_categories_from_form
+    when "Import categories"
+      import_categories_from_file
+    end
+  end
+
+  def create_default_categories_from_form
+    category_errors = []
+    category_rows_from(params.dig(:tournament, :default_category_templates)).each do |row|
+      next unless row[:selected] == "1"
+
+      attributes = category_attributes_from(row)
+      next if attributes[:event_type].blank?
+
+      category = @tournament.tournament_categories.find_or_initialize_by(attributes)
+      category_errors << category.errors.full_messages.to_sentence unless category.persisted? || category.save
+    end
+    category_errors.to_sentence.presence
+  end
+
+  def create_manual_categories_from_form
+    category_errors = []
+    category_rows_from(params.dig(:tournament, :manual_categories)).each do |row|
+      attributes = category_attributes_from(row)
+      next if attributes.values.all?(&:blank?)
+
+      category = @tournament.tournament_categories.build(attributes)
+      category_errors << category.errors.full_messages.to_sentence unless category.save
+    end
+    category_errors.to_sentence.presence
+  end
+
+  def import_categories_from_file
+    upload = params.dig(:tournament, :category_import_file)
+    return if upload.blank?
+
+    extension = File.extname(upload.original_filename.to_s).downcase
+    return "XLSX import needs a spreadsheet parser gem. Export the sheet as CSV and import again." if extension == ".xlsx"
+
+    text = upload.read.to_s
+    separator = extension == ".tsv" || extension == ".xls" ? "\t" : ","
+    rows = CSV.parse(text, headers: true, col_sep: separator)
+    category_errors = []
+
+    rows.each do |row|
+      attributes = category_attributes_from(row.to_h)
+      next if attributes.values.all?(&:blank?)
+
+      category = @tournament.tournament_categories.build(attributes)
+      category_errors << "Row #{row.to_h.inspect}: #{category.errors.full_messages.to_sentence}" unless category.save
+    end
+    category_errors.to_sentence.presence
+  rescue CSV::MalformedCSVError
+    "Category import file could not be read. Use CSV with headers: event_type, gender, age_min, age_max, weight_min, weight_max, belt_min, belt_max."
+  end
+
+  def category_attributes_from(row)
+    row = row.to_h.with_indifferent_access
+    {
+      event_type: row[:event_type].to_s.squish.presence,
+      gender: row[:gender].to_s.squish.presence,
+      age_min: row[:age_min].presence,
+      age_max: row[:age_max].presence,
+      weight_min: row[:weight_min].presence,
+      weight_max: row[:weight_max].presence,
+      belt_min: row[:belt_min].to_s.squish.presence,
+      belt_max: row[:belt_max].to_s.squish.presence
+    }
+  end
+
+  def category_rows_from(value)
+    case value
+    when ActionController::Parameters
+      value.to_unsafe_h.values.map { |row| row.with_indifferent_access }
+    when Hash
+      value.values.map { |row| row.with_indifferent_access }
+    else
+      Array(value).map { |row| row.to_h.with_indifferent_access }
     end
   end
 

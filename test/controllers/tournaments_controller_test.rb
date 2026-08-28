@@ -109,6 +109,86 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes tournament.organizer_users, collaborator
   end
 
+  test "creates checked default categories during auto generation" do
+    assert_difference("TournamentCategory.count", 1) do
+      post tournaments_path, params: {
+        commit: "Publish",
+        tournament: {
+          name: "Auto Category Open",
+          start_date: "2026-12-05",
+          end_date: "2026-12-06",
+          category_generation_method: "Auto-generate from eligibility rules",
+          default_category_templates: {
+            "0" => {
+              selected: "1",
+              event_type: "kyorugi",
+              gender: "female",
+              age_min: "12",
+              age_max: "14",
+              weight_min: "33",
+              weight_max: "37"
+            },
+            "1" => {
+              event_type: "kyorugi",
+              gender: "male",
+              age_min: "12",
+              age_max: "14",
+              weight_min: "33",
+              weight_max: "37"
+            }
+          }
+        }
+      }
+    end
+
+    tournament = Tournament.order(:created_at).last
+    assert_equal ["Kyorugi Female Age 12-14 33-37kg"], tournament.tournament_categories.pluck(:name)
+  end
+
+  test "creates manual categories from tournament form" do
+    assert_difference("TournamentCategory.count", 1) do
+      post tournaments_path, params: {
+        commit: "Publish",
+        tournament: {
+          name: "Manual Category Open",
+          start_date: "2026-12-05",
+          end_date: "2026-12-06",
+          category_generation_method: "Manual categories",
+          manual_categories: {
+            "0" => {
+              event_type: "kyorugi",
+              gender: "male",
+              age_min: "15",
+              age_max: "17",
+              weight_max: "55"
+            }
+          }
+        }
+      }
+    end
+
+    tournament = Tournament.order(:created_at).last
+    assert_equal ["Kyorugi Male Age 15-17 U55"], tournament.tournament_categories.pluck(:name)
+  end
+
+  test "imports categories from csv during tournament form save" do
+    assert_difference("TournamentCategory.count", 1) do
+      post tournaments_path, params: {
+        commit: "Publish",
+        tournament: {
+          name: "Import Category Open",
+          start_date: "2026-12-05",
+          end_date: "2026-12-06",
+          category_generation_method: "Import categories",
+          category_import_file: Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/categories.csv"), "text/csv")
+        }
+      }
+    end
+
+    tournament = Tournament.order(:created_at).last
+    assert_equal ["Kyorugi Female Age 12-14 33-37kg Red-Black"], tournament.tournament_categories.pluck(:name)
+  end
+
   test "publish button moves draft tournament to scheduled" do
     assert_difference("Tournament.count", 1) do
       post tournaments_path, params: {
@@ -479,6 +559,10 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "signed in users see register link for open tournaments on index" do
+    athlete_user = User.create!(name: "Athlete User", email: "register-index-athlete@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    sign_in_as athlete_user
+
     tournament = Tournament.create!(
       name: "Open Invitational",
       organizer: @organizer,
@@ -494,6 +578,25 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, new_tournament_registration_path(tournament)
     assert_includes response.body, "Register"
+  end
+
+  test "organizer does not see register link for tournaments on index" do
+    tournament = Tournament.create!(
+      name: "Open Invitational",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6),
+      registration_opens_at: 1.day.ago,
+      registration_closes_at: 1.day.from_now
+    )
+
+    get tournaments_path
+
+    assert_response :success
+    assert_includes response.body, tournament.name
+    assert_not_includes response.body, new_tournament_registration_path(tournament)
+    assert_not_includes response.body, ">Register</a>"
   end
 
   test "index filters tournaments by country and state" do

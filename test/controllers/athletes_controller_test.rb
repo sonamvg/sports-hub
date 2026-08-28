@@ -109,6 +109,34 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Aarohi Shah"
   end
 
+  test "organizer cannot search athletes from athletes tab" do
+    organizer = User.create!(name: "Organizer", email: "athlete-search-organizer@example.test", password: "password123", role: :organizer)
+    sign_in_as organizer
+
+    get athletes_path(q: "aarohi", age_min: 10, weight_min: 30, belt: "red")
+
+    assert_response :success
+    assert_includes response.body, "Athlete search is not available for organisers"
+    assert_not_includes response.body, "Min age"
+    assert_not_includes response.body, "Max weight"
+    assert_not_includes response.body, "Any belt"
+  end
+
+  test "organizer can view profile of athlete registered for managed tournament" do
+    organizer = User.create!(name: "Organizer", email: "registered-athlete-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Athlete User", email: "registered-athlete-user@example.test", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Managed Open", organizer: organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :pending, payment_receipt: payment_receipt_upload)
+    sign_in_as organizer
+
+    get athlete_path(athlete)
+
+    assert_response :success
+    assert_includes response.body, "Aarohi Shah"
+  end
+
   test "super admin can view another user's athlete profile" do
     other_user = User.create!(name: "Other Parent", email: "other-parent@example.test", password: "password123", role: :parent)
     athlete = other_user.athletes.create!(

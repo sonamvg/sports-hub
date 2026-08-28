@@ -1496,3 +1496,40 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Updated the filter test to assert the number of rendered tournament result cards instead of requiring sidebar text to disappear.
 - Re-ran `mise exec -- bin/rails test`; result: 127 runs, 969 assertions, 0 failures, 0 errors, 0 skips.
 - Re-ran `mise exec -- bin/rails test` after invite flash, DOM-safety, and Add athlete explanatory copy updates; result: 127 runs, 969 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-28 - Organizer Athlete Access And Tournament Category Setup
+
+### Reference
+- User request: organisers should not search all athletes, but can view profiles for athletes registered in their tournaments; organisers should only add athletes from tournaments they manage; remove register options for organisers; make custom checklist entries add checked boxes on Enter; remove "Copy from previous tournament"; add category setup panels for auto-generate, import, and manual category creation.
+
+### Product Decisions
+- Pure organiser accounts no longer get the athlete search/filter UI on the Athletes tab.
+- Organisers can still view athlete profiles when the athlete has registered for a tournament managed by that organiser.
+- Tournament registration links remain visible for athlete/academy-owner registration flows, but are hidden from pure organiser accounts.
+- The Add athlete shortcut on a tournament show page is visible only to managers of that tournament.
+- Custom competition formats, eligibility rules, and required documents are added as checked options only when the organiser types text and presses Enter; typing alone does not validate or submit anything.
+- Category generation no longer offers "Copy from previous tournament".
+- Auto-generate, import, and manual category setup are implemented as inline modal-style panels within the tournament form.
+- CSV/TSV category import is implemented with Ruby's standard CSV parser. XLSX uploads are rejected with a clear message until a spreadsheet parser gem is added.
+
+### Change Log
+- Updated athlete visibility so organiser profile access includes athletes registered to tournaments they manage.
+- Hid athlete search filters for pure organiser accounts on the Athletes index.
+- Added `can_register_for_tournament?` to centralise whether a user should see tournament registration links.
+- Hid tournament-card registration links from pure organiser accounts.
+- Restricted tournament show Add athlete links to tournament managers only.
+- Added category setup processing to `TournamentsController` for selected default categories, manual category rows, and CSV/TSV imports.
+- Updated the tournament form category-generation dropdown and added auto-generate, import, and manual category panels.
+- Updated checklist JavaScript so Enter creates a checked option for competition formats, basic eligibility, and required documents.
+- Added CSS for category setup panels, default category editors, and manual category rows.
+- Added tests for organiser athlete search restriction, organiser access to registered athlete profiles, organiser-hidden registration links, default category generation, manual category creation, and CSV category import.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; first result: 127 runs, 964 assertions, 1 failure and 1 error. The failure was an old organiser registration-link expectation; the error was an incompatible ActiveRecord `or` query against a joined relation.
+- Reworked organiser-visible athlete lookup to use an ID union instead of incompatible relation `or` calls.
+- Updated the tournament registration-link test to sign in as an athlete account.
+- Ran `mise exec -- bin/rails test`; result: 127 runs, 969 assertions, 0 failures, 0 errors, 0 skips.
+- Added focused tests for the new organiser restrictions and category setup paths.
+- Ran `mise exec -- bin/rails test`; first result after new tests: 133 runs, 997 assertions, 1 failure because the CSV import expectation did not include the belt range from the fixture.
+- Corrected category import expectations.
+- Re-ran `mise exec -- bin/rails test`; result: 133 runs, 997 assertions, 0 failures, 0 errors, 0 skips.

@@ -61,7 +61,9 @@
         <h2 class="section-title">Registered athletes</h2>
         <p class="page-copy"><%= can_manage_tournament?(@tournament) ? "Athletes registered for this tournament." : "Your athletes registered for this tournament." %></p>
       </div>
-      <%= link_to "Add athlete", new_athlete_path(return_to: tournament_path(@tournament)), class: "primary-button" %>
+      <% if can_manage_tournament?(@tournament) %>
+        <%= link_to "Add athlete", new_athlete_path(return_to: tournament_path(@tournament)), class: "primary-button" %>
+      <% end %>
     </div>
 
     <% if @registrations.any? %>

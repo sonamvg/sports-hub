@@ -160,70 +160,155 @@
       <%= form.label :category_generation_method, "Category generation" %>
       <%= form.select :category_generation_method, [
         "Auto-generate from eligibility rules",
-        "Copy from previous tournament",
         "Manual categories",
         "Import categories"
-      ], { include_blank: "Select category generation method" }, required: true %>
+      ], { include_blank: "Select category generation method" }, required: true, data: { category_generation_select: true } %>
+    </div>
+
+    <div class="full category-generation-panel" data-category-generation-panel="Auto-generate from eligibility rules" hidden>
+      <div class="modal-panel">
+        <div class="modal-panel-header">
+          <h2>Auto-generate categories</h2>
+          <span class="status-pill">Check and edit</span>
+        </div>
+        <div class="category-modal-grid">
+          <% TournamentCategory::DEFAULT_CATEGORY_TEMPLATES.each_with_index do |template, index| %>
+            <% preview = TournamentCategory.new(template.except(:key).merge(tournament: tournament)) %>
+            <div class="default-category-editor">
+              <label class="checkbox-option">
+                <%= check_box_tag "tournament[default_category_templates][#{index}][selected]", "1", false %>
+                <span><%= preview.generated_name %></span>
+              </label>
+              <div class="compact-category-fields">
+                <%= text_field_tag "tournament[default_category_templates][#{index}][event_type]", template[:event_type], placeholder: "Event" %>
+                <%= text_field_tag "tournament[default_category_templates][#{index}][gender]", template[:gender], placeholder: "Gender" %>
+                <%= number_field_tag "tournament[default_category_templates][#{index}][age_min]", template[:age_min], placeholder: "Min age" %>
+                <%= number_field_tag "tournament[default_category_templates][#{index}][age_max]", template[:age_max], placeholder: "Max age" %>
+                <%= number_field_tag "tournament[default_category_templates][#{index}][weight_min]", template[:weight_min], step: 0.1, placeholder: "Min kg" %>
+                <%= number_field_tag "tournament[default_category_templates][#{index}][weight_max]", template[:weight_max], step: 0.1, placeholder: "Max kg" %>
+                <%= text_field_tag "tournament[default_category_templates][#{index}][belt_min]", template[:belt_min], placeholder: "Min belt" %>
+                <%= text_field_tag "tournament[default_category_templates][#{index}][belt_max]", template[:belt_max], placeholder: "Max belt" %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <div class="full category-generation-panel" data-category-generation-panel="Import categories" hidden>
+      <div class="modal-panel">
+        <div class="modal-panel-header">
+          <h2>Import categories</h2>
+          <span class="status-pill">CSV or TSV</span>
+        </div>
+        <%= file_field_tag "tournament[category_import_file]", accept: ".csv,.tsv,.xls,.xlsx,text/csv,text/tab-separated-values" %>
+        <p class="field-hint">Use headers: event_type, gender, age_min, age_max, weight_min, weight_max, belt_min, belt_max. CSV/TSV imports are processed now; XLSX needs a spreadsheet parser gem.</p>
+      </div>
+    </div>
+
+    <div class="full category-generation-panel" data-category-generation-panel="Manual categories" hidden>
+      <div class="modal-panel">
+        <div class="modal-panel-header">
+          <h2>Manual categories</h2>
+          <button type="button" class="secondary-button button-reset" data-add-manual-category>Add category</button>
+        </div>
+        <div data-manual-category-list>
+          <div class="manual-category-row" data-manual-category-row>
+            <%= text_field_tag "tournament[manual_categories][0][event_type]", nil, placeholder: "Event type" %>
+            <%= text_field_tag "tournament[manual_categories][0][gender]", nil, placeholder: "Gender" %>
+            <%= number_field_tag "tournament[manual_categories][0][age_min]", nil, placeholder: "Min age" %>
+            <%= number_field_tag "tournament[manual_categories][0][age_max]", nil, placeholder: "Max age" %>
+            <%= number_field_tag "tournament[manual_categories][0][weight_min]", nil, step: 0.1, placeholder: "Min kg" %>
+            <%= number_field_tag "tournament[manual_categories][0][weight_max]", nil, step: 0.1, placeholder: "Max kg" %>
+            <%= text_field_tag "tournament[manual_categories][0][belt_min]", nil, placeholder: "Min belt" %>
+            <%= text_field_tag "tournament[manual_categories][0][belt_max]", nil, placeholder: "Max belt" %>
+          </div>
+        </div>
+        <template data-manual-category-template>
+          <div class="manual-category-row" data-manual-category-row>
+            <input type="text" name="tournament[manual_categories][INDEX][event_type]" placeholder="Event type">
+            <input type="text" name="tournament[manual_categories][INDEX][gender]" placeholder="Gender">
+            <input type="number" name="tournament[manual_categories][INDEX][age_min]" placeholder="Min age">
+            <input type="number" name="tournament[manual_categories][INDEX][age_max]" placeholder="Max age">
+            <input type="number" name="tournament[manual_categories][INDEX][weight_min]" step="0.1" placeholder="Min kg">
+            <input type="number" name="tournament[manual_categories][INDEX][weight_max]" step="0.1" placeholder="Max kg">
+            <input type="text" name="tournament[manual_categories][INDEX][belt_min]" placeholder="Min belt">
+            <input type="text" name="tournament[manual_categories][INDEX][belt_max]" placeholder="Max belt">
+          </div>
+        </template>
+      </div>
     </div>
 
     <div class="full">
       <%= form.label :competition_formats, "Competition formats" %>
-      <div class="checklist-group" data-repeatable-other data-other-name="tournament[competition_format_other][]" data-other-placeholder="Enter competition format">
+      <div class="checklist-group" data-repeatable-other data-other-name="tournament[competition_format_other][]" data-other-option-name="tournament[competition_format_options][]" data-other-placeholder="Enter competition format">
         <% Tournament::DEFAULT_COMPETITION_FORMATS.each do |format| %>
           <label class="checkbox-option">
             <%= check_box_tag "tournament[competition_format_options][]", format, selected_formats.include?(format) %>
             <span><%= format %></span>
           </label>
         <% end %>
+        <% custom_formats.each do |format| %>
+          <label class="checkbox-option">
+            <%= check_box_tag "tournament[competition_format_options][]", format, true %>
+            <span><%= format %></span>
+          </label>
+        <% end %>
         <div class="other-options" data-other-list>
-          <% (custom_formats.presence || [""]).each do |format| %>
-            <div class="other-row">
-              <%= text_field_tag "tournament[competition_format_other][]", format, placeholder: "Enter competition format" %>
-            </div>
-          <% end %>
+          <div class="other-row">
+            <%= text_field_tag "tournament[competition_format_other][]", nil, placeholder: "Enter competition format" %>
+          </div>
         </div>
       </div>
-      <p class="field-hint">Choose defaults or use Other to add custom formats. A new Other row appears as you type.</p>
+      <p class="field-hint">Choose defaults or type a custom format and press Enter to add it as a checked option.</p>
     </div>
 
     <div class="full">
       <%= form.label :eligibility_summary, "Basic eligibility" %>
-      <div class="checklist-group" data-repeatable-other data-other-name="tournament[eligibility_other][]" data-other-placeholder="Enter eligibility rule">
+      <div class="checklist-group" data-repeatable-other data-other-name="tournament[eligibility_other][]" data-other-option-name="tournament[eligibility_options][]" data-other-placeholder="Enter eligibility rule">
         <% Tournament::DEFAULT_ELIGIBILITY_RULES.each do |rule| %>
           <label class="checkbox-option">
             <%= check_box_tag "tournament[eligibility_options][]", rule, selected_eligibility.include?(rule) %>
             <span><%= rule %></span>
           </label>
         <% end %>
+        <% custom_eligibility.each do |rule| %>
+          <label class="checkbox-option">
+            <%= check_box_tag "tournament[eligibility_options][]", rule, true %>
+            <span><%= rule %></span>
+          </label>
+        <% end %>
         <div class="other-options" data-other-list>
-          <% (custom_eligibility.presence || [""]).each do |rule| %>
-            <div class="other-row">
-              <%= text_field_tag "tournament[eligibility_other][]", rule, placeholder: "Enter eligibility rule" %>
-            </div>
-          <% end %>
+          <div class="other-row">
+            <%= text_field_tag "tournament[eligibility_other][]", nil, placeholder: "Enter eligibility rule" %>
+          </div>
         </div>
       </div>
-      <p class="field-hint">Choose default eligibility rules or add custom rules with Other.</p>
+      <p class="field-hint">Choose defaults or type a custom rule and press Enter to add it as a checked option.</p>
     </div>
 
     <div class="full">
       <%= form.label :required_documents, "Required documents" %>
-      <div class="checklist-group" data-repeatable-other data-other-name="tournament[required_document_other][]" data-other-placeholder="Enter required document">
+      <div class="checklist-group" data-repeatable-other data-other-name="tournament[required_document_other][]" data-other-option-name="tournament[required_document_options][]" data-other-placeholder="Enter required document">
         <% Tournament::DEFAULT_REQUIRED_DOCUMENTS.each do |document| %>
           <label class="checkbox-option">
             <%= check_box_tag "tournament[required_document_options][]", document, selected_documents.include?(document) %>
             <span><%= document %></span>
           </label>
         <% end %>
+        <% custom_documents.each do |document| %>
+          <label class="checkbox-option">
+            <%= check_box_tag "tournament[required_document_options][]", document, true %>
+            <span><%= document %></span>
+          </label>
+        <% end %>
         <div class="other-options" data-other-list>
-          <% (custom_documents.presence || [""]).each do |document| %>
-            <div class="other-row">
-              <%= text_field_tag "tournament[required_document_other][]", document, placeholder: "Enter required document" %>
-            </div>
-          <% end %>
+          <div class="other-row">
+            <%= text_field_tag "tournament[required_document_other][]", nil, placeholder: "Enter required document" %>
+          </div>
         </div>
       </div>
-      <p class="field-hint">Choose required documents or add custom document names with Other.</p>
+      <p class="field-hint">Choose defaults or type a custom document and press Enter to add it as a checked option.</p>
     </div>
 
     <div class="full">
@@ -310,29 +395,68 @@
 <% end %>
 
 <script>
-  document.addEventListener("input", function(event) {
+  document.addEventListener("keydown", function(event) {
     const input = event.target;
     const group = input.closest("[data-repeatable-other]");
 
     if (!group || !input.closest("[data-other-list]")) return;
+    if (event.key !== "Enter") return;
 
-    const list = group.querySelector("[data-other-list]");
-    const inputs = Array.from(list.querySelectorAll("input[type='text']"));
-    const lastInput = inputs[inputs.length - 1];
+    event.preventDefault();
 
-    if (input !== lastInput || lastInput.value.trim() === "") return;
+    const value = input.value.trim();
+    if (value === "") return;
 
-    const row = document.createElement("div");
-    row.className = "other-row";
+    const label = document.createElement("label");
+    label.className = "checkbox-option";
 
-    const nextInput = document.createElement("input");
-    nextInput.type = "text";
-    nextInput.name = group.dataset.otherName;
-    nextInput.placeholder = group.dataset.otherPlaceholder;
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.name = group.dataset.otherOptionName;
+    checkbox.value = value;
+    checkbox.checked = true;
 
-    row.appendChild(nextInput);
-    list.appendChild(row);
+    const text = document.createElement("span");
+    text.textContent = value;
+
+    label.appendChild(checkbox);
+    label.appendChild(text);
+    group.insertBefore(label, input.closest("[data-other-list]"));
+    input.value = "";
   });
+
+  document.addEventListener("change", function(event) {
+    if (!event.target.matches("[data-category-generation-select]")) return;
+
+    updateCategoryGenerationPanels(event.target.value);
+  });
+
+  document.addEventListener("DOMContentLoaded", function() {
+    const select = document.querySelector("[data-category-generation-select]");
+    if (select) updateCategoryGenerationPanels(select.value);
+  });
+
+  document.addEventListener("click", function(event) {
+    if (!event.target.matches("[data-add-manual-category]")) return;
+
+    const panel = event.target.closest("[data-category-generation-panel]");
+    const list = panel.querySelector("[data-manual-category-list]");
+    const template = panel.querySelector("[data-manual-category-template]");
+    const nextIndex = list.querySelectorAll("[data-manual-category-row]").length;
+    const fragment = template.content.cloneNode(true);
+
+    fragment.querySelectorAll("[name]").forEach(function(input) {
+      input.name = input.name.replace("INDEX", nextIndex);
+    });
+
+    list.appendChild(fragment);
+  });
+
+  function updateCategoryGenerationPanels(value) {
+    document.querySelectorAll("[data-category-generation-panel]").forEach(function(panel) {
+      panel.hidden = panel.dataset.categoryGenerationPanel !== value;
+    });
+  }
 
   document.addEventListener("click", function(event) {
     const picker = event.target.closest("[data-organizer-picker]");

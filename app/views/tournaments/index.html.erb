@@ -71,7 +71,7 @@
           </div>
           <div class="card-links">
             <%= link_to "View tournament →", tournament_path(tournament), class: "text-link" %>
-            <% if current_user && tournament.accepting_registrations? %>
+            <% if can_register_for_tournament?(tournament) %>
               <%= link_to "Register", new_tournament_registration_path(tournament), class: "text-link" %>
             <% end %>
             <% if tournament.website_url.present? %>

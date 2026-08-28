@@ -4,7 +4,8 @@ class AthletesController < ApplicationController
   before_action :set_available_academies, only: %i[new create edit update]
 
   def index
-    @athletes = filtered_athletes.includes(:academy).order(:first_name, :last_name)
+    @organizer_restricted_index = current_user.can_organize_tournaments? && !super_admin? && current_user.owned_academies.none?
+    @athletes = @organizer_restricted_index ? Athlete.none : filtered_athletes.includes(:academy).order(:first_name, :last_name)
     @athletes = @athletes.includes(:user) if super_admin?
     @athletes, @pagination = paginate(@athletes)
   end
@@ -55,7 +56,20 @@ class AthletesController < ApplicationController
     return Athlete.all if super_admin?
 
     owned_academy_ids = current_user.owned_academies.approved.select(:id)
-    Athlete.where(user_id: current_user.id).or(Athlete.where(academy_id: owned_academy_ids)).distinct
+    athlete_ids = Athlete.where(user_id: current_user.id).pluck(:id)
+    athlete_ids += Athlete.where(academy_id: owned_academy_ids).pluck(:id)
+    athlete_ids += registered_athletes_for_managed_tournaments.pluck(:id) if current_user.can_organize_tournaments?
+
+    Athlete.where(id: athlete_ids.uniq)
+  end
+
+  def registered_athletes_for_managed_tournaments
+    managed_tournament_ids = Tournament
+      .left_joins(:tournament_organizers)
+      .where("tournaments.organizer_id = :user_id OR tournament_organizers.user_id = :user_id", user_id: current_user.id)
+      .select(:id)
+
+    Athlete.joins(:registrations).where(registrations: { tournament_id: managed_tournament_ids })
   end
 
   def filtered_athletes
