@@ -777,6 +777,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "set draw locks tournament after registration closes" do
+    academy = Academy.create!(name: "Lock Draw Academy", city: "Pune", status: :approved)
     tournament = Tournament.create!(
       name: "Closed Draw Open",
       organizer: @organizer,
@@ -786,12 +787,78 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       start_date: 2.days.from_now.to_date,
       end_date: 3.days.from_now.to_date
     )
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 37)
+    first_user = User.create!(name: "Aarohi Shah", email: "lock-draw-aarohi@example.test", password: "password123", role: :athlete)
+    second_user = User.create!(name: "Meera Rao", email: "lock-draw-meera@example.test", password: "password123", role: :athlete)
+    first_athlete = first_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    second_athlete = second_user.athletes.create!(academy: academy, first_name: "Meera", last_name: "Rao", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament.registrations.create!(athlete: first_athlete, tournament_category: category, status: :weight_verified, payment_receipt: payment_receipt_upload)
+    tournament.registrations.create!(athlete: second_athlete, tournament_category: category, status: :weight_verified, payment_receipt: payment_receipt_upload)
 
     patch set_draw_tournament_path(tournament)
 
     assert_redirected_to draw_tournament_path(tournament)
     assert_predicate tournament.reload, :draw_scheduling?
     assert_not tournament.late_registration_allowed_for?(@organizer)
+  end
+
+  test "set draw generates graphical brackets for weight verified athletes" do
+    academy = Academy.create!(name: "Draw Academy", city: "Pune", status: :approved)
+    other_academy = Academy.create!(name: "Other Draw Academy", city: "Mumbai", status: :approved)
+    tournament = Tournament.create!(
+      name: "Graphical Draw Open",
+      organizer: @organizer,
+      status: :registration_open,
+      registration_opens_at: 10.days.ago,
+      registration_closes_at: 1.day.ago,
+      start_date: 2.days.from_now.to_date,
+      end_date: 3.days.from_now.to_date,
+      venue: "Balewadi"
+    )
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    first_user = User.create!(name: "Aarohi Shah", email: "draw-aarohi@example.test", password: "password123", role: :athlete)
+    second_user = User.create!(name: "Meera Rao", email: "draw-meera@example.test", password: "password123", role: :athlete)
+    first_athlete = first_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    second_athlete = second_user.athletes.create!(academy: other_academy, first_name: "Meera", last_name: "Rao", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament.registrations.create!(athlete: first_athlete, tournament_category: category, status: :weight_verified, payment_receipt: payment_receipt_upload)
+    tournament.registrations.create!(athlete: second_athlete, tournament_category: category, status: :weight_verified, payment_receipt: payment_receipt_upload)
+
+    assert_difference("TournamentDraw.count", 1) do
+      assert_difference("TournamentDrawMatch.count", 1) do
+        patch set_draw_tournament_path(tournament)
+      end
+    end
+
+    assert_redirected_to draw_tournament_path(tournament)
+    assert_predicate tournament.reload, :draw_scheduling?
+
+    get draw_tournament_path(tournament)
+    assert_response :success
+    assert_includes response.body, "draw-bracket"
+    assert_includes response.body, "GRAPHICAL DRAW OPEN"
+    assert_includes response.body, "Kyorugi Female Age 12-14 33-37kg".upcase
+    assert_includes response.body, "Aarohi Shah"
+    assert_includes response.body, "Meera Rao"
+  end
+
+  test "set draw is blocked without draw ready category" do
+    tournament = Tournament.create!(
+      name: "Empty Draw Open",
+      organizer: @organizer,
+      status: :registration_open,
+      registration_opens_at: 10.days.ago,
+      registration_closes_at: 1.day.ago,
+      start_date: 2.days.from_now.to_date,
+      end_date: 3.days.from_now.to_date
+    )
+
+    assert_no_difference("TournamentDraw.count") do
+      patch set_draw_tournament_path(tournament)
+    end
+
+    assert_redirected_to tournament_path(tournament)
+    assert_equal "No draw-ready categories yet. Complete weight check for at least two athletes in a category.", flash[:alert]
+    assert_not_predicate tournament.reload, :draw_scheduling?
   end
 
   test "set draw is blocked before registration closes" do

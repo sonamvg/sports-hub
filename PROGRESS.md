@@ -1934,3 +1934,33 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 ### Verification Log
 - Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/academies_controller_test.rb test/controllers/athletes_controller_test.rb`; result: 77 runs, 706 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails test`; result: 157 runs, 1277 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-29 - Tournament Draw Generation
+
+### Reference
+- User request: work on setting draw; no seeding for any athlete; use regular algorithms with minimum byes; round 1 should avoid same-academy athletes fighting when alternatives exist; output should be graphical.
+- Visual reference: `39 NSJTC-CC-202601-TS-DAY1.pdf` was inspected as a layout reference only. It shows an Excel-style draw sheet with tournament heading, category title, boxed athletes, academy/state labels, and bracket connector lines.
+
+### Product Decisions
+- Draw generation uses only `weight_verified` registrations because those entries have passed the post-registration weight-check flow and are cleared for the draw list.
+- Each category gets its own draw when it has at least two draw-ready athletes.
+- Bracket size is the next power of two, which gives the minimum possible bye count for a single-elimination bracket.
+- There is no athlete seeding. Registrations are read in stable registration order, then paired greedily to avoid same-academy round-1 matches whenever a different-academy opponent is available.
+- Same-academy matches are allowed only when the remaining round-1 pool has no alternative.
+- Draw generation is non-destructive. If a category already has a generated draw, it is kept instead of overwritten.
+- Setting the draw still locks late registrations by moving the tournament to `draw_scheduling`, but only when at least one draw exists or is generated.
+
+### Change Log
+- Added `tournament_draws` and `tournament_draw_matches` tables with uniqueness and range constraints.
+- Added `TournamentDraw` and `TournamentDrawMatch` models.
+- Added tournament/category associations for generated draws.
+- Added `TournamentDrawGenerator` service for bracket sizing, first-round pairing, bye placement, and future-round placeholder creation.
+- Updated `TournamentsController#set_draw` to generate draw records and block empty draw setup when no category has enough draw-ready athletes.
+- Replaced the draw placeholder page with a graphical bracket view inspired by the attached draw-sheet PDF.
+- Added draw-specific CSS for sheet headers, round columns, athlete boxes, byes, and bracket connector lines.
+- Added model and controller tests for draw generation, minimum byes, first-round academy separation, non-destructive reruns, graphical output, and empty-draw blocking.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: new draw migrations applied successfully.
+- Ran `mise exec -- bin/rails test test/models/tournament_draw_generator_test.rb test/controllers/tournaments_controller_test.rb`; result: 43 runs, 398 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 162 runs, 1321 assertions, 0 failures, 0 errors, 0 skips.

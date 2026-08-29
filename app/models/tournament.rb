@@ -4,6 +4,7 @@ class Tournament < ApplicationRecord
   belongs_to :organizer, class_name: "User"
   has_many :tournament_categories, dependent: :destroy
   has_many :registrations, dependent: :destroy
+  has_many :tournament_draws, dependent: :destroy
   has_many :tournament_organizers, dependent: :destroy
   has_many :organizer_users, through: :tournament_organizers, source: :user
   has_many :tournament_organizer_invitations, dependent: :destroy

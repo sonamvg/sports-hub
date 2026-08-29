@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_28_000200) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_29_000200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -167,6 +167,44 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_28_000200) do
     t.index ["tournament_id"], name: "index_tournament_categories_on_tournament_id"
   end
 
+  create_table "tournament_draw_matches", force: :cascade do |t|
+    t.bigint "blue_registration_id"
+    t.integer "blue_source_match_position"
+    t.boolean "bye", default: false, null: false
+    t.datetime "created_at", null: false
+    t.integer "position", null: false
+    t.bigint "red_registration_id"
+    t.integer "red_source_match_position"
+    t.integer "round_number", null: false
+    t.bigint "tournament_draw_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["blue_registration_id"], name: "index_tournament_draw_matches_on_blue_registration_id"
+    t.index ["red_registration_id"], name: "index_tournament_draw_matches_on_red_registration_id"
+    t.index ["tournament_draw_id", "round_number", "position"], name: "index_draw_matches_unique_round_position", unique: true
+    t.index ["tournament_draw_id"], name: "index_tournament_draw_matches_on_tournament_draw_id"
+    t.check_constraint "\"position\" >= 1", name: "draw_matches_position_positive"
+    t.check_constraint "round_number >= 1", name: "draw_matches_round_number_positive"
+  end
+
+  create_table "tournament_draws", force: :cascade do |t|
+    t.integer "bracket_size", null: false
+    t.datetime "created_at", null: false
+    t.integer "entry_count", null: false
+    t.datetime "generated_at", null: false
+    t.bigint "generated_by_id", null: false
+    t.integer "round_count", null: false
+    t.bigint "tournament_category_id", null: false
+    t.bigint "tournament_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["generated_by_id"], name: "index_tournament_draws_on_generated_by_id"
+    t.index ["tournament_category_id"], name: "index_tournament_draws_on_tournament_category_id"
+    t.index ["tournament_id", "tournament_category_id"], name: "index_tournament_draws_unique_category", unique: true
+    t.index ["tournament_id"], name: "index_tournament_draws_on_tournament_id"
+    t.check_constraint "bracket_size >= 2", name: "tournament_draws_bracket_size_minimum"
+    t.check_constraint "entry_count >= 2", name: "tournament_draws_entry_count_minimum"
+    t.check_constraint "round_count >= 1", name: "tournament_draws_round_count_minimum"
+  end
+
   create_table "tournament_organizer_invitations", force: :cascade do |t|
     t.datetime "accepted_at"
     t.datetime "created_at", null: false
@@ -289,6 +327,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_28_000200) do
   add_foreign_key "registrations", "tournament_categories"
   add_foreign_key "registrations", "tournaments"
   add_foreign_key "tournament_categories", "tournaments"
+  add_foreign_key "tournament_draw_matches", "registrations", column: "blue_registration_id"
+  add_foreign_key "tournament_draw_matches", "registrations", column: "red_registration_id"
+  add_foreign_key "tournament_draw_matches", "tournament_draws"
+  add_foreign_key "tournament_draws", "tournament_categories"
+  add_foreign_key "tournament_draws", "tournaments"
+  add_foreign_key "tournament_draws", "users", column: "generated_by_id"
   add_foreign_key "tournament_organizer_invitations", "tournaments"
   add_foreign_key "tournament_organizer_invitations", "users", column: "invited_by_id"
   add_foreign_key "tournament_organizers", "tournaments"

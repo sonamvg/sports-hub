@@ -4,6 +4,7 @@ class TournamentCategory < ApplicationRecord
 
   belongs_to :tournament
   has_many :registrations, dependent: :restrict_with_error
+  has_one :tournament_draw, dependent: :destroy
 
   DEFAULT_CATEGORY_TEMPLATES = [
     { key: "sub-junior-female-u18", event_type: "kyorugi", gender: "female", age_min: 8, age_max: 11, weight_max: 18 },
