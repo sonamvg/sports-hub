@@ -1897,3 +1897,18 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bin/rails test`; result: 153 runs, 1240 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `git diff --check`; result: no whitespace errors.
 - Ran a final reference sweep for removed category add/edit/import terms; remaining matches are negative test assertions only.
+
+## 2026-08-29 - Tournament Format Defaults Trimmed
+
+### Reference
+- User request: remove Para Taekwondo from categories in tournament.
+
+### Product Decisions
+- Interpreted "categories in tournament" as the tournament setup competition-format defaults, because Para Taekwondo was present there and not in the generated weight/category templates.
+- Tournament organisers can still type custom formats manually if a future event needs one.
+
+### Change Log
+- Removed "Para Taekwondo" from `Tournament::DEFAULT_COMPETITION_FORMATS`, so it no longer appears as a default checkbox on the tournament form.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb`; result: 36 runs, 340 assertions, 0 failures, 0 errors, 0 skips.

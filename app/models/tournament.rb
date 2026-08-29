@@ -15,8 +15,7 @@ class Tournament < ApplicationRecord
     "Kyorugi",
     "Individual Poomsae",
     "Pair Poomsae",
-    "Team Poomsae",
-    "Para Taekwondo"
+    "Team Poomsae"
   ].freeze
 
   DEFAULT_ELIGIBILITY_RULES = [
