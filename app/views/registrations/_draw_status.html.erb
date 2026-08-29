@@ -38,10 +38,15 @@
         <% athlete_is_red = match.red_registration_id == registration.id %>
         <% athlete_points = athlete_is_red ? match.red_total_points : match.blue_total_points %>
         <% opponent_points = athlete_is_red ? match.blue_total_points : match.red_total_points %>
+        <% athlete_sets = athlete_is_red ? match.red_round_wins : match.blue_round_wins %>
+        <% opponent_sets = athlete_is_red ? match.blue_round_wins : match.red_round_wins %>
         <% athlete_color = athlete_is_red ? match.red_head_guard_color : match.blue_head_guard_color %>
         <div>
           <span><%= match.round_label %> · Match <%= match.position %></span>
-          <strong><%= match.bye? ? "Bye" : "#{athlete_points} - #{opponent_points}" %></strong>
+          <strong><%= match.bye? ? "Bye" : "Sets #{athlete_sets} - #{opponent_sets}" %></strong>
+          <% unless match.bye? %>
+            <small><%= athlete_points %> - <%= opponent_points %> pts</small>
+          <% end %>
           <em class="draw-profile-color draw-profile-color-<%= athlete_color %>"><%= athlete_color.titleize %></em>
           <b><%= match.winner_registration_id == registration.id ? "Won" : "Lost" %></b>
         </div>

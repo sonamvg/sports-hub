@@ -51,6 +51,22 @@ class TournamentDrawMatch < ApplicationRecord
     [blue_round_1_points, blue_round_2_points, blue_round_3_points].compact.sum
   end
 
+  def red_round_wins
+    round_winners.count(:red)
+  end
+
+  def blue_round_wins
+    round_winners.count(:blue)
+  end
+
+  def round_winners
+    [
+      round_winner(red_round_1_points, blue_round_1_points),
+      round_winner(red_round_2_points, blue_round_2_points),
+      round_winner(red_round_3_points, blue_round_3_points)
+    ].compact
+  end
+
   def score_complete?
     SCORE_ATTRIBUTES.all? { |attribute| public_send(attribute).present? }
   end
@@ -96,11 +112,18 @@ class TournamentDrawMatch < ApplicationRecord
       errors.add(:base, "Enter points for all three rounds")
       return nil
     end
-    return red_registration if red_total_points > blue_total_points
-    return blue_registration if blue_total_points > red_total_points
+    return red_registration if red_round_wins > blue_round_wins
+    return blue_registration if blue_round_wins > red_round_wins
+    return winner_registration if winner_registration_id.present?
 
-    errors.add(:base, "Score cannot be tied after three rounds")
+    errors.add(:winner_registration, "must be selected when set wins are tied")
     nil
+  end
+
+  def round_winner(red_points, blue_points)
+    return if red_points.blank? || blue_points.blank?
+    return :red if red_points > blue_points
+    return :blue if blue_points > red_points
   end
 
   def advance_winner!

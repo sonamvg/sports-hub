@@ -62,13 +62,25 @@
                           </div>
 
                           <div class="draw-result-bar">
-                            <span><%= match.red_total_points %> - <%= match.blue_total_points %></span>
+                            <span>Sets <%= match.red_round_wins %> - <%= match.blue_round_wins %></span>
                             <% if match.complete? %>
                               <strong><%= match.winner_registration.athlete.full_name %></strong>
                             <% else %>
                               <strong>Winner pending</strong>
                             <% end %>
                           </div>
+
+                          <fieldset class="draw-referee-decision">
+                            <legend>Referee decision if sets are tied</legend>
+                            <label>
+                              <%= form.radio_button :winner_registration_id, match.red_registration_id %>
+                              <span><%= match.red_label %></span>
+                            </label>
+                            <label>
+                              <%= form.radio_button :winner_registration_id, match.blue_registration_id %>
+                              <span><%= match.blue_label %></span>
+                            </label>
+                          </fieldset>
 
                           <%= form.submit "Save result", class: "draw-save-button" %>
                         <% elsif match.complete? %>

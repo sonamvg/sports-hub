@@ -2070,3 +2070,30 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 ### Verification Log
 - Ran `mise exec -- bin/rails test test/models/registration_test.rb test/controllers/athletes_controller_test.rb test/controllers/academies_controller_test.rb test/models/tournament_draw_match_test.rb test/controllers/tournament_draw_matches_controller_test.rb`; result: 49 runs, 410 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails test`; result: 170 runs, 1391 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-29 - Set-Based Match Winner Logic
+
+### Reference
+- User correction: match winners should be decided by sets won, not total points. Example: red-blue scores `14-5`, `2-3`, `2-3` should make blue the winner because blue won two sets.
+- User requirement: if sets are tied, the referee or organiser should be able to choose the winner.
+
+### Product Decisions
+- Each of the three score rows is treated as one set.
+- A set goes to the athlete with the higher points in that set.
+- Drawn sets do not add a set win to either athlete.
+- The match winner is the athlete with more set wins, regardless of total points.
+- If set wins are tied after all three sets, saving the result requires an explicit referee/organiser winner selection.
+- Athlete and academy profile summaries now show set score as the primary result and raw points as supporting detail.
+
+### Change Log
+- Added set-win helper methods to `TournamentDrawMatch`.
+- Changed match winner calculation from total points to set wins.
+- Added manual winner selection support through the match result form.
+- Permitted `winner_registration_id` for organiser/referee tie decisions.
+- Updated draw result UI to show set count instead of total points.
+- Updated profile draw summaries to show set score plus raw points.
+- Added tests for set-based winner logic, explicit tie decisions, and controller result submission with manual winner selection.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/models/tournament_draw_match_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/models/registration_test.rb test/controllers/athletes_controller_test.rb test/controllers/academies_controller_test.rb`; result: 52 runs, 422 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 173 runs, 1403 assertions, 0 failures, 0 errors, 0 skips.

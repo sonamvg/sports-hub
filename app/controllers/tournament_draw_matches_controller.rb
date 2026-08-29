@@ -26,7 +26,8 @@ class TournamentDrawMatchesController < ApplicationController
       :red_round_1_points, :blue_round_1_points,
       :red_round_2_points, :blue_round_2_points,
       :red_round_3_points, :blue_round_3_points,
-      :red_head_guard_color, :blue_head_guard_color
+      :red_head_guard_color, :blue_head_guard_color,
+      :winner_registration_id
     )
   end
 end

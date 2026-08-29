@@ -594,6 +594,32 @@ body { background:#f4f4f1; }
   background:#e7f7ec;
   border-color:#bfe4ca;
 }
+.draw-referee-decision {
+  border:1px solid #e1e2e4;
+  border-radius:6px;
+  display:grid;
+  gap:7px;
+  margin:0;
+  padding:10px;
+}
+.draw-referee-decision legend {
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.08em;
+  padding:0 4px;
+  text-transform:uppercase;
+}
+.draw-referee-decision label {
+  align-items:center;
+  display:flex;
+  gap:8px;
+  font-size:12px;
+  font-weight:800;
+}
+.draw-referee-decision input {
+  margin:0;
+}
 .draw-save-button {
   background:#111318;
   border:0;
@@ -694,10 +720,15 @@ body { background:#f4f4f1; }
 }
 .draw-profile-results div {
   align-items:center;
-  grid-template-columns:1fr auto auto auto;
+  grid-template-columns:1fr auto auto auto auto;
 }
 .draw-profile-results strong {
   font-size:15px;
+}
+.draw-profile-results small {
+  color:var(--muted);
+  font-size:12px;
+  font-weight:800;
 }
 .draw-profile-results b {
   font-size:12px;

@@ -64,11 +64,11 @@ class TournamentDrawMatchesControllerTest < ActionDispatch::IntegrationTest
     assert_equal @first_registration, @final.reload.red_registration
   end
 
-  test "organizer cannot save tied result" do
+  test "organizer must choose winner when set wins are tied" do
     patch result_tournament_draw_match_path(@match), params: {
       tournament_draw_match: {
         red_round_1_points: 10,
-        blue_round_1_points: 8,
+        blue_round_1_points: 10,
         red_round_2_points: 6,
         blue_round_2_points: 9,
         red_round_3_points: 4,
@@ -79,9 +79,30 @@ class TournamentDrawMatchesControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_redirected_to draw_tournament_path(@tournament)
-    assert_equal "Score cannot be tied after three rounds", flash[:alert]
+    assert_equal "Winner registration must be selected when set wins are tied", flash[:alert]
     assert_nil @match.reload.winner_registration
     assert_nil @final.reload.red_registration
+  end
+
+  test "organizer can choose winner when set wins are tied" do
+    patch result_tournament_draw_match_path(@match), params: {
+      tournament_draw_match: {
+        red_round_1_points: 10,
+        blue_round_1_points: 10,
+        red_round_2_points: 6,
+        blue_round_2_points: 9,
+        red_round_3_points: 4,
+        blue_round_3_points: 3,
+        red_head_guard_color: "red",
+        blue_head_guard_color: "blue",
+        winner_registration_id: @second_registration.id
+      }
+    }
+
+    assert_redirected_to draw_tournament_path(@tournament)
+    assert_equal "Match result saved.", flash[:notice]
+    assert_equal @second_registration, @match.reload.winner_registration
+    assert_equal @second_registration, @final.reload.red_registration
   end
 
   private

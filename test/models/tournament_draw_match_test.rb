@@ -63,7 +63,36 @@ class TournamentDrawMatchTest < ActiveSupport::TestCase
     assert_equal @first_registration, @draw.tournament_draw_matches.find_by(round_number: 2, position: 1).red_registration
   end
 
-  test "blocks tied score after three rounds" do
+  test "winner is based on sets won not total points" do
+    match = @draw.tournament_draw_matches.create!(
+      round_number: 1,
+      position: 1,
+      red_registration: @first_registration,
+      blue_registration: @second_registration,
+      red_head_guard_color: "red",
+      blue_head_guard_color: "blue"
+    )
+
+    assert match.record_result!(
+      actor: @organizer,
+      attributes: {
+        red_round_1_points: 14,
+        blue_round_1_points: 5,
+        red_round_2_points: 2,
+        blue_round_2_points: 3,
+        red_round_3_points: 2,
+        blue_round_3_points: 3,
+        red_head_guard_color: "red",
+        blue_head_guard_color: "blue"
+      }
+    )
+
+    assert_equal 1, match.red_round_wins
+    assert_equal 2, match.blue_round_wins
+    assert_equal @second_registration, match.reload.winner_registration
+  end
+
+  test "requires referee decision when set wins are tied" do
     match = @draw.tournament_draw_matches.create!(
       round_number: 1,
       position: 1,
@@ -86,7 +115,34 @@ class TournamentDrawMatchTest < ActiveSupport::TestCase
         blue_head_guard_color: "blue"
       }
     )
-    assert_includes match.errors.full_messages, "Score cannot be tied after three rounds"
+    assert_includes match.errors.full_messages, "Winner registration must be selected when set wins are tied"
+  end
+
+  test "uses referee decision when set wins are tied" do
+    match = @draw.tournament_draw_matches.create!(
+      round_number: 1,
+      position: 1,
+      red_registration: @first_registration,
+      blue_registration: @second_registration,
+      red_head_guard_color: "red",
+      blue_head_guard_color: "blue"
+    )
+
+    assert match.record_result!(
+      actor: @organizer,
+      attributes: {
+        red_round_1_points: 5,
+        blue_round_1_points: 5,
+        red_round_2_points: 6,
+        blue_round_2_points: 4,
+        red_round_3_points: 3,
+        blue_round_3_points: 5,
+        red_head_guard_color: "red",
+        blue_head_guard_color: "blue",
+        winner_registration_id: @second_registration.id
+      }
+    )
+    assert_equal @second_registration, match.reload.winner_registration
   end
 
   test "advances bye winner" do
