@@ -36,7 +36,7 @@
                           <span class="draw-head-guard draw-head-guard-<%= match.red_head_guard_color %>"><%= match.red_head_guard_color.titleize %></span>
                           <span class="draw-entrant-name"><%= match.red_label %></span>
                           <% if match.ready_for_result? %>
-                            <%= form.select :red_head_guard_color, TournamentDrawMatch::HEAD_GUARD_COLORS.map { |color| [color.titleize, color] }, {}, class: "draw-color-select", aria: { label: "#{match.red_label} head guard color" } %>
+                            <%= form.select :red_head_guard_color, TournamentDrawMatch::HEAD_GUARD_COLORS.map { |color| [color.titleize, color] }, {}, class: "draw-color-select", aria: { label: "#{match.red_label} chest guard color" } %>
                           <% end %>
                         </div>
 
@@ -44,7 +44,7 @@
                           <span class="draw-head-guard draw-head-guard-<%= match.blue_head_guard_color %>"><%= match.blue_head_guard_color.titleize %></span>
                           <span class="draw-entrant-name"><%= match.blue_label %></span>
                           <% if match.ready_for_result? %>
-                            <%= form.select :blue_head_guard_color, TournamentDrawMatch::HEAD_GUARD_COLORS.map { |color| [color.titleize, color] }, {}, class: "draw-color-select", aria: { label: "#{match.blue_label} head guard color" } %>
+                            <%= form.select :blue_head_guard_color, TournamentDrawMatch::HEAD_GUARD_COLORS.map { |color| [color.titleize, color] }, {}, class: "draw-color-select", aria: { label: "#{match.blue_label} chest guard color" } %>
                           <% end %>
                         </div>
 

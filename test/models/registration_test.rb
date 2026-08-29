@@ -67,4 +67,39 @@ class RegistrationTest < ActiveSupport::TestCase
     assert_not weight_check.valid?
     assert_includes weight_check.errors[:registration], "must be accepted before weight check"
   end
+
+  test "reports draw color score advancement and medal state" do
+    organizer = User.create!(name: "Organizer", email: "draw-status-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Athlete", email: "draw-status-athlete@example.test", password: "password123", role: :athlete)
+    opponent_user = User.create!(name: "Opponent", email: "draw-status-opponent@example.test", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", external_academy_name: "Blue Dojang")
+    opponent = opponent_user.athletes.create!(first_name: "Meera", last_name: "Rao", date_of_birth: Date.new(2014, 5, 12), gender: "female", external_academy_name: "Red Dojang")
+    tournament = Tournament.create!(name: "Draw Status Open", organizer: organizer, start_date: 2.days.from_now.to_date, end_date: 3.days.from_now.to_date)
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 35, weight_max: 37)
+    registration = tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :weight_verified, payment_receipt: payment_receipt_upload)
+    opponent_registration = tournament.registrations.create!(athlete: opponent, tournament_category: category, status: :weight_verified, payment_receipt: payment_receipt_upload)
+    draw = tournament.tournament_draws.create!(tournament_category: category, generated_by: organizer, bracket_size: 2, round_count: 1, entry_count: 2, generated_at: Time.current)
+    match = draw.tournament_draw_matches.create!(
+      round_number: 1,
+      position: 1,
+      red_registration: opponent_registration,
+      blue_registration: registration,
+      red_round_1_points: 3,
+      blue_round_1_points: 6,
+      red_round_2_points: 4,
+      blue_round_2_points: 8,
+      red_round_3_points: 2,
+      blue_round_3_points: 5,
+      red_head_guard_color: "red",
+      blue_head_guard_color: "blue",
+      winner_registration: registration,
+      completed_by: organizer,
+      completed_at: Time.current
+    )
+
+    assert_equal "blue", registration.draw_head_guard_color(match)
+    assert_equal [match], registration.completed_draw_matches.to_a
+    assert_equal "Gold medal", registration.draw_status_label
+    assert_equal "Gold medal", registration.medal_label
+  end
 end

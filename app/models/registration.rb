@@ -4,6 +4,9 @@ class Registration < ApplicationRecord
   belongs_to :tournament_category
   has_many :registration_action_logs, dependent: :destroy
   has_many :registration_weight_checks, dependent: :destroy
+  has_many :red_draw_matches, class_name: "TournamentDrawMatch", foreign_key: :red_registration_id, dependent: :nullify
+  has_many :blue_draw_matches, class_name: "TournamentDrawMatch", foreign_key: :blue_registration_id, dependent: :nullify
+  has_many :won_draw_matches, class_name: "TournamentDrawMatch", foreign_key: :winner_registration_id, dependent: :nullify
   has_one_attached :payment_receipt
 
   enum :status, { pending: 0, approved: 1, rejected: 2, withdrawn: 3, weight_verified: 4, disqualified: 5, draft: 6 }, default: :pending
@@ -92,6 +95,81 @@ class Registration < ApplicationRecord
     registration_weight_checks.order(:attempt_number).map do |check|
       result = check.passed? ? "passed" : "failed"
       "Attempt #{check.attempt_number}: #{formatted_weight(check.weight)} kg #{result}"
+    end
+  end
+
+  def active_tournament_draw
+    tournament.tournament_draws.active.find_by(tournament_category: tournament_category)
+  end
+
+  def active_draw_matches
+    draw = active_tournament_draw
+    return TournamentDrawMatch.none if draw.blank?
+
+    draw.tournament_draw_matches.where(
+      "red_registration_id = :id OR blue_registration_id = :id OR winner_registration_id = :id",
+      id: id
+    ).order(:round_number, :position)
+  end
+
+  def current_draw_match
+    active_draw_matches.where(winner_registration_id: nil).where(
+      "red_registration_id = :id OR blue_registration_id = :id",
+      id: id
+    ).first
+  end
+
+  def completed_draw_matches
+    active_draw_matches.where.not(winner_registration_id: nil).order(:round_number, :position)
+  end
+
+  def latest_completed_draw_match
+    completed_draw_matches.to_a.max_by(&:round_number)
+  end
+
+  def draw_head_guard_color(match = current_draw_match)
+    return if match.blank?
+    return match.red_head_guard_color if match.red_registration_id == id
+    return match.blue_head_guard_color if match.blue_registration_id == id
+  end
+
+  def draw_status_label
+    draw = active_tournament_draw
+    return "Draw not set" if draw.blank?
+
+    match = current_draw_match
+    return "Next match ready" if match&.ready_for_result?
+    return "Waiting for opponent" if match.present?
+
+    completed_match = latest_completed_draw_match
+    return "Draw set" if completed_match.blank?
+    return medal_label(completed_match) if medal_label(completed_match).present?
+    return "Advanced" if completed_match.winner_registration_id == id
+
+    "Eliminated"
+  end
+
+  def draw_status_detail
+    match = current_draw_match
+    if match&.ready_for_result?
+      "Your next match is #{match.round_label}, match #{match.position}. Chest guard: #{draw_head_guard_color(match).to_s.titleize}."
+    elsif match.present?
+      "You have advanced to #{match.round_label}. Your opponent will appear when the previous match is complete."
+    elsif latest_completed_draw_match&.winner_registration_id == id
+      "You won your latest match."
+    elsif latest_completed_draw_match.present?
+      "Your latest match is complete."
+    end
+  end
+
+  def medal_label(match = latest_completed_draw_match)
+    return if match.blank?
+    return unless match.round_number == match.tournament_draw.round_count || match.round_number == match.tournament_draw.round_count - 1
+
+    if match.round_number == match.tournament_draw.round_count
+      match.winner_registration_id == id ? "Gold medal" : "Silver medal"
+    elsif match.winner_registration_id != id
+      "Bronze medal"
     end
   end
 

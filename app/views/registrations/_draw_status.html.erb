@@ -1,0 +1,51 @@
+<% current_match = registration.current_draw_match %>
+<% completed_matches = registration.completed_draw_matches %>
+<% medal = registration.medal_label %>
+
+<div class="registration-draw-card">
+  <div class="registration-draw-header">
+    <span class="draw-state-pill <%= "draw-state-medal" if medal.present? %>"><%= medal || registration.draw_status_label %></span>
+    <% if current_match.present? %>
+      <strong><%= current_match.round_label %> · Match <%= current_match.position %></strong>
+    <% elsif registration.active_tournament_draw.present? %>
+      <strong>Draw set</strong>
+    <% else %>
+      <strong>Draw pending</strong>
+    <% end %>
+  </div>
+
+  <% if registration.draw_status_detail.present? %>
+    <p><%= registration.draw_status_detail %></p>
+  <% end %>
+
+  <% if current_match.present? %>
+    <% color = registration.draw_head_guard_color(current_match) %>
+    <div class="draw-profile-meta">
+      <span>
+        <strong>Chest guard</strong>
+        <em class="draw-profile-color draw-profile-color-<%= color %>"><%= color.to_s.titleize %></em>
+      </span>
+      <span>
+        <strong>Opponent</strong>
+        <%= current_match.red_registration_id == registration.id ? current_match.blue_label : current_match.red_label %>
+      </span>
+    </div>
+  <% end %>
+
+  <% if completed_matches.any? %>
+    <div class="draw-profile-results">
+      <% completed_matches.each do |match| %>
+        <% athlete_is_red = match.red_registration_id == registration.id %>
+        <% athlete_points = athlete_is_red ? match.red_total_points : match.blue_total_points %>
+        <% opponent_points = athlete_is_red ? match.blue_total_points : match.red_total_points %>
+        <% athlete_color = athlete_is_red ? match.red_head_guard_color : match.blue_head_guard_color %>
+        <div>
+          <span><%= match.round_label %> · Match <%= match.position %></span>
+          <strong><%= match.bye? ? "Bye" : "#{athlete_points} - #{opponent_points}" %></strong>
+          <em class="draw-profile-color draw-profile-color-<%= athlete_color %>"><%= athlete_color.titleize %></em>
+          <b><%= match.winner_registration_id == registration.id ? "Won" : "Lost" %></b>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

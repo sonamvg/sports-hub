@@ -55,6 +55,7 @@
               <% registration.weight_check_summary.each do |attempt| %>
                 <span><%= attempt %></span>
               <% end %>
+              <%= render "registrations/draw_status", registration: registration %>
             </div>
             <span class="status-pill status-<%= registration.status %>"><%= registration.athlete_status_label %></span>
           </div>

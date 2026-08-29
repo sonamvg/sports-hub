@@ -159,6 +159,27 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     tournament.registrations.create!(athlete: athlete, tournament_category: pending_category, status: :pending, payment_receipt: payment_receipt_upload)
     verified_registration = tournament.registrations.create!(athlete: athlete, tournament_category: verified_category, status: :approved, payment_receipt: payment_receipt_upload)
     verified_registration.registration_weight_checks.create!(checked_by: organizer, weight: 32.5)
+    opponent_user = User.create!(name: "Opponent User", email: "academy-status-opponent@example.test", password: "password123", role: :athlete)
+    opponent = opponent_user.athletes.create!(first_name: "Meera", last_name: "Rao", date_of_birth: Date.new(2014, 5, 12), gender: "female", external_academy_name: "Opponent Dojang")
+    opponent_registration = tournament.registrations.create!(athlete: opponent, tournament_category: verified_category, status: :weight_verified, payment_receipt: payment_receipt_upload)
+    draw = tournament.tournament_draws.create!(tournament_category: verified_category, generated_by: organizer, bracket_size: 2, round_count: 1, entry_count: 2, generated_at: Time.current)
+    draw.tournament_draw_matches.create!(
+      round_number: 1,
+      position: 1,
+      red_registration: verified_registration,
+      blue_registration: opponent_registration,
+      red_round_1_points: 8,
+      blue_round_1_points: 4,
+      red_round_2_points: 7,
+      blue_round_2_points: 3,
+      red_round_3_points: 5,
+      blue_round_3_points: 2,
+      red_head_guard_color: "red",
+      blue_head_guard_color: "blue",
+      winner_registration: verified_registration,
+      completed_by: organizer,
+      completed_at: Time.current
+    )
     sign_in_as owner
 
     get academy_path(academy)
@@ -170,6 +191,9 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Application submitted"
     assert_includes response.body, "Weight verified"
     assert_includes response.body, "Attempt 1: 32.5 kg passed"
+    assert_includes response.body, "Gold medal"
+    assert_includes response.body, "20 - 9"
+    assert_includes response.body, "Red"
   end
 
   test "academy owner can approve athlete join request" do

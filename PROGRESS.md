@@ -2044,3 +2044,29 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Generated fresh local draws for Mumbai Invitational Taekwondo Cup; result: 3 generated, 3 previous active draws archived, 0 skipped, byes auto-advanced.
 - Ran `mise exec -- bin/rails test`; result: 169 runs, 1375 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails test test/models/tournament_draw_generator_test.rb test/models/tournament_draw_match_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 50 runs, 452 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-29 - Athlete And Academy Draw Visibility
+
+### Reference
+- User request: once the draw is set, athletes should see draw status, chest guard color, score, advancement, next match color, and medal result on their profile. Academy owners should see the same tournament/draw status for each of their athletes.
+
+### Product Decisions
+- Attached draw visibility to each `Registration`, because both athlete profile and academy tournament-status views already render registrations.
+- Athlete and academy views share one partial so both audiences see the same draw state.
+- Current match cards show the athlete's chest guard color, opponent, and round/match position.
+- Completed match cards show the athlete's score against the opponent, color used, and won/lost result.
+- Bye wins are shown as `Bye` instead of fake zero scores.
+- Medal labels are inferred from completed draw matches: final winner gets gold, final loser gets silver, and semi-final losers get bronze.
+- If an athlete advances before the opponent is known, the profile says they advanced and are waiting for the opponent.
+
+### Change Log
+- Added draw-match associations and draw-status helper methods to `Registration`.
+- Added reusable `registrations/_draw_status` partial.
+- Rendered draw status on athlete profiles for upcoming and previous competitions.
+- Rendered draw status in academy owner athlete tournament status.
+- Added profile draw-status card styling.
+- Added tests for registration draw state, athlete profile visibility, and academy owner visibility.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/models/registration_test.rb test/controllers/athletes_controller_test.rb test/controllers/academies_controller_test.rb test/models/tournament_draw_match_test.rb test/controllers/tournament_draw_matches_controller_test.rb`; result: 49 runs, 410 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 170 runs, 1391 assertions, 0 failures, 0 errors, 0 skips.

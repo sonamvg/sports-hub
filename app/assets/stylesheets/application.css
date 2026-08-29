@@ -612,11 +612,103 @@ body { background:#f4f4f1; }
 .draw-bye-match .draw-result-bar { background:#fff; }
 .draw-entrant-red { border-left:4px solid #d81f32; }
 .draw-entrant-blue { border-left:4px solid #174ea6; }
+.registration-draw-card {
+  background:#fbfbfa;
+  border:1px solid #e1e2e4;
+  border-radius:8px;
+  display:grid;
+  gap:10px;
+  margin-top:12px;
+  padding:12px;
+}
+.registration-draw-header {
+  align-items:center;
+  display:flex;
+  gap:10px;
+  justify-content:space-between;
+}
+.registration-draw-header strong {
+  font-size:13px;
+  text-align:right;
+}
+.registration-draw-card p {
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.45;
+  margin:0;
+}
+.draw-state-pill {
+  background:#eef0f3;
+  border-radius:999px;
+  color:#343842;
+  display:inline-flex;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.08em;
+  padding:6px 9px;
+  text-transform:uppercase;
+}
+.draw-state-medal {
+  background:#fff3bf;
+  color:#7a5200;
+}
+.draw-profile-meta {
+  display:grid;
+  gap:10px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.draw-profile-meta span,
+.draw-profile-results div {
+  background:white;
+  border:1px solid #ececef;
+  border-radius:6px;
+  color:#343842;
+  display:grid;
+  gap:5px;
+  padding:10px;
+}
+.draw-profile-meta strong,
+.draw-profile-results span {
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.draw-profile-color {
+  border-radius:999px;
+  color:white;
+  display:inline-flex;
+  font-size:11px;
+  font-style:normal;
+  font-weight:900;
+  justify-self:start;
+  padding:5px 8px;
+  text-transform:uppercase;
+}
+.draw-profile-color-red { background:#d81f32; }
+.draw-profile-color-blue { background:#174ea6; }
+.draw-profile-results {
+  display:grid;
+  gap:8px;
+}
+.draw-profile-results div {
+  align-items:center;
+  grid-template-columns:1fr auto auto auto;
+}
+.draw-profile-results strong {
+  font-size:15px;
+}
+.draw-profile-results b {
+  font-size:12px;
+  text-transform:uppercase;
+}
 
 @media (max-width: 900px) {
   .draw-sheet { padding:18px; }
   .draw-sheet-header { min-width:760px; }
   .draw-bracket { grid-template-columns:repeat(var(--round-count), minmax(300px, 1fr)); min-width:max(760px, calc(var(--round-count) * 326px)); }
+  .draw-profile-meta,.draw-profile-results div { grid-template-columns:1fr; }
 }
 
 @media (max-width: 800px) {
