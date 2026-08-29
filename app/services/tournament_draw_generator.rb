@@ -1,5 +1,5 @@
 class TournamentDrawGenerator
-  Result = Struct.new(:draws, :skipped_categories, :existing_draws, keyword_init: true)
+  Result = Struct.new(:draws, :skipped_categories, :superseded_draws_count, keyword_init: true)
 
   def initialize(tournament:, generated_by:)
     @tournament = tournament
@@ -9,18 +9,14 @@ class TournamentDrawGenerator
   def call
     draws = []
     skipped_categories = []
-    existing_draws = []
+    superseded_draws_count = 0
 
     TournamentDraw.transaction do
-      tournament.tournament_categories.order(:name).each do |category|
-        existing_draw = tournament.tournament_draws.find_by(tournament_category: category)
-        if existing_draw
-          existing_draws << existing_draw
-          next
-        end
+      superseded_draws_count = supersede_active_draws
 
+      tournament.tournament_categories.order(:name).each do |category|
         registrations = draw_ready_registrations(category)
-        if registrations.size < 2
+        if registrations.empty?
           skipped_categories << category
           next
         end
@@ -29,12 +25,16 @@ class TournamentDrawGenerator
       end
     end
 
-    Result.new(draws: draws, skipped_categories: skipped_categories, existing_draws: existing_draws)
+    Result.new(draws: draws, skipped_categories: skipped_categories, superseded_draws_count: superseded_draws_count)
   end
 
   private
 
   attr_reader :tournament, :generated_by
+
+  def supersede_active_draws
+    tournament.tournament_draws.active.update_all(superseded_at: Time.current, updated_at: Time.current)
+  end
 
   def draw_ready_registrations(category)
     tournament.registrations

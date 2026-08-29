@@ -57,6 +57,7 @@ class TournamentsController < ApplicationController
 
   def draw
     @draws = @tournament.tournament_draws
+      .active
       .includes(:tournament_category, tournament_draw_matches: [
         red_registration: { athlete: :academy },
         blue_registration: { athlete: :academy }
@@ -73,11 +74,11 @@ class TournamentsController < ApplicationController
 
     result = TournamentDrawGenerator.new(tournament: @tournament, generated_by: current_user).call
 
-    if result.draws.any? || result.existing_draws.any?
+    if result.draws.any?
       @tournament.update!(status: :draw_scheduling)
       redirect_to draw_tournament_path(@tournament), notice: draw_notice(result)
     else
-      redirect_to @tournament, alert: "No draw-ready categories yet. Complete weight check for at least two athletes in a category."
+      redirect_to @tournament, alert: "No draw-ready categories yet. Complete weight check for at least one athlete in a category."
     end
   end
 
@@ -173,7 +174,7 @@ class TournamentsController < ApplicationController
   def draw_notice(result)
     parts = []
     parts << "#{result.draws.size} #{'draw'.pluralize(result.draws.size)} generated" if result.draws.any?
-    parts << "#{result.existing_draws.size} existing #{'draw'.pluralize(result.existing_draws.size)} kept" if result.existing_draws.any?
+    parts << "#{result.superseded_draws_count} previous #{'draw'.pluralize(result.superseded_draws_count)} archived" if result.superseded_draws_count.positive?
     parts << "#{result.skipped_categories.size} #{'category'.pluralize(result.skipped_categories.size)} skipped" if result.skipped_categories.any?
     "#{parts.to_sentence}. Late athlete registrations are now locked."
   end

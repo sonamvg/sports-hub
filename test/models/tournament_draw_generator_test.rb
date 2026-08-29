@@ -45,22 +45,39 @@ class TournamentDrawGeneratorTest < ActiveSupport::TestCase
     assert first_round_matches.all? { |match| match.red_registration.athlete.academy_id != match.blue_registration.athlete.academy_id }
   end
 
-  test "does not overwrite an existing draw" do
+  test "archives existing active draws and creates a fresh category draw" do
     create_draw_registration("Aarohi", "Shah", nil)
     create_draw_registration("Meera", "Rao", nil)
 
     first_result = TournamentDrawGenerator.new(tournament: @tournament, generated_by: @organizer).call
+    create_draw_registration("Tara", "Nair", nil)
     second_result = TournamentDrawGenerator.new(tournament: @tournament, generated_by: @organizer).call
 
     assert_equal 1, first_result.draws.size
-    assert_equal 0, second_result.draws.size
-    assert_equal [first_result.draws.first], second_result.existing_draws
-    assert_equal 1, @tournament.tournament_draws.count
+    assert_equal 1, second_result.draws.size
+    assert_equal 1, second_result.superseded_draws_count
+    assert_predicate first_result.draws.first.reload, :superseded?
+    assert_nil second_result.draws.first.superseded_at
+    assert_equal 3, second_result.draws.first.entry_count
+    assert_equal 1, @tournament.tournament_draws.active.count
+    assert_equal 2, @tournament.tournament_draws.count
   end
 
-  test "skips categories with fewer than two draw ready athletes" do
+  test "generates a category draw for one draw ready athlete" do
     create_draw_registration("Aarohi", "Shah", nil)
 
+    result = TournamentDrawGenerator.new(tournament: @tournament, generated_by: @organizer).call
+
+    assert_equal 1, result.draws.size
+    draw = result.draws.first
+    assert_equal 1, draw.entry_count
+    assert_equal 2, draw.bracket_size
+    assert_equal 1, draw.round_count
+    assert_equal 1, draw.tournament_draw_matches.count
+    assert_predicate draw.tournament_draw_matches.first, :bye?
+  end
+
+  test "skips categories with no draw ready athletes" do
     result = TournamentDrawGenerator.new(tournament: @tournament, generated_by: @organizer).call
 
     assert_empty result.draws

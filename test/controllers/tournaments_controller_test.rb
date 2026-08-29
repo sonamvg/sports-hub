@@ -857,8 +857,44 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to tournament_path(tournament)
-    assert_equal "No draw-ready categories yet. Complete weight check for at least two athletes in a category.", flash[:alert]
+    assert_equal "No draw-ready categories yet. Complete weight check for at least one athlete in a category.", flash[:alert]
     assert_not_predicate tournament.reload, :draw_scheduling?
+  end
+
+  test "set draw creates active draws for every category with draw ready athletes" do
+    tournament = Tournament.create!(
+      name: "Multi Category Draw Open",
+      organizer: @organizer,
+      status: :registration_open,
+      registration_opens_at: 10.days.ago,
+      registration_closes_at: 1.day.ago,
+      start_date: 2.days.from_now.to_date,
+      end_date: 3.days.from_now.to_date
+    )
+    first_category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    second_category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "male", age_min: 15, age_max: 17, weight_min: 51, weight_max: 55)
+
+    first_user = User.create!(name: "Aditi Naik", email: "multi-draw-aditi@example.test", password: "password123", role: :athlete)
+    second_user = User.create!(name: "Dev Shetty", email: "multi-draw-dev@example.test", password: "password123", role: :athlete)
+    first_athlete = first_user.athletes.create!(first_name: "Aditi", last_name: "Naik", date_of_birth: Date.new(2014, 5, 12), gender: "female", external_academy_name: "Coastal Warriors")
+    second_athlete = second_user.athletes.create!(first_name: "Dev", last_name: "Shetty", date_of_birth: Date.new(2009, 8, 14), gender: "male", external_academy_name: "Phoenix Kicks")
+
+    tournament.registrations.create!(athlete: first_athlete, tournament_category: first_category, status: :weight_verified, payment_receipt: payment_receipt_upload)
+    tournament.registrations.create!(athlete: second_athlete, tournament_category: second_category, status: :weight_verified, payment_receipt: payment_receipt_upload)
+
+    assert_difference("TournamentDraw.count", 2) do
+      patch set_draw_tournament_path(tournament)
+    end
+
+    assert_redirected_to draw_tournament_path(tournament)
+    assert_equal [first_category.id, second_category.id].sort, tournament.tournament_draws.active.pluck(:tournament_category_id).sort
+
+    get draw_tournament_path(tournament)
+    assert_response :success
+    assert_includes response.body, first_category.name.upcase
+    assert_includes response.body, second_category.name.upcase
+    assert_includes response.body, "Aditi Naik"
+    assert_includes response.body, "Dev Shetty"
   end
 
   test "set draw is blocked before registration closes" do

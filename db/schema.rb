@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_29_000200) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_29_000300) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -193,15 +193,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_29_000200) do
     t.datetime "generated_at", null: false
     t.bigint "generated_by_id", null: false
     t.integer "round_count", null: false
+    t.datetime "superseded_at"
     t.bigint "tournament_category_id", null: false
     t.bigint "tournament_id", null: false
     t.datetime "updated_at", null: false
     t.index ["generated_by_id"], name: "index_tournament_draws_on_generated_by_id"
     t.index ["tournament_category_id"], name: "index_tournament_draws_on_tournament_category_id"
-    t.index ["tournament_id", "tournament_category_id"], name: "index_tournament_draws_unique_category", unique: true
+    t.index ["tournament_id", "tournament_category_id"], name: "index_active_tournament_draws_unique_category", unique: true, where: "(superseded_at IS NULL)"
     t.index ["tournament_id"], name: "index_tournament_draws_on_tournament_id"
     t.check_constraint "bracket_size >= 2", name: "tournament_draws_bracket_size_minimum"
-    t.check_constraint "entry_count >= 2", name: "tournament_draws_entry_count_minimum"
+    t.check_constraint "entry_count >= 1", name: "tournament_draws_entry_count_minimum"
     t.check_constraint "round_count >= 1", name: "tournament_draws_round_count_minimum"
   end
 

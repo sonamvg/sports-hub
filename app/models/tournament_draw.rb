@@ -4,11 +4,17 @@ class TournamentDraw < ApplicationRecord
   belongs_to :generated_by, class_name: "User"
   has_many :tournament_draw_matches, dependent: :destroy
 
-  validates :tournament_category_id, uniqueness: { scope: :tournament_id }
+  scope :active, -> { where(superseded_at: nil) }
+
+  validates :tournament_category_id, uniqueness: { scope: :tournament_id, conditions: -> { where(superseded_at: nil) } }, unless: :superseded?
   validates :bracket_size, numericality: { only_integer: true, greater_than_or_equal_to: 2 }
   validates :round_count, numericality: { only_integer: true, greater_than_or_equal_to: 1 }
-  validates :entry_count, numericality: { only_integer: true, greater_than_or_equal_to: 2 }
+  validates :entry_count, numericality: { only_integer: true, greater_than_or_equal_to: 1 }
   validate :category_belongs_to_tournament
+
+  def superseded?
+    superseded_at.present?
+  end
 
   def matches_by_round
     tournament_draw_matches.includes(red_registration: { athlete: :academy }, blue_registration: { athlete: :academy }).order(:round_number, :position).group_by(&:round_number)

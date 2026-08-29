@@ -1984,3 +1984,33 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 ### Verification Log
 - Ran `mise exec -- bin/rails db:seed`; result: completed successfully and printed demo account credentials.
 - Ran a Rails runner verification query for Mumbai Invitational Taekwondo Cup; result: 20 draw-ready registrations, 20 unlinked draw-ready athletes, category split 6/7/7, sample records all had passing latest weight checks.
+
+## 2026-08-29 - Category-Complete Draw Refresh
+
+### Reference
+- User report: many athletes were draw-ready but only two appeared in the draw; draw output should be based on categories, and a category with a single athlete should still be shown.
+
+### Root Cause
+- Draw generation originally skipped categories with fewer than two athletes.
+- Draw generation also preserved existing category draws, which made it possible for a previously generated small draw to stay visible after more athletes became draw-ready.
+
+### Product Decisions
+- Every category with at least one `weight_verified` registration now gets an active draw.
+- Single-athlete categories render as a two-slot bracket with the athlete and a bye.
+- Regenerating a draw now archives previous active draws by setting `superseded_at` instead of deleting draw records or matches. This keeps future audit/history possible while ensuring the visible draw reflects current draw-ready athletes.
+- The draw page shows only active draws.
+
+### Change Log
+- Added `superseded_at` to `tournament_draws`.
+- Replaced the unique category draw index with a partial unique index for active draws only.
+- Relaxed the draw `entry_count` constraint and model validation from minimum 2 to minimum 1.
+- Updated `TournamentDrawGenerator` to archive previous active draws and rebuild current active category draws.
+- Updated empty-state and no-draw messages to say at least one athlete is enough.
+- Added tests for active draw refresh and one-athlete category brackets.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: draw-versioning migration applied successfully.
+- Ran `mise exec -- bin/rails test test/models/tournament_draw_generator_test.rb test/controllers/tournaments_controller_test.rb`; result: 45 runs, 425 assertions, 0 failures, 0 errors, 0 skips.
+- Generated fresh local draws for Mumbai Invitational Taekwondo Cup using `TournamentDrawGenerator`; result: 3 active draws generated, 0 categories skipped.
+- Ran `mise exec -- bin/rails test`; result: 164 runs, 1348 assertions, 0 failures, 0 errors, 0 skips.
+- Ran a Rails runner verification query for Mumbai Invitational Taekwondo Cup; result: 3 active draws, category split 6/7/7, each category using an 8-slot bracket with 4 first-round match rows.
