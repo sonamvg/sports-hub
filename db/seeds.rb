@@ -304,6 +304,70 @@ closed_categories = %w[cadet-female-u37 junior-male-u55 senior-male-u68].map do 
   seed_category(closed_tournament, key)
 end
 
+mumbai_draw_ready_athlete_specs = [
+  ["Aditi", "Naik", "female", Date.new(2012, 1, 15), "blue", 36.2, "Coastal Warriors Taekwondo", closed_categories.first],
+  ["Kiara", "Patel", "female", Date.new(2012, 5, 22), "red", 35.8, "Eastern Edge Dojang", closed_categories.first],
+  ["Myra", "Iyer", "female", Date.new(2011, 9, 7), "green", 36.7, "Western Strikers Academy", closed_categories.first],
+  ["Riya", "Shah", "female", Date.new(2013, 3, 11), "blue", 34.9, "Harbour Kick Club", closed_categories.first],
+  ["Sara", "Menon", "female", Date.new(2012, 12, 2), "red", 35.4, "Skyline Martial Arts", closed_categories.first],
+  ["Tara", "Pillai", "female", Date.new(2011, 6, 19), "black", 36.9, "North Star Taekwondo", closed_categories.first],
+  ["Aarav", "Rane", "male", Date.new(2009, 4, 3), "red", 54.0, "Metro Tigers Dojang", closed_categories.second],
+  ["Dev", "Shetty", "male", Date.new(2008, 8, 14), "black", 53.2, "Phoenix Kicks Academy", closed_categories.second],
+  ["Kabir", "Kapoor", "male", Date.new(2009, 10, 25), "blue", 52.7, "Seaside Combat Club", closed_categories.second],
+  ["Neil", "Bhat", "male", Date.new(2010, 2, 17), "green", 54.6, "Summit Taekwondo Center", closed_categories.second],
+  ["Om", "Chavan", "male", Date.new(2008, 11, 29), "red", 53.9, "Central Ring Academy", closed_categories.second],
+  ["Vivaan", "Ghosh", "male", Date.new(2009, 7, 8), "black", 52.4, "Velocity Martial Arts", closed_categories.second],
+  ["Yash", "Mehra", "male", Date.new(2010, 1, 31), "blue", 54.8, "Iron Stance Dojang", closed_categories.second],
+  ["Arjun", "Saxena", "male", Date.new(2004, 9, 5), "black", 66.5, "Prime Kickboxing And TKD", closed_categories.third],
+  ["Dhruv", "Mishra", "male", Date.new(2003, 12, 12), "red", 64.8, "Urban Warriors Club", closed_categories.third],
+  ["Ishaan", "Roy", "male", Date.new(2005, 5, 21), "blue", 62.9, "Bayline Taekwondo", closed_categories.third],
+  ["Kunal", "Sethi", "male", Date.new(2002, 7, 16), "black", 67.2, "Champion's Lane Dojang", closed_categories.third],
+  ["Manav", "Nair", "male", Date.new(2004, 3, 4), "red", 65.1, "Spartan Kicks Academy", closed_categories.third],
+  ["Pranav", "Kulkarni", "male", Date.new(2003, 6, 27), "blue", 63.7, "Ace Taekwondo Collective", closed_categories.third],
+  ["Rohan", "Malhotra", "male", Date.new(2005, 2, 10), "black", 66.0, "Victory Path Martial Arts", closed_categories.third]
+]
+
+mumbai_draw_ready_athlete_specs.each_with_index do |(first_name, last_name, gender, dob, belt, weight, external_academy_name, category), index|
+  user = seed_user(
+    email: "mumbai.draw.athlete#{index + 1}@sportshub.test",
+    name: "#{first_name} #{last_name}",
+    role: :athlete,
+    phone: "90000007#{format('%02d', index + 1)}"
+  )
+
+  athlete = seed_athlete(
+    user: user,
+    academy: nil,
+    first_name: first_name,
+    last_name: last_name,
+    date_of_birth: dob,
+    gender: gender,
+    belt: belt,
+    weight: weight,
+    blood_group: Athlete::BLOOD_GROUPS[index % Athlete::BLOOD_GROUPS.size],
+    association_id: "MITC-DR-#{format('%03d', index + 1)}",
+    contact_number: "90000007#{format('%02d', index + 1)}",
+    emergency_contact_name: "Emergency Contact #{index + 1}",
+    emergency_contact_phone: "90000008#{format('%02d', index + 1)}",
+    address: "Mumbai training address #{index + 1}",
+    city: "Mumbai",
+    state: "Maharashtra",
+    country: "India",
+    government_id_document_type: "Aadhaar",
+    external_academy_name: external_academy_name
+  )
+
+  registration = seed_registration(
+    tournament: closed_tournament,
+    athlete: athlete,
+    category: category,
+    status: :approved,
+    actor: organizer
+  )
+
+  seed_weight_checks(registration: registration, actor: assistant_organizer, weights: [weight])
+end
+
 [
   {
     tournament: open_tournament,

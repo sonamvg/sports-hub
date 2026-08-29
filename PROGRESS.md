@@ -1964,3 +1964,23 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bin/rails db:migrate`; result: new draw migrations applied successfully.
 - Ran `mise exec -- bin/rails test test/models/tournament_draw_generator_test.rb test/controllers/tournaments_controller_test.rb`; result: 43 runs, 398 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails test`; result: 162 runs, 1321 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-29 - Mumbai Draw-Ready Demo Athletes
+
+### Reference
+- User request: create about 20 draw-ready athletes for Mumbai Invitational Taekwondo Cup, keep them from different/random unlisted academies, and make them all pass weight check.
+
+### Product Decisions
+- Added the records to `db/seeds.rb` so this draw testing dataset is reproducible for future local setups.
+- Used unlinked `external_academy_name` values instead of creating real academy records, matching the request for random academies that are not listed in the hub.
+- Split the 20 athletes across the Mumbai tournament's three default categories: 6 female cadet entries, 7 junior male entries, and 7 senior male entries.
+- Created approved registrations first, then added one passing weight-check attempt per athlete so the existing model callback moves each registration to `weight_verified`.
+
+### Change Log
+- Added 20 idempotent Mumbai draw-ready athlete users and profiles to the seed data.
+- Added payment-backed approved registrations for Mumbai Invitational Taekwondo Cup.
+- Added passing weight checks for each registration so every new entry is ready for draw generation.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:seed`; result: completed successfully and printed demo account credentials.
+- Ran a Rails runner verification query for Mumbai Invitational Taekwondo Cup; result: 20 draw-ready registrations, 20 unlinked draw-ready athletes, category split 6/7/7, sample records all had passing latest weight checks.
