@@ -97,9 +97,9 @@ class RegistrationTest < ActiveSupport::TestCase
       completed_at: Time.current
     )
 
-    assert_equal "blue", registration.draw_head_guard_color(match)
+    assert_equal "red", registration.draw_head_guard_color(match)
     assert_equal [match], registration.completed_draw_matches.to_a
-    assert_equal "Gold medal", registration.draw_status_label
-    assert_equal "Gold medal", registration.medal_label
+    assert_equal "Gold", registration.draw_status_label
+    assert_equal "Gold", registration.medal_label
   end
 end

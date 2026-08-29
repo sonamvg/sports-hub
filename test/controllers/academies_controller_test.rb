@@ -193,7 +193,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Attempt 1: 32.5 kg passed"
     assert_includes response.body, "Gold medal"
     assert_includes response.body, "20 - 9"
-    assert_includes response.body, "Red"
+    assert_includes response.body, "Blue"
   end
 
   test "academy owner can approve athlete join request" do

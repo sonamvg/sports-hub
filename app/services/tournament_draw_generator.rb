@@ -73,7 +73,7 @@ class TournamentDrawGenerator
         red_registration: pairing.first,
         blue_registration: pairing.second,
         bye: pairing.first.blank? || pairing.second.blank?,
-        **random_head_guard_colors
+        **default_chest_guard_colors
       )
     end
   end
@@ -91,7 +91,7 @@ class TournamentDrawGenerator
           position: index + 1,
           red_source_match_position: (index * 2) + 1,
           blue_source_match_position: (index * 2) + 2,
-          **random_head_guard_colors
+          **default_chest_guard_colors
         )
       end
     end
@@ -138,9 +138,7 @@ class TournamentDrawGenerator
     power
   end
 
-  def random_head_guard_colors
-    red_side_color = TournamentDrawMatch::HEAD_GUARD_COLORS.sample
-    blue_side_color = (TournamentDrawMatch::HEAD_GUARD_COLORS - [red_side_color]).first
-    { red_head_guard_color: red_side_color, blue_head_guard_color: blue_side_color }
+  def default_chest_guard_colors
+    { red_head_guard_color: "blue", blue_head_guard_color: "red" }
   end
 end

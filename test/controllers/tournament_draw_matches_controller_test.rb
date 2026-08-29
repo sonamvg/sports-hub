@@ -42,50 +42,65 @@ class TournamentDrawMatchesControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "organizer records match result and advances winner" do
+  test "organizer saves draft scores without advancing winner" do
     patch result_tournament_draw_match_path(@match), params: {
+      tournament_draw_match: {
+        red_round_1_points: 10,
+        blue_round_1_points: 8
+      }
+    }
+
+    assert_redirected_to draw_tournament_path(@tournament)
+    assert_equal "Score saved.", flash[:notice]
+    assert_nil @match.reload.winner_registration
+    assert_equal 10, @match.red_round_1_points
+    assert_equal 8, @match.blue_round_1_points
+    assert_nil @final.reload.red_registration
+  end
+
+  test "organizer freezes match result and advances winner" do
+    patch result_tournament_draw_match_path(@match), params: {
+      score_action: "Freeze result",
       tournament_draw_match: {
         red_round_1_points: 10,
         blue_round_1_points: 8,
         red_round_2_points: 6,
         blue_round_2_points: 9,
         red_round_3_points: 7,
-        blue_round_3_points: 5,
-        red_head_guard_color: "blue",
-        blue_head_guard_color: "red"
+        blue_round_3_points: 5
       }
     }
 
     assert_redirected_to draw_tournament_path(@tournament)
-    assert_equal "Match result saved.", flash[:notice]
+    assert_equal "Match result frozen.", flash[:notice]
     assert_equal @first_registration, @match.reload.winner_registration
-    assert_equal "blue", @match.red_head_guard_color
-    assert_equal "red", @match.blue_head_guard_color
+    assert_equal "red", @match.red_head_guard_color
+    assert_equal "blue", @match.blue_head_guard_color
     assert_equal @first_registration, @final.reload.red_registration
   end
 
-  test "organizer must choose winner when set wins are tied" do
+  test "organizer must choose round winner when round points are tied" do
     patch result_tournament_draw_match_path(@match), params: {
+      score_action: "Freeze result",
       tournament_draw_match: {
         red_round_1_points: 10,
         blue_round_1_points: 10,
         red_round_2_points: 6,
         blue_round_2_points: 9,
         red_round_3_points: 4,
-        blue_round_3_points: 3,
-        red_head_guard_color: "red",
-        blue_head_guard_color: "blue"
+        blue_round_3_points: 3
       }
     }
 
     assert_redirected_to draw_tournament_path(@tournament)
-    assert_equal "Winner registration must be selected when set wins are tied", flash[:alert]
+    assert_equal "Round 1 winner side must be selected when round 1 points are tied", flash[:alert]
     assert_nil @match.reload.winner_registration
     assert_nil @final.reload.red_registration
   end
 
-  test "organizer can choose winner when set wins are tied" do
+  test "organizer can choose round winner when round points are tied" do
     patch result_tournament_draw_match_path(@match), params: {
+      score_action: "Freeze result",
       tournament_draw_match: {
         red_round_1_points: 10,
         blue_round_1_points: 10,
@@ -93,16 +108,46 @@ class TournamentDrawMatchesControllerTest < ActionDispatch::IntegrationTest
         blue_round_2_points: 9,
         red_round_3_points: 4,
         blue_round_3_points: 3,
-        red_head_guard_color: "red",
-        blue_head_guard_color: "blue",
-        winner_registration_id: @second_registration.id
+        round_1_winner_side: "blue"
       }
     }
 
     assert_redirected_to draw_tournament_path(@tournament)
-    assert_equal "Match result saved.", flash[:notice]
+    assert_equal "Match result frozen.", flash[:notice]
     assert_equal @second_registration, @match.reload.winner_registration
     assert_equal @second_registration, @final.reload.red_registration
+  end
+
+  test "organizer cannot edit a frozen result" do
+    assert @match.record_result!(
+      actor: @organizer,
+      attributes: {
+        red_round_1_points: 10,
+        blue_round_1_points: 8,
+        red_round_2_points: 6,
+        blue_round_2_points: 9,
+        red_round_3_points: 7,
+        blue_round_3_points: 5
+      }
+    )
+
+    patch result_tournament_draw_match_path(@match), params: {
+      score_action: "Freeze result",
+      tournament_draw_match: {
+        red_round_1_points: 1,
+        blue_round_1_points: 9,
+        red_round_2_points: 1,
+        blue_round_2_points: 9,
+        red_round_3_points: 1,
+        blue_round_3_points: 9
+      }
+    }
+
+    assert_redirected_to draw_tournament_path(@tournament)
+    assert_equal "Result is frozen and cannot be edited", flash[:alert]
+    assert_equal @first_registration, @match.reload.winner_registration
+    assert_equal 10, @match.red_round_1_points
+    assert_equal 8, @match.blue_round_1_points
   end
 
   private

@@ -120,7 +120,7 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Attempt 1: 32.8 kg passed"
     assert_includes response.body, "Gold medal"
     assert_includes response.body, "22 - 12"
-    assert_includes response.body, "Red"
+    assert_includes response.body, "Blue"
     assert_includes response.body, "Disqualified"
     assert_includes response.body, "Attempt 3: 38 kg failed"
     assert_includes response.body, "Previous competitions"

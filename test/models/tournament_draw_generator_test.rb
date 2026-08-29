@@ -40,9 +40,8 @@ class TournamentDrawGeneratorTest < ActiveSupport::TestCase
     assert_equal 5, draw.entry_count
     assert_equal 7, draw.tournament_draw_matches.count
     assert_equal 3, draw.tournament_draw_matches.where(round_number: 1, bye: true).count
-    assert draw.tournament_draw_matches.all? { |match| TournamentDrawMatch::HEAD_GUARD_COLORS.include?(match.red_head_guard_color) }
-    assert draw.tournament_draw_matches.all? { |match| TournamentDrawMatch::HEAD_GUARD_COLORS.include?(match.blue_head_guard_color) }
-    assert draw.tournament_draw_matches.all? { |match| match.red_head_guard_color != match.blue_head_guard_color }
+    assert draw.tournament_draw_matches.all? { |match| match.red_head_guard_color == "blue" }
+    assert draw.tournament_draw_matches.all? { |match| match.blue_head_guard_color == "red" }
     assert draw.tournament_draw_matches.where(round_number: 1, bye: true).all?(&:complete?)
 
     first_round_matches = draw.tournament_draw_matches.where(round_number: 1, bye: false)

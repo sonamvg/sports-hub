@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_29_000400) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_30_000100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -185,6 +185,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_29_000400) do
     t.integer "red_round_2_points"
     t.integer "red_round_3_points"
     t.integer "red_source_match_position"
+    t.string "round_1_winner_side"
+    t.string "round_2_winner_side"
+    t.string "round_3_winner_side"
     t.integer "round_number", null: false
     t.bigint "tournament_draw_id", null: false
     t.datetime "updated_at", null: false
@@ -205,6 +208,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_29_000400) do
     t.check_constraint "red_round_1_points IS NULL OR red_round_1_points >= 0", name: "draw_matches_red_round_1_points_nonnegative"
     t.check_constraint "red_round_2_points IS NULL OR red_round_2_points >= 0", name: "draw_matches_red_round_2_points_nonnegative"
     t.check_constraint "red_round_3_points IS NULL OR red_round_3_points >= 0", name: "draw_matches_red_round_3_points_nonnegative"
+    t.check_constraint "round_1_winner_side IS NULL OR (round_1_winner_side::text = ANY (ARRAY['red'::character varying, 'blue'::character varying]::text[]))", name: "draw_matches_round_1_winner_side_valid"
+    t.check_constraint "round_2_winner_side IS NULL OR (round_2_winner_side::text = ANY (ARRAY['red'::character varying, 'blue'::character varying]::text[]))", name: "draw_matches_round_2_winner_side_valid"
+    t.check_constraint "round_3_winner_side IS NULL OR (round_3_winner_side::text = ANY (ARRAY['red'::character varying, 'blue'::character varying]::text[]))", name: "draw_matches_round_3_winner_side_valid"
     t.check_constraint "round_number >= 1", name: "draw_matches_round_number_positive"
   end
 

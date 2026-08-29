@@ -92,7 +92,7 @@ class TournamentDrawMatchTest < ActiveSupport::TestCase
     assert_equal @second_registration, match.reload.winner_registration
   end
 
-  test "requires referee decision when set wins are tied" do
+  test "requires referee decision when round points are tied" do
     match = @draw.tournament_draw_matches.create!(
       round_number: 1,
       position: 1,
@@ -115,10 +115,10 @@ class TournamentDrawMatchTest < ActiveSupport::TestCase
         blue_head_guard_color: "blue"
       }
     )
-    assert_includes match.errors.full_messages, "Winner registration must be selected when set wins are tied"
+    assert_includes match.errors.full_messages, "Round 1 winner side must be selected when round 1 points are tied"
   end
 
-  test "uses referee decision when set wins are tied" do
+  test "uses referee decision for tied round winner" do
     match = @draw.tournament_draw_matches.create!(
       round_number: 1,
       position: 1,
@@ -139,10 +139,59 @@ class TournamentDrawMatchTest < ActiveSupport::TestCase
         blue_round_3_points: 5,
         red_head_guard_color: "red",
         blue_head_guard_color: "blue",
-        winner_registration_id: @second_registration.id
+        round_1_winner_side: "blue"
       }
     )
+    assert_equal 1, match.red_round_wins
+    assert_equal 2, match.blue_round_wins
     assert_equal @second_registration, match.reload.winner_registration
+  end
+
+  test "does not allow a frozen result to be changed" do
+    match = @draw.tournament_draw_matches.create!(
+      round_number: 1,
+      position: 1,
+      red_registration: @first_registration,
+      blue_registration: @second_registration,
+      red_head_guard_color: "blue",
+      blue_head_guard_color: "red"
+    )
+
+    assert match.record_result!(actor: @organizer, attributes: match_score(red_wins: true))
+
+    assert_not match.record_result!(actor: @organizer, attributes: match_score(red_wins: false))
+    assert_includes match.errors.full_messages, "Result is frozen and cannot be edited"
+    assert_equal @first_registration, match.reload.winner_registration
+    assert_equal 6, match.red_round_1_points
+    assert_equal 2, match.blue_round_1_points
+  end
+
+  test "knows when tied round decision is needed before freeze" do
+    match = @draw.tournament_draw_matches.create!(
+      round_number: 1,
+      position: 1,
+      red_registration: @first_registration,
+      blue_registration: @second_registration,
+      red_head_guard_color: "blue",
+      blue_head_guard_color: "red"
+    )
+
+    match.assign_attributes(
+      red_round_1_points: 5,
+      blue_round_1_points: 5,
+      red_round_2_points: 6,
+      blue_round_2_points: 4,
+      red_round_3_points: 3,
+      blue_round_3_points: 5
+    )
+
+    assert_not_predicate match, :ready_to_freeze?
+    assert_predicate match, :set_wins_tied?
+
+    match.round_1_winner_side = "red"
+
+    assert_predicate match, :ready_to_freeze?
+    assert_equal :red, match.round_winner_side(1)
   end
 
   test "advances bye winner" do
@@ -169,7 +218,65 @@ class TournamentDrawMatchTest < ActiveSupport::TestCase
     assert_equal @third_registration, @draw.tournament_draw_matches.find_by(round_number: 2, position: 1).blue_registration
   end
 
+  test "labels semifinal loser bronze and final athletes gold and silver" do
+    first_semifinal = @draw.tournament_draw_matches.create!(
+      round_number: 1,
+      position: 1,
+      red_registration: @first_registration,
+      blue_registration: @second_registration,
+      red_head_guard_color: "blue",
+      blue_head_guard_color: "red"
+    )
+    second_semifinal = @draw.tournament_draw_matches.create!(
+      round_number: 1,
+      position: 2,
+      red_registration: @third_registration,
+      blue_registration: @fourth_registration,
+      red_head_guard_color: "blue",
+      blue_head_guard_color: "red"
+    )
+    final = @draw.tournament_draw_matches.create!(
+      round_number: 2,
+      position: 1,
+      red_source_match_position: 1,
+      blue_source_match_position: 2,
+      red_head_guard_color: "blue",
+      blue_head_guard_color: "red"
+    )
+
+    assert first_semifinal.record_result!(actor: @organizer, attributes: match_score(red_wins: true))
+    assert second_semifinal.record_result!(actor: @organizer, attributes: match_score(red_wins: true))
+    assert final.reload.record_result!(actor: @organizer, attributes: match_score(red_wins: true))
+
+    assert_equal "Advanced", first_semifinal.result_label_for(@first_registration)
+    assert_equal "Bronze", first_semifinal.result_label_for(@second_registration)
+    assert_equal "Gold", final.reload.result_label_for(@first_registration)
+    assert_equal "Silver", final.result_label_for(@third_registration)
+  end
+
   private
+
+  def match_score(red_wins:)
+    if red_wins
+      {
+        red_round_1_points: 6,
+        blue_round_1_points: 2,
+        red_round_2_points: 3,
+        blue_round_2_points: 4,
+        red_round_3_points: 5,
+        blue_round_3_points: 1
+      }
+    else
+      {
+        red_round_1_points: 2,
+        blue_round_1_points: 6,
+        red_round_2_points: 4,
+        blue_round_2_points: 3,
+        red_round_3_points: 1,
+        blue_round_3_points: 5
+      }
+    end
+  end
 
   def create_registration(first_name, last_name)
     user = User.create!(

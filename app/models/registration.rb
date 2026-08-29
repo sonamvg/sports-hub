@@ -129,8 +129,8 @@ class Registration < ApplicationRecord
 
   def draw_head_guard_color(match = current_draw_match)
     return if match.blank?
-    return match.red_head_guard_color if match.red_registration_id == id
-    return match.blue_head_guard_color if match.blue_registration_id == id
+    return match.top_chest_guard_color if match.red_registration_id == id
+    return match.bottom_chest_guard_color if match.blue_registration_id == id
   end
 
   def draw_status_label
@@ -167,9 +167,9 @@ class Registration < ApplicationRecord
     return unless match.round_number == match.tournament_draw.round_count || match.round_number == match.tournament_draw.round_count - 1
 
     if match.round_number == match.tournament_draw.round_count
-      match.winner_registration_id == id ? "Gold medal" : "Silver medal"
+      match.winner_registration_id == id ? "Gold" : "Silver"
     elsif match.winner_registration_id != id
-      "Bronze medal"
+      "Bronze"
     end
   end
 

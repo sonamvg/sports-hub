@@ -4,7 +4,7 @@
 
 <div class="registration-draw-card">
   <div class="registration-draw-header">
-    <span class="draw-state-pill <%= "draw-state-medal" if medal.present? %>"><%= medal || registration.draw_status_label %></span>
+    <span class="draw-state-pill <%= "draw-state-medal" if medal.present? %>"><%= medal ? "#{medal} medal" : registration.draw_status_label %></span>
     <% if current_match.present? %>
       <strong><%= current_match.round_label %> · Match <%= current_match.position %></strong>
     <% elsif registration.active_tournament_draw.present? %>
@@ -40,15 +40,15 @@
         <% opponent_points = athlete_is_red ? match.blue_total_points : match.red_total_points %>
         <% athlete_sets = athlete_is_red ? match.red_round_wins : match.blue_round_wins %>
         <% opponent_sets = athlete_is_red ? match.blue_round_wins : match.red_round_wins %>
-        <% athlete_color = athlete_is_red ? match.red_head_guard_color : match.blue_head_guard_color %>
+        <% athlete_color = athlete_is_red ? match.top_chest_guard_color : match.bottom_chest_guard_color %>
         <div>
           <span><%= match.round_label %> · Match <%= match.position %></span>
           <strong><%= match.bye? ? "Bye" : "Sets #{athlete_sets} - #{opponent_sets}" %></strong>
           <% unless match.bye? %>
-            <small><%= athlete_points %> - <%= opponent_points %> pts</small>
+            <small><%= athlete_points %> - <%= opponent_points %> points</small>
           <% end %>
           <em class="draw-profile-color draw-profile-color-<%= athlete_color %>"><%= athlete_color.titleize %></em>
-          <b><%= match.winner_registration_id == registration.id ? "Won" : "Lost" %></b>
+          <b><%= match.result_label_for(registration) %></b>
         </div>
       <% end %>
     </div>

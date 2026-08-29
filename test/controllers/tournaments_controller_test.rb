@@ -835,10 +835,39 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     get draw_tournament_path(tournament)
     assert_response :success
     assert_includes response.body, "draw-bracket"
-    assert_includes response.body, "GRAPHICAL DRAW OPEN"
+    assert_includes response.body, "Graphical Draw Open"
     assert_includes response.body, "Kyorugi Female Age 12-14 33-37kg".upcase
     assert_includes response.body, "Aarohi Shah"
     assert_includes response.body, "Meera Rao"
+    assert_includes response.body, "Save result"
+    assert_match(/data-draw-round-decision="1" hidden/, response.body)
+    assert_no_match(/Waiting\s*<\/span>\s*<strong>Previous winner/, response.body)
+    assert_includes response.body, "draw-score-box-blue"
+    assert_includes response.body, "draw-score-box-red"
+  end
+
+  test "draw page does not show scoreboard for bye matches" do
+    tournament = Tournament.create!(
+      name: "Bye Draw Open",
+      organizer: @organizer,
+      status: :registration_open,
+      registration_opens_at: 10.days.ago,
+      registration_closes_at: 1.day.ago,
+      start_date: 2.days.from_now.to_date,
+      end_date: 3.days.from_now.to_date
+    )
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    user = User.create!(name: "Solo Athlete", email: "bye-draw-solo@example.test", password: "password123", role: :athlete)
+    athlete = user.athletes.create!(first_name: "Solo", last_name: "Athlete", date_of_birth: Date.new(2014, 5, 12), gender: "female", external_academy_name: "Independent")
+    tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :weight_verified, payment_receipt: payment_receipt_upload)
+
+    patch set_draw_tournament_path(tournament)
+    get draw_tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Solo Athlete"
+    assert_no_match(/<span>Scoreboard<\/span>/, response.body)
+    assert_no_match(/Save result|Freeze result/, response.body)
   end
 
   test "set draw is blocked without draw ready category" do
