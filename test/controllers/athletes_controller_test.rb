@@ -369,6 +369,10 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, second_athlete.full_name
     assert_includes response.body, "Delete"
 
+    get athlete_path(first_athlete)
+    assert_response :success
+    assert_includes response.body, "Delete athlete"
+
     assert_difference("Athlete.count", -1) do
       delete athlete_path(first_athlete)
     end

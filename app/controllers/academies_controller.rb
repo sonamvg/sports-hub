@@ -1,8 +1,8 @@
 class AcademiesController < ApplicationController
   before_action :require_user, except: %i[index show]
   before_action :set_academy, only: %i[show edit update destroy approve reject]
-  before_action :require_academy_manager, only: %i[edit update destroy]
-  before_action :require_super_admin, only: %i[approve reject]
+  before_action :require_academy_manager, only: %i[edit update]
+  before_action :require_super_admin, only: %i[destroy approve reject]
 
   def index
     if current_user&.academy_owner?

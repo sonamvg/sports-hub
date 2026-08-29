@@ -1912,3 +1912,25 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 
 ### Verification Log
 - Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb`; result: 36 runs, 340 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-29 - Super Admin Delete Controls
+
+### Reference
+- User request: give super admin an option to delete tournament, athlete, and academy.
+
+### Product Decisions
+- Super admins can delete tournaments from tournament list/detail pages.
+- Super admins can delete academies from academy list/detail pages.
+- Full academy deletion is now super-admin-only. Academy owners can still remove athletes from their academy, but cannot delete the academy record.
+- Athlete deletion already existed on the athlete list for super admins; added the same destructive action to the athlete profile page.
+- All destructive UI actions use confirmation prompts.
+
+### Change Log
+- Added `destroy` routing and controller action for tournaments, guarded by `require_super_admin`.
+- Changed academy `destroy` authorization from academy manager to super admin.
+- Added delete buttons for super admins on tournament index/show, academy index/show, and athlete show.
+- Added controller tests for super-admin tournament deletion, organizer tournament deletion denial, super-admin academy deletion, academy owner academy deletion denial, and athlete profile delete visibility.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/academies_controller_test.rb test/controllers/athletes_controller_test.rb`; result: 77 runs, 706 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 157 runs, 1277 assertions, 0 failures, 0 errors, 0 skips.

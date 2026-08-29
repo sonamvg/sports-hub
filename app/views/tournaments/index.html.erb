@@ -79,6 +79,9 @@
             <% if tournament.website_url.present? %>
               <%= link_to "Website", tournament.website_url, class: "text-link muted-link", target: "_blank", rel: "noopener" %>
             <% end %>
+            <% if super_admin? %>
+              <%= button_to "Delete", tournament_path(tournament), method: :delete, class: "reject-button", form: { data: { turbo_confirm: "Delete #{tournament.name}?" } } %>
+            <% end %>
           </div>
         </article>
       <% end %>

@@ -31,6 +31,6 @@
       <h2 class="section-title">Other academies</h2>
     </div>
   <% end %>
-  <div class="list-grid"><% @academies.each do |academy| %><article class="entity-card"><span class="status-pill status-<%= academy.status %>"><%= academy.status.humanize %></span><h2><%= academy.name %></h2><p><%= [academy.city, academy.state].compact.join(", ") %></p><% if can_manage_academy?(academy) %><p class="muted"><%= pluralize(academy.athletes.count, "athlete") %></p><% end %><%= link_to academy_path(academy), class: "text-link icon-label" do %><span>View academy</span><%= ui_icon("arrow-right") %><% end %></article><% end %></div>
+  <div class="list-grid"><% @academies.each do |academy| %><article class="entity-card"><span class="status-pill status-<%= academy.status %>"><%= academy.status.humanize %></span><h2><%= academy.name %></h2><p><%= [academy.city, academy.state].compact.join(", ") %></p><% if can_manage_academy?(academy) %><p class="muted"><%= pluralize(academy.athletes.count, "athlete") %></p><% end %><div class="row-actions"><%= link_to academy_path(academy), class: "text-link icon-label" do %><span>View academy</span><%= ui_icon("arrow-right") %><% end %><% if super_admin? %><%= button_to "Delete", academy_path(academy), method: :delete, class: "reject-button", form: { data: { turbo_confirm: "Delete #{academy.name}?" } } %><% end %></div></article><% end %></div>
   <%= render "shared/pagination", pagination: @pagination %>
 </div></section>

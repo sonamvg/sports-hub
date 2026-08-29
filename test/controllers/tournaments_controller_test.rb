@@ -810,4 +810,43 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to tournament_path(tournament)
     assert_not_predicate tournament.reload, :draw_scheduling?
   end
+
+  test "super admin can delete tournament" do
+    super_admin = User.create!(name: "Super Admin", email: "delete-tournament-admin@example.test", password: "password123", role: :super_admin)
+    tournament = Tournament.create!(
+      name: "Delete Me Open",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    sign_in_as super_admin
+
+    get tournament_path(tournament)
+    assert_response :success
+    assert_includes response.body, "Delete tournament"
+
+    assert_difference("Tournament.count", -1) do
+      delete tournament_path(tournament)
+    end
+
+    assert_redirected_to tournaments_path
+    assert_equal "Tournament removed.", flash[:notice]
+    assert_not Tournament.exists?(tournament.id)
+  end
+
+  test "organizer cannot delete tournament" do
+    tournament = Tournament.create!(
+      name: "Protected Open",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+
+    assert_no_difference("Tournament.count") do
+      delete tournament_path(tournament)
+    end
+
+    assert_response :not_found
+    assert Tournament.exists?(tournament.id)
+  end
 end

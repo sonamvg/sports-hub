@@ -1,8 +1,9 @@
 class TournamentsController < ApplicationController
   before_action :require_user, except: %i[index show]
   before_action :require_verified_organizer, only: %i[new create]
-  before_action :set_tournament, only: %i[show edit update venue_setup update_venue_setup draw set_draw]
+  before_action :set_tournament, only: %i[show edit update destroy venue_setup update_venue_setup draw set_draw]
   before_action :require_tournament_manager, only: %i[edit update venue_setup update_venue_setup draw set_draw]
+  before_action :require_super_admin, only: :destroy
   before_action :set_available_organizers, only: %i[new create edit update]
 
   def index
@@ -77,6 +78,11 @@ class TournamentsController < ApplicationController
     else
       render :edit, status: :unprocessable_entity
     end
+  end
+
+  def destroy
+    @tournament.destroy
+    redirect_to tournaments_path, notice: "Tournament removed."
   end
 
   private

@@ -329,4 +329,43 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Page 1 of 2"
   end
+
+  test "super admin can delete academy" do
+    super_admin = User.create!(name: "Super Admin", email: "delete-academy-admin@example.test", password: "password123", role: :super_admin)
+    academy = Academy.create!(name: "Delete Academy", city: "Pune", status: :approved)
+    sign_in_as super_admin
+
+    get academies_path
+    assert_response :success
+    assert_includes response.body, "Delete"
+
+    get academy_path(academy)
+    assert_response :success
+    assert_includes response.body, "Delete academy"
+
+    assert_difference("Academy.count", -1) do
+      delete academy_path(academy)
+    end
+
+    assert_redirected_to academies_path
+    assert_equal "Academy removed.", flash[:notice]
+    assert_not Academy.exists?(academy.id)
+  end
+
+  test "academy owner cannot delete academy" do
+    owner = User.create!(name: "Academy Owner", email: "no-delete-academy-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Protected Academy", city: "Pune", status: :approved, owner: owner)
+    sign_in_as owner
+
+    get academy_path(academy)
+    assert_response :success
+    assert_not_includes response.body, "Delete academy"
+
+    assert_no_difference("Academy.count") do
+      delete academy_path(academy)
+    end
+
+    assert_response :not_found
+    assert Academy.exists?(academy.id)
+  end
 end

@@ -30,7 +30,7 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :tournaments, only: %i[index show new create edit update] do
+  resources :tournaments, only: %i[index show new create edit update destroy] do
     member do
       get :venue_setup
       patch :venue_setup, action: :update_venue_setup

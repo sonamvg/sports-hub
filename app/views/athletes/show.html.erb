@@ -30,6 +30,9 @@
       <% if super_admin? || @athlete.user_id == current_user.id %>
         <%= link_to edit_athlete_path(@athlete), class: "primary-button icon-label" do %><%= ui_icon("edit") %><span>Edit profile</span><% end %>
       <% end %>
+      <% if super_admin? %>
+        <%= button_to "Delete athlete", athlete_path(@athlete), method: :delete, class: "reject-button", form: { data: { turbo_confirm: "Delete #{@athlete.full_name}?" } } %>
+      <% end %>
       <%= link_to tournaments_path, class: "secondary-button icon-label" do %><%= ui_icon("trophy") %><span>Find tournaments</span><% end %>
     </div>
   </div>
