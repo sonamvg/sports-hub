@@ -59,6 +59,7 @@ class TournamentDrawGenerator
 
     create_first_round(draw, registrations, bracket_size)
     create_later_rounds(draw, bracket_size, round_count)
+    advance_bye_winners(draw)
     draw
   end
 
@@ -71,9 +72,14 @@ class TournamentDrawGenerator
         position: index + 1,
         red_registration: pairing.first,
         blue_registration: pairing.second,
-        bye: pairing.first.blank? || pairing.second.blank?
+        bye: pairing.first.blank? || pairing.second.blank?,
+        **random_head_guard_colors
       )
     end
+  end
+
+  def advance_bye_winners(draw)
+    draw.tournament_draw_matches.where(bye: true).find_each(&:assign_bye_winner!)
   end
 
   def create_later_rounds(draw, bracket_size, round_count)
@@ -84,7 +90,8 @@ class TournamentDrawGenerator
           round_number: round_number,
           position: index + 1,
           red_source_match_position: (index * 2) + 1,
-          blue_source_match_position: (index * 2) + 2
+          blue_source_match_position: (index * 2) + 2,
+          **random_head_guard_colors
         )
       end
     end
@@ -93,13 +100,14 @@ class TournamentDrawGenerator
   def first_round_pairings(registrations, bracket_size)
     match_count = bracket_size / 2
     bye_count = bracket_size - registrations.size
-    athletes_to_pair = registrations.dup
+    athletes_to_pair = registrations.shuffle
     pair_count = match_count - bye_count
     pairings = []
 
     pair_count.times do
       first = athletes_to_pair.shift
-      second_index = athletes_to_pair.index { |candidate| different_academy?(first, candidate) } || 0
+      different_academy_indexes = athletes_to_pair.each_index.select { |index| different_academy?(first, athletes_to_pair[index]) }
+      second_index = different_academy_indexes.sample || rand(athletes_to_pair.size)
       second = athletes_to_pair.delete_at(second_index)
       pairings << [first, second]
     end
@@ -110,28 +118,29 @@ class TournamentDrawGenerator
   end
 
   def balance_bracket(pairings)
-    byes, matches = pairings.partition { |pairing| pairing.first.blank? || pairing.second.blank? }
-    balanced = []
-
-    until matches.empty? && byes.empty?
-      balanced << matches.shift if matches.any?
-      balanced << byes.shift if byes.any?
-    end
-
-    balanced
+    pairings.shuffle
   end
 
   def different_academy?(first, second)
-    first_academy = first.athlete.academy_id
-    second_academy = second.athlete.academy_id
-    return true if first_academy.blank? || second_academy.blank?
+    academy_key(first) != academy_key(second)
+  end
 
-    first_academy != second_academy
+  def academy_key(registration)
+    athlete = registration.athlete
+    return "academy:#{athlete.academy_id}" if athlete.academy_id.present?
+
+    "external:#{athlete.external_academy_name.to_s.downcase.squish.presence || "independent:#{athlete.id}"}"
   end
 
   def next_power_of_two(number)
     power = 2
     power *= 2 while power < number
     power
+  end
+
+  def random_head_guard_colors
+    red_side_color = TournamentDrawMatch::HEAD_GUARD_COLORS.sample
+    blue_side_color = (TournamentDrawMatch::HEAD_GUARD_COLORS - [red_side_color]).first
+    { red_head_guard_color: red_side_color, blue_head_guard_color: blue_side_color }
   end
 end

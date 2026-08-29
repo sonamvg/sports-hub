@@ -60,7 +60,8 @@ class TournamentsController < ApplicationController
       .active
       .includes(:tournament_category, tournament_draw_matches: [
         red_registration: { athlete: :academy },
-        blue_registration: { athlete: :academy }
+        blue_registration: { athlete: :academy },
+        winner_registration: :athlete
       ])
       .order("tournament_categories.name")
       .references(:tournament_categories)

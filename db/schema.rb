@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_29_000300) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_29_000400) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -168,21 +168,43 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_29_000300) do
   end
 
   create_table "tournament_draw_matches", force: :cascade do |t|
+    t.string "blue_head_guard_color", default: "blue", null: false
     t.bigint "blue_registration_id"
+    t.integer "blue_round_1_points"
+    t.integer "blue_round_2_points"
+    t.integer "blue_round_3_points"
     t.integer "blue_source_match_position"
     t.boolean "bye", default: false, null: false
+    t.datetime "completed_at"
+    t.bigint "completed_by_id"
     t.datetime "created_at", null: false
     t.integer "position", null: false
+    t.string "red_head_guard_color", default: "red", null: false
     t.bigint "red_registration_id"
+    t.integer "red_round_1_points"
+    t.integer "red_round_2_points"
+    t.integer "red_round_3_points"
     t.integer "red_source_match_position"
     t.integer "round_number", null: false
     t.bigint "tournament_draw_id", null: false
     t.datetime "updated_at", null: false
+    t.bigint "winner_registration_id"
     t.index ["blue_registration_id"], name: "index_tournament_draw_matches_on_blue_registration_id"
+    t.index ["completed_by_id"], name: "index_tournament_draw_matches_on_completed_by_id"
     t.index ["red_registration_id"], name: "index_tournament_draw_matches_on_red_registration_id"
     t.index ["tournament_draw_id", "round_number", "position"], name: "index_draw_matches_unique_round_position", unique: true
     t.index ["tournament_draw_id"], name: "index_tournament_draw_matches_on_tournament_draw_id"
+    t.index ["winner_registration_id"], name: "index_tournament_draw_matches_on_winner_registration_id"
     t.check_constraint "\"position\" >= 1", name: "draw_matches_position_positive"
+    t.check_constraint "blue_head_guard_color::text = ANY (ARRAY['red'::character varying, 'blue'::character varying]::text[])", name: "draw_matches_blue_head_guard_color_valid"
+    t.check_constraint "blue_round_1_points IS NULL OR blue_round_1_points >= 0", name: "draw_matches_blue_round_1_points_nonnegative"
+    t.check_constraint "blue_round_2_points IS NULL OR blue_round_2_points >= 0", name: "draw_matches_blue_round_2_points_nonnegative"
+    t.check_constraint "blue_round_3_points IS NULL OR blue_round_3_points >= 0", name: "draw_matches_blue_round_3_points_nonnegative"
+    t.check_constraint "red_head_guard_color::text <> blue_head_guard_color::text", name: "draw_matches_head_guard_colors_distinct"
+    t.check_constraint "red_head_guard_color::text = ANY (ARRAY['red'::character varying, 'blue'::character varying]::text[])", name: "draw_matches_red_head_guard_color_valid"
+    t.check_constraint "red_round_1_points IS NULL OR red_round_1_points >= 0", name: "draw_matches_red_round_1_points_nonnegative"
+    t.check_constraint "red_round_2_points IS NULL OR red_round_2_points >= 0", name: "draw_matches_red_round_2_points_nonnegative"
+    t.check_constraint "red_round_3_points IS NULL OR red_round_3_points >= 0", name: "draw_matches_red_round_3_points_nonnegative"
     t.check_constraint "round_number >= 1", name: "draw_matches_round_number_positive"
   end
 
@@ -330,7 +352,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_29_000300) do
   add_foreign_key "tournament_categories", "tournaments"
   add_foreign_key "tournament_draw_matches", "registrations", column: "blue_registration_id"
   add_foreign_key "tournament_draw_matches", "registrations", column: "red_registration_id"
+  add_foreign_key "tournament_draw_matches", "registrations", column: "winner_registration_id"
   add_foreign_key "tournament_draw_matches", "tournament_draws"
+  add_foreign_key "tournament_draw_matches", "users", column: "completed_by_id"
   add_foreign_key "tournament_draws", "tournament_categories"
   add_foreign_key "tournament_draws", "tournaments"
   add_foreign_key "tournament_draws", "users", column: "generated_by_id"

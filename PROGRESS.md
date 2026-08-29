@@ -2014,3 +2014,33 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Generated fresh local draws for Mumbai Invitational Taekwondo Cup using `TournamentDrawGenerator`; result: 3 active draws generated, 0 categories skipped.
 - Ran `mise exec -- bin/rails test`; result: 164 runs, 1348 assertions, 0 failures, 0 errors, 0 skips.
 - Ran a Rails runner verification query for Mumbai Invitational Taekwondo Cup; result: 3 active draws, category split 6/7/7, each category using an 8-slot bracket with 4 first-round match rows.
+
+## 2026-08-29 - Draw Match Scoring And Randomization
+
+### Reference
+- User request: do not show academy name on the set draw page; improve the UI; allow entering match points for 3 rounds; select a winner from points; automatically move the winner to the next round; allow head-guard color selection per match; make byes and pairing logic random.
+
+### Product Decisions
+- Removed academy labels from draw match cards to keep the draw desk focused on athlete names and match operations.
+- Draw generation now shuffles entries, randomly selects byes, randomly places first-round rows, and randomly assigns red/blue head-guard colors.
+- First-round pairing still tries to avoid same-academy matchups where alternatives exist, using linked academy ID first and external academy name for unlisted academies.
+- Match winners are calculated from total points across three rounds. Tied three-round totals are blocked until an organiser enters a non-tied result.
+- Bye matches automatically mark and advance the present athlete.
+- Saving a match result updates the next-round match slot immediately, so later round names appear as previous matches finish.
+
+### Change Log
+- Added score, winner, head-guard color, completion timestamp, and completion actor fields to `tournament_draw_matches`.
+- Added database constraints for non-negative scores, valid head-guard colors, and distinct colors per match.
+- Added `TournamentDrawMatchesController#result` for organiser/super-admin match result entry.
+- Added model logic for score completeness, winner calculation, bye advancement, and next-round advancement.
+- Updated draw generation to randomize pairings/byes/head-guard colors while preserving minimum-bye bracket sizing.
+- Reworked the draw page UI into match cards with color selectors, three round score inputs, total score, result state, and save action.
+- Updated draw page eager loading for completed-match winner labels.
+- Added model and controller tests for score saving, tie blocking, winner advancement, bye advancement, and generated color validity.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: match scoring/head-guard migration applied successfully.
+- Ran `mise exec -- bin/rails test test/models/tournament_draw_generator_test.rb test/models/tournament_draw_match_test.rb test/controllers/tournaments_controller_test.rb`; result: 48 runs, 436 assertions, 0 failures, 0 errors, 0 skips.
+- Generated fresh local draws for Mumbai Invitational Taekwondo Cup; result: 3 generated, 3 previous active draws archived, 0 skipped, byes auto-advanced.
+- Ran `mise exec -- bin/rails test`; result: 169 runs, 1375 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test test/models/tournament_draw_generator_test.rb test/models/tournament_draw_match_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 50 runs, 452 assertions, 0 failures, 0 errors, 0 skips.

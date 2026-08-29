@@ -17,7 +17,14 @@ class TournamentDraw < ApplicationRecord
   end
 
   def matches_by_round
-    tournament_draw_matches.includes(red_registration: { athlete: :academy }, blue_registration: { athlete: :academy }).order(:round_number, :position).group_by(&:round_number)
+    tournament_draw_matches
+      .includes(
+        red_registration: { athlete: :academy },
+        blue_registration: { athlete: :academy },
+        winner_registration: :athlete
+      )
+      .order(:round_number, :position)
+      .group_by(&:round_number)
   end
 
   private

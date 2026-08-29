@@ -1,0 +1,110 @@
+require "test_helper"
+
+class TournamentDrawMatchesControllerTest < ActionDispatch::IntegrationTest
+  setup do
+    @organizer = User.create!(name: "Draw Organizer", email: "draw-match-controller@example.test", password: "password123", role: :organizer)
+    sign_in_as @organizer
+    @tournament = Tournament.create!(
+      name: "Controller Draw Open",
+      organizer: @organizer,
+      status: :draw_scheduling,
+      registration_opens_at: 10.days.ago,
+      registration_closes_at: 1.day.ago,
+      start_date: 2.days.from_now.to_date,
+      end_date: 3.days.from_now.to_date
+    )
+    @category = @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "male", age_min: 15, age_max: 17, weight_min: 51, weight_max: 55)
+    @first_registration = create_registration("Aarav", "Rane")
+    @second_registration = create_registration("Dev", "Shetty")
+    @draw = @tournament.tournament_draws.create!(
+      tournament_category: @category,
+      generated_by: @organizer,
+      bracket_size: 4,
+      round_count: 2,
+      entry_count: 2,
+      generated_at: Time.current
+    )
+    @match = @draw.tournament_draw_matches.create!(
+      round_number: 1,
+      position: 1,
+      red_registration: @first_registration,
+      blue_registration: @second_registration,
+      red_head_guard_color: "red",
+      blue_head_guard_color: "blue"
+    )
+    @final = @draw.tournament_draw_matches.create!(
+      round_number: 2,
+      position: 1,
+      red_source_match_position: 1,
+      blue_source_match_position: 2,
+      red_head_guard_color: "blue",
+      blue_head_guard_color: "red"
+    )
+  end
+
+  test "organizer records match result and advances winner" do
+    patch result_tournament_draw_match_path(@match), params: {
+      tournament_draw_match: {
+        red_round_1_points: 10,
+        blue_round_1_points: 8,
+        red_round_2_points: 6,
+        blue_round_2_points: 9,
+        red_round_3_points: 7,
+        blue_round_3_points: 5,
+        red_head_guard_color: "blue",
+        blue_head_guard_color: "red"
+      }
+    }
+
+    assert_redirected_to draw_tournament_path(@tournament)
+    assert_equal "Match result saved.", flash[:notice]
+    assert_equal @first_registration, @match.reload.winner_registration
+    assert_equal "blue", @match.red_head_guard_color
+    assert_equal "red", @match.blue_head_guard_color
+    assert_equal @first_registration, @final.reload.red_registration
+  end
+
+  test "organizer cannot save tied result" do
+    patch result_tournament_draw_match_path(@match), params: {
+      tournament_draw_match: {
+        red_round_1_points: 10,
+        blue_round_1_points: 8,
+        red_round_2_points: 6,
+        blue_round_2_points: 9,
+        red_round_3_points: 4,
+        blue_round_3_points: 3,
+        red_head_guard_color: "red",
+        blue_head_guard_color: "blue"
+      }
+    }
+
+    assert_redirected_to draw_tournament_path(@tournament)
+    assert_equal "Score cannot be tied after three rounds", flash[:alert]
+    assert_nil @match.reload.winner_registration
+    assert_nil @final.reload.red_registration
+  end
+
+  private
+
+  def create_registration(first_name, last_name)
+    user = User.create!(
+      name: "#{first_name} #{last_name}",
+      email: "#{first_name.downcase}-#{last_name.downcase}-controller@example.test",
+      password: "password123",
+      role: :athlete
+    )
+    athlete = user.athletes.create!(
+      first_name: first_name,
+      last_name: last_name,
+      date_of_birth: Date.new(2009, 8, 14),
+      gender: "male",
+      external_academy_name: "#{first_name} Academy"
+    )
+    @tournament.registrations.create!(
+      athlete: athlete,
+      tournament_category: @category,
+      status: :weight_verified,
+      payment_receipt: payment_receipt_upload
+    )
+  end
+end

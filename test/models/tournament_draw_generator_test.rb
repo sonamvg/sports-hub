@@ -40,9 +40,14 @@ class TournamentDrawGeneratorTest < ActiveSupport::TestCase
     assert_equal 5, draw.entry_count
     assert_equal 7, draw.tournament_draw_matches.count
     assert_equal 3, draw.tournament_draw_matches.where(round_number: 1, bye: true).count
+    assert draw.tournament_draw_matches.all? { |match| TournamentDrawMatch::HEAD_GUARD_COLORS.include?(match.red_head_guard_color) }
+    assert draw.tournament_draw_matches.all? { |match| TournamentDrawMatch::HEAD_GUARD_COLORS.include?(match.blue_head_guard_color) }
+    assert draw.tournament_draw_matches.all? { |match| match.red_head_guard_color != match.blue_head_guard_color }
+    assert draw.tournament_draw_matches.where(round_number: 1, bye: true).all?(&:complete?)
 
     first_round_matches = draw.tournament_draw_matches.where(round_number: 1, bye: false)
     assert first_round_matches.all? { |match| match.red_registration.athlete.academy_id != match.blue_registration.athlete.academy_id }
+    assert draw.tournament_draw_matches.where(round_number: 2).any? { |match| match.red_registration.present? || match.blue_registration.present? }
   end
 
   test "archives existing active draws and creates a fresh category draw" do

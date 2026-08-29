@@ -43,6 +43,12 @@ Rails.application.routes.draw do
     resources :registrations, only: %i[index new create]
   end
 
+  resources :tournament_draw_matches, only: [] do
+    member do
+      patch :result
+    end
+  end
+
   namespace :organizer do
     resources :tournaments, only: [] do
       resources :weight_checks, only: %i[index]

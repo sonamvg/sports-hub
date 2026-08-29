@@ -10,7 +10,7 @@
     <div class="draw-heading">
       <p class="eyebrow">DRAW</p>
       <h1 class="page-title"><%= @tournament.name %></h1>
-      <p class="page-copy">Draws use weight-verified athletes only. Round 1 avoids same-academy matchups whenever another opponent is available.</p>
+      <p class="page-copy">Draws use weight-verified athletes only. Pairings, byes, and head-guard colors are randomized; round 1 avoids same-academy matchups whenever another opponent is available.</p>
     </div>
 
     <% if @draws.any? %>
@@ -31,14 +31,58 @@
                   <% matches.each do |match| %>
                     <article class="draw-match <%= "draw-bye-match" if match.bye? %>" style="--match-span: <%= 2**(round_number - 1) %>;">
                       <div class="draw-match-number"><%= round_number == 1 ? match.position : "#{round_number}.#{match.position}" %></div>
-                      <div class="draw-entrant">
-                        <span class="draw-entrant-name"><%= match.red_label %></span>
-                        <span class="draw-entrant-academy"><%= match.red_academy_label %></span>
-                      </div>
-                      <div class="draw-entrant">
-                        <span class="draw-entrant-name"><%= match.blue_label %></span>
-                        <span class="draw-entrant-academy"><%= match.blue_academy_label %></span>
-                      </div>
+                      <%= form_with model: match, url: result_tournament_draw_match_path(match), method: :patch, class: "draw-match-form" do |form| %>
+                        <div class="draw-entrant draw-entrant-red">
+                          <span class="draw-head-guard draw-head-guard-<%= match.red_head_guard_color %>"><%= match.red_head_guard_color.titleize %></span>
+                          <span class="draw-entrant-name"><%= match.red_label %></span>
+                          <% if match.ready_for_result? %>
+                            <%= form.select :red_head_guard_color, TournamentDrawMatch::HEAD_GUARD_COLORS.map { |color| [color.titleize, color] }, {}, class: "draw-color-select", aria: { label: "#{match.red_label} head guard color" } %>
+                          <% end %>
+                        </div>
+
+                        <div class="draw-entrant draw-entrant-blue">
+                          <span class="draw-head-guard draw-head-guard-<%= match.blue_head_guard_color %>"><%= match.blue_head_guard_color.titleize %></span>
+                          <span class="draw-entrant-name"><%= match.blue_label %></span>
+                          <% if match.ready_for_result? %>
+                            <%= form.select :blue_head_guard_color, TournamentDrawMatch::HEAD_GUARD_COLORS.map { |color| [color.titleize, color] }, {}, class: "draw-color-select", aria: { label: "#{match.blue_label} head guard color" } %>
+                          <% end %>
+                        </div>
+
+                        <% if match.ready_for_result? %>
+                          <div class="draw-score-grid">
+                            <span>R1</span>
+                            <%= form.number_field :red_round_1_points, min: 0, step: 1, placeholder: "0" %>
+                            <%= form.number_field :blue_round_1_points, min: 0, step: 1, placeholder: "0" %>
+                            <span>R2</span>
+                            <%= form.number_field :red_round_2_points, min: 0, step: 1, placeholder: "0" %>
+                            <%= form.number_field :blue_round_2_points, min: 0, step: 1, placeholder: "0" %>
+                            <span>R3</span>
+                            <%= form.number_field :red_round_3_points, min: 0, step: 1, placeholder: "0" %>
+                            <%= form.number_field :blue_round_3_points, min: 0, step: 1, placeholder: "0" %>
+                          </div>
+
+                          <div class="draw-result-bar">
+                            <span><%= match.red_total_points %> - <%= match.blue_total_points %></span>
+                            <% if match.complete? %>
+                              <strong><%= match.winner_registration.athlete.full_name %></strong>
+                            <% else %>
+                              <strong>Winner pending</strong>
+                            <% end %>
+                          </div>
+
+                          <%= form.submit "Save result", class: "draw-save-button" %>
+                        <% elsif match.complete? %>
+                          <div class="draw-result-bar draw-result-bar-complete">
+                            <span>Advanced</span>
+                            <strong><%= match.winner_registration.athlete.full_name %></strong>
+                          </div>
+                        <% else %>
+                          <div class="draw-result-bar">
+                            <span>Waiting</span>
+                            <strong>Previous winner</strong>
+                          </div>
+                        <% end %>
+                      <% end %>
                     </article>
                   <% end %>
                 </div>
