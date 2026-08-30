@@ -2548,3 +2548,21 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `git diff --check`; result: clean.
 - Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb test/controllers/athletes_controller_test.rb test/controllers/tournament_draw_matches_controller_test.rb`; result: 52 runs, 610 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails test`; result: 193 runs, 1772 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-30 - Academy Status Athlete Metadata Removed
+
+### Reference
+- User request: in the tournament status view, remove athlete email, weight, city, and belt details.
+
+### Product Decisions
+- Tournament status rows now show only the athlete photo/placeholder and athlete name in the athlete column.
+- Detailed athlete profile metadata remains available from the roster row/profile page, but does not clutter tournament registration status.
+
+### Change Log
+- Removed email, belt, weight, and city rendering from the academy tournament status athlete cell.
+- Updated academy controller tests so the tournament status table asserts photo/name only and no longer expects metadata in that section.
+
+### Verification Log
+- Ran `git diff --check`; result: clean.
+- Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb`; result: 25 runs, 362 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 193 runs, 1768 assertions, 0 failures, 0 errors, 0 skips.

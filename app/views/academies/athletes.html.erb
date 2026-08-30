@@ -95,11 +95,6 @@
                     </span>
                     <span class="tournament-status-athlete-details">
                       <strong><%= athlete.full_name %></strong>
-                      <% if athlete.user&.email.present? %><small><%= athlete.user.email %></small><% end %>
-                      <% if athlete.belt.present? %><small><%= athlete.belt.titleize %></small><% end %>
-                      <% if athlete.weight.present? %><small><%= athlete.weight %> kg</small><% end %>
-                      <% if athlete.city.present? %><small><%= athlete.city %></small><% end %>
-                      <% unless athlete.user&.email.present? || athlete.belt.present? || athlete.weight.present? || athlete.city.present? %><small>--</small><% end %>
                     </span>
                   </div>
                   <div role="cell">

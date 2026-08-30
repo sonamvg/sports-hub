@@ -293,9 +293,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Status"
     assert_includes response.body, "Aarohi Shah"
     assert_includes response.body, "Aarohi Shah photo"
-    assert_includes response.body, "academy-status-athlete@example.test"
-    assert_includes response.body, "Red"
-    assert_includes response.body, "39.5 kg"
+    assert_no_match(/tournament-status-athlete-details">\s*<strong>Aarohi Shah<\/strong>\s*<small>/, response.body)
     assert_includes response.body, "Pune Open"
     assert_includes response.body, "Mumbai Cup"
     assert_includes response.body, "tournament-status-groups"
