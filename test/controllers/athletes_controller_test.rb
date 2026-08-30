@@ -110,9 +110,13 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     get athlete_path(athlete)
 
     assert_response :success
+    assert_includes response.body, 'aria-label="Breadcrumb"'
+    assert_includes response.body, "Home"
+    assert_includes response.body, "Athletes"
+    assert_includes response.body, "Aarohi Shah"
     assert_includes response.body, "Upcoming tournaments"
     assert_includes response.body, "Future Open"
-    assert_includes response.body, "Application submitted"
+    assert_includes response.body, "Submitted"
     assert_includes response.body, "Waiting for organiser review."
     assert_includes response.body, "Registered"
     assert_includes response.body, "Declined"
@@ -179,6 +183,30 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_equal academy, request.academy
     assert_equal athlete, request.athlete
     assert_equal athlete_user, request.requested_by
+  end
+
+  test "athlete selecting registered academy reopens dismissed join notification" do
+    owner = User.create!(name: "Academy Owner", email: "request-reopen-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
+    athlete_user = User.create!(name: "Athlete User", email: "academy-request-reopen-athlete@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    request = academy.academy_membership_requests.create!(athlete: athlete, requested_by: athlete_user, dismissed_at: Time.current)
+    sign_in_as athlete_user
+
+    assert_no_difference("AcademyMembershipRequest.pending.count") do
+      patch athlete_path(athlete), params: {
+        athlete: {
+          first_name: "Aarohi",
+          last_name: "Shah",
+          date_of_birth: Date.new(2014, 5, 12),
+          gender: "female",
+          academy_id: academy.id
+        }
+      }
+    end
+
+    assert_redirected_to athlete_path(athlete)
+    assert_nil request.reload.dismissed_at
   end
 
   test "athlete edit form shows academy dropdown with other and hides association id" do

@@ -1,4 +1,11 @@
 <section class="page-shell"><div class="container narrow">
+  <%= render "shared/breadcrumbs", items: [
+    { label: "Home", path: root_path },
+    { label: "Athletes", path: athletes_path },
+    (@athlete.academy.present? ? { label: @athlete.academy.name, path: academy_path(@athlete.academy) } : nil),
+    { label: @athlete.full_name }
+  ].compact %>
+
   <p class="eyebrow">ATHLETE PROFILE</p><h1 class="page-title"><%= @athlete.full_name %></h1>
   <div class="athlete-photo">
     <%= image_with_placeholder(

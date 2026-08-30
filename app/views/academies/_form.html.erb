@@ -2,8 +2,8 @@
   <%= render "shared/errors", record: academy %>
   <% unless academy.approved? %>
     <div class="inline-empty-state">
-      <strong>Super admin approval required</strong>
-      <p>After approval, the academy owner can manage the academy profile and assign athletes to it.</p>
+      <strong>Build your academy profile</strong>
+      <p>Once your academy is approved, you can manage this profile and add athletes from your academy roster.</p>
     </div>
   <% end %>
   <div class="form-grid two-col">
@@ -15,6 +15,14 @@
     <div><%= form.label :country %><%= form.text_field :country, value: academy.country.presence || "India" %></div>
     <div><%= form.label :phone %><%= form.telephone_field :phone %></div>
     <div class="full"><%= form.label :email %><%= form.email_field :email %></div>
+    <div class="full">
+      <%= form.label :logo_image, "Academy logo" %>
+      <%= form.file_field :logo_image, accept: "image/png,image/jpeg,image/webp" %>
+      <p class="field-hint">Upload a clear academy logo. Square PNG, JPG, or WebP works best, up to 5 MB.</p>
+      <% if academy.logo_image.attached? %>
+        <p class="field-hint">Current upload: <%= academy.logo_image.filename %></p>
+      <% end %>
+    </div>
   </div>
   <div class="form-actions"><%= form.submit class: "primary-button button-reset" %><%= link_to "Cancel", academies_path, class: "secondary-button" %></div>
 <% end %>

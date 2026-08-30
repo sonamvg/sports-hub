@@ -111,10 +111,10 @@ class TournamentDrawMatchesControllerTest < ActionDispatch::IntegrationTest
 
     delete logout_path
     sign_in_as academy_owner
-    get academy_path(academy)
+    get athletes_academy_path(academy)
 
     assert_response :success
-    assert_includes response.body, "Athlete tournament status"
+    assert_includes response.body, "Tournament status"
     assert_includes response.body, @first_registration.athlete.full_name
     assert_includes response.body, "Waiting for opponent"
     assert_includes response.body, "You have advanced to"

@@ -59,7 +59,7 @@ class AthletesController < ApplicationController
   end
 
   def destroy
-    if super_admin? || @athlete.user_id == current_user.id
+    if super_admin?
       @athlete.destroy
       redirect_to athletes_path, notice: "Athlete profile removed."
     elsif current_user.academy_owner? && can_manage_academy?(@athlete.academy)
@@ -68,6 +68,9 @@ class AthletesController < ApplicationController
       @athlete.update!(academy: nil, external_academy_name: nil)
       AthleteAccountMailer.with(athlete: @athlete, academy: academy).academy_removed.deliver_later
       redirect_to academy_path(academy), notice: "Athlete removed from academy."
+    elsif @athlete.user_id == current_user.id
+      @athlete.destroy
+      redirect_to athletes_path, notice: "Athlete profile removed."
     else
       raise ActiveRecord::RecordNotFound
     end
@@ -223,6 +226,7 @@ class AthletesController < ApplicationController
     athlete.academy_membership_requests.pending.where.not(academy: academy).update_all(status: AcademyMembershipRequest.statuses[:rejected], reviewed_at: Time.current, updated_at: Time.current)
     membership_request = athlete.academy_membership_requests.find_or_initialize_by(academy: academy, status: :pending)
     membership_request.requested_by ||= current_user
+    membership_request.dismissed_at = nil
     membership_request.save!
   end
 

@@ -21,10 +21,13 @@ Rails.application.routes.draw do
       member do
         patch :approve
         patch :reject
+        patch :dismiss
       end
     end
 
     member do
+      get :athletes
+      get :notifications
       patch :approve
       patch :reject
     end

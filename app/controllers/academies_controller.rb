@@ -1,23 +1,34 @@
 class AcademiesController < ApplicationController
   before_action :require_user, except: %i[index show]
-  before_action :set_academy, only: %i[show edit update destroy approve reject]
-  before_action :require_academy_manager, only: %i[edit update]
+  before_action :set_academy, only: %i[show athletes notifications edit update destroy approve reject]
+  before_action :require_academy_manager, only: %i[athletes notifications edit update]
   before_action :require_super_admin, only: %i[destroy approve reject]
 
   def index
     if current_user&.academy_owner?
-      @my_academies = filtered_academies(visible_academies.where(owner: current_user)).order(:created_at, :id)
-      @academies = filtered_academies(Academy.approved.where("owner_id IS NULL OR owner_id != ?", current_user.id)).order(:created_at, :id)
+      @my_academies = academy_card_scope(filtered_academies(visible_academies.where(owner: current_user)).order(:created_at, :id))
+      @academies = academy_card_scope(filtered_academies(Academy.approved.where("owner_id IS NULL OR owner_id != ?", current_user.id)).order(:created_at, :id))
     else
-      @academies = filtered_academies.order(:created_at, :id)
+      @academies = academy_card_scope(filtered_academies.order(:created_at, :id))
     end
     @academies, @pagination = paginate(@academies)
   end
 
   def show
+  end
+
+  def athletes
     @athletes = @academy.athletes.order(:first_name, :last_name) if can_manage_academy?(@academy)
-    @membership_requests = @academy.academy_membership_requests.pending.includes(:athlete).order(:created_at) if can_manage_academy?(@academy)
     @athlete_registrations = academy_athlete_registrations if can_manage_academy?(@academy)
+  end
+
+  def notifications
+    @membership_requests = @academy
+      .academy_membership_requests
+      .pending
+      .active_notifications
+      .includes(:athlete, :requested_by)
+      .order(created_at: :desc)
   end
 
   def new
@@ -97,14 +108,18 @@ class AcademiesController < ApplicationController
   def academy_params
     params.require(:academy).permit(
       :name, :registration_number, :city, :state, :country,
-      :contact_name, :phone, :email
+      :contact_name, :phone, :email, :logo_image
     )
+  end
+
+  def academy_card_scope(academies)
+    academies.with_attached_logo_image.includes(athletes: { profile_photo_attachment: :blob })
   end
 
   def academy_athlete_registrations
     Registration
       .joins(:athlete)
-      .includes(:tournament, :tournament_category, :registration_weight_checks, :athlete)
+      .includes(:tournament, :tournament_category, :registration_weight_checks, athlete: { profile_photo_attachment: :blob })
       .where(athletes: { academy_id: @academy.id })
       .order(created_at: :desc)
   end

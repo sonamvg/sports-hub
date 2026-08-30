@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_30_000100) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_30_180500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -36,6 +36,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_30_000100) do
     t.bigint "academy_id", null: false
     t.bigint "athlete_id", null: false
     t.datetime "created_at", null: false
+    t.datetime "dismissed_at"
     t.bigint "requested_by_id", null: false
     t.datetime "reviewed_at"
     t.bigint "reviewed_by_id"
@@ -44,6 +45,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_30_000100) do
     t.index ["academy_id", "athlete_id", "status"], name: "idx_pending_academy_membership_requests", unique: true, where: "(status = 0)"
     t.index ["academy_id"], name: "index_academy_membership_requests_on_academy_id"
     t.index ["athlete_id"], name: "index_academy_membership_requests_on_athlete_id"
+    t.index ["dismissed_at"], name: "index_academy_membership_requests_on_dismissed_at"
     t.index ["requested_by_id"], name: "index_academy_membership_requests_on_requested_by_id"
     t.index ["reviewed_by_id"], name: "index_academy_membership_requests_on_reviewed_by_id"
   end

@@ -10,13 +10,15 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
         academy: {
           name: "Deccan Taekwondo Academy",
           city: "Pune",
-          email: "deccan@example.com"
+          email: "deccan@example.com",
+          logo_image: tournament_image_upload
         }
       }
     end
 
     academy = Academy.order(:created_at).last
     assert_equal owner, academy.owner
+    assert_predicate academy.logo_image, :attached?
     assert_predicate academy, :pending?
     assert_redirected_to academy_path(academy)
     assert_equal "Academy submitted for super admin approval.", flash[:notice]
@@ -45,8 +47,34 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     get academies_path
 
     assert_response :success
+    assert_includes response.body, 'aria-label="Breadcrumb"'
+    assert_includes response.body, "Home"
+    assert_includes response.body, "Academies"
     assert_includes response.body, approved.name
     assert_not_includes response.body, pending.name
+  end
+
+  test "academy form pages render breadcrumbs" do
+    owner = User.create!(name: "Academy Owner", email: "breadcrumbs-owner@example.com", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Breadcrumb Academy", city: "Pune", status: :approved, owner: owner)
+    sign_in_as owner
+
+    get new_academy_path
+
+    assert_response :success
+    assert_includes response.body, 'aria-label="Breadcrumb"'
+    assert_includes response.body, "Add academy"
+    assert_includes response.body, "Build your academy profile"
+    assert_includes response.body, "Once your academy is approved, you can manage this profile and add athletes from your academy roster."
+    assert_includes response.body, "Academy logo"
+    assert_not_includes response.body, "Super admin approval required"
+
+    get edit_academy_path(academy)
+
+    assert_response :success
+    assert_includes response.body, 'aria-label="Breadcrumb"'
+    assert_includes response.body, "Breadcrumb Academy"
+    assert_includes response.body, "Edit academy"
   end
 
   test "logged out index hides academy athlete counts" do
@@ -82,7 +110,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Red"
   end
 
-  test "academy manager can see registered athlete details" do
+  test "academy show links manager to athletes without listing roster inline" do
     owner = User.create!(name: "Academy Owner", email: "owner@example.com", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
     owner.athletes.create!(
@@ -99,8 +127,9 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, "My athletes"
-    assert_includes response.body, "Aarohi Shah"
-    assert_includes response.body, "Red"
+    assert_includes response.body, athletes_academy_path(academy)
+    assert_not_includes response.body, "Aarohi Shah"
+    assert_not_includes response.body, "Red"
   end
 
   test "academy owner sees other academies but not their athletes" do
@@ -118,13 +147,17 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Other academies"
     assert_includes response.body, "Owned Academy"
     assert_includes response.body, "Other Academy"
+    assert_includes response.body, "academy-card"
+    assert_includes response.body, "academy-card-main"
+    assert_includes response.body, "academy-card-logo"
+    assert_includes response.body, "academy-card-menu"
     assert_includes response.body, edit_academy_path(owned_academy)
     assert_includes response.body, new_athlete_path(academy_id: owned_academy.id)
     assert_includes response.body, "Edit academy"
     assert_includes response.body, "My athletes"
     assert_includes response.body, "Notifications"
-    assert_includes response.body, academy_path(owned_academy, anchor: "academy-athletes")
-    assert_includes response.body, academy_path(owned_academy, anchor: "academy-notifications")
+    assert_includes response.body, athletes_academy_path(owned_academy)
+    assert_includes response.body, notifications_academy_path(owned_academy)
 
     get academy_path(other_academy)
     assert_response :success
@@ -138,26 +171,91 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     athlete = owner.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", belt: "red")
     sign_in_as owner
 
-    get academy_path(academy)
+    get athletes_academy_path(academy)
 
     assert_response :success
+    assert_includes response.body, 'aria-label="Breadcrumb"'
+    assert_includes response.body, "Academies"
     assert_includes response.body, "My athletes"
     assert_includes response.body, "registered-athlete-list"
     assert_includes response.body, "Aarohi Shah"
     assert_includes response.body, athlete_path(athlete)
+    assert_includes response.body, "kebab-menu"
+    assert_includes response.body, 'aria-label="Actions for Aarohi Shah"'
+    assert_includes response.body, "Copy email"
+    assert_includes response.body, owner.email
+    assert_includes response.body, "View profile"
+    assert_includes response.body, "Remove athlete"
+    assert_includes response.body, "Are you sure you want to remove Aarohi Shah from Approved Academy?"
+    assert_not_includes response.body, "Edit member"
+    assert_not_includes response.body, ">View<"
+    assert_not_includes response.body, ">Remove<"
+  end
+
+  test "academy show presents logo contact details and top action menu" do
+    owner = User.create!(name: "Academy Owner", email: "academy-show-owner@example.com", password: "password123", role: :academy_owner)
+    academy = Academy.create!(
+      name: "Card Dojang",
+      city: "Pune",
+      state: "Maharashtra",
+      country: "India",
+      contact_name: "Front Desk",
+      phone: "9876543210",
+      email: "hello@carddojang.example",
+      status: :approved,
+      owner: owner
+    )
+    academy.logo_image.attach(tournament_image_upload)
+    sign_in_as owner
+
+    get academy_path(academy)
+
+    assert_response :success
+    assert_includes response.body, "academy-show-header"
+    assert_includes response.body, "academy-show-logo"
+    assert_includes response.body, "Card Dojang logo"
+    assert_includes response.body, "academy-show-menu"
+    assert_includes response.body, "Contact details"
+    assert_includes response.body, "Contact person"
+    assert_includes response.body, "Front Desk"
+    assert_includes response.body, "mailto:hello@carddojang.example"
+    assert_includes response.body, "9876543210"
+    assert_includes response.body, "All academies"
+    assert_includes response.body, "Edit academy"
+    assert_includes response.body, "Add athlete"
+    assert_not_includes response.body, '<div class="form-actions">'
+  end
+
+  test "super admin sees edit member action in academy athlete menu" do
+    super_admin = User.create!(name: "Super Admin", email: "academy-menu-admin@example.com", password: "password123", role: :super_admin)
+    athlete_user = User.create!(name: "Athlete User", email: "academy-menu-athlete@example.test", password: "password123", role: :athlete)
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved)
+    athlete = athlete_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", belt: "red")
+    sign_in_as super_admin
+
+    get athletes_academy_path(academy)
+
+    assert_response :success
+    assert_includes response.body, "kebab-menu"
+    assert_includes response.body, "Edit member"
+    assert_includes response.body, edit_athlete_path(athlete)
   end
 
   test "academy owner sees athlete tournament registration statuses for owned academy" do
     owner = User.create!(name: "Academy Owner", email: "academy-status-owner@example.com", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
     athlete_user = User.create!(name: "Athlete User", email: "academy-status-athlete@example.test", password: "password123", role: :athlete)
-    athlete = athlete_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    athlete = athlete_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", belt: "red", weight: 39.5)
+    athlete.profile_photo.attach(tournament_image_upload)
     organizer = User.create!(name: "Organizer", email: "academy-status-organizer@example.test", password: "password123", role: :organizer)
     tournament = Tournament.create!(name: "Pune Open", organizer: organizer, start_date: 20.days.from_now.to_date, end_date: 21.days.from_now.to_date)
+    newer_tournament = Tournament.create!(name: "Mumbai Cup", organizer: organizer, start_date: 45.days.from_now.to_date, end_date: 46.days.from_now.to_date)
     pending_category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
     verified_category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 33)
+    newer_category = newer_tournament.tournament_categories.create!(event_type: "poomsae", gender: "female", age_min: 12, age_max: 14)
     tournament.registrations.create!(athlete: athlete, tournament_category: pending_category, status: :pending, payment_receipt: payment_receipt_upload)
     verified_registration = tournament.registrations.create!(athlete: athlete, tournament_category: verified_category, status: :approved, payment_receipt: payment_receipt_upload)
+    newer_tournament.registrations.create!(athlete: athlete, tournament_category: newer_category, status: :pending, payment_receipt: payment_receipt_upload)
     verified_registration.registration_weight_checks.create!(checked_by: organizer, weight: 32.5)
     opponent_user = User.create!(name: "Opponent User", email: "academy-status-opponent@example.test", password: "password123", role: :athlete)
     opponent = opponent_user.athletes.create!(first_name: "Meera", last_name: "Rao", date_of_birth: Date.new(2014, 5, 12), gender: "female", external_academy_name: "Opponent Dojang")
@@ -182,18 +280,34 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     )
     sign_in_as owner
 
-    get academy_path(academy)
+    get athletes_academy_path(academy)
 
     assert_response :success
-    assert_includes response.body, "Athlete tournament status"
+    assert_includes response.body, "Tournament status"
+    assert_includes response.body, "tournament-status-table"
+    assert_includes response.body, "tournament-status-avatar"
+    assert_includes response.body, "Athlete"
+    assert_includes response.body, "Category"
+    assert_includes response.body, "Weight check"
+    assert_includes response.body, "Draw"
+    assert_includes response.body, "Status"
     assert_includes response.body, "Aarohi Shah"
+    assert_includes response.body, "Aarohi Shah photo"
+    assert_includes response.body, "academy-status-athlete@example.test"
+    assert_includes response.body, "Red"
+    assert_includes response.body, "39.5 kg"
     assert_includes response.body, "Pune Open"
-    assert_includes response.body, "Application submitted"
+    assert_includes response.body, "Mumbai Cup"
+    assert_includes response.body, "tournament-status-groups"
+    assert_includes response.body, "tournament-status-group"
+    assert_operator response.body.index("Mumbai Cup"), :<, response.body.index("Pune Open")
+    assert_includes response.body, "Submitted"
     assert_includes response.body, "Weight verified"
     assert_includes response.body, "Attempt 1: 32.5 kg passed"
     assert_includes response.body, "Gold medal"
     assert_includes response.body, "20 - 9"
     assert_includes response.body, "Blue"
+    assert_not_includes response.body, "Draw pending"
   end
 
   test "academy owner can approve athlete join request" do
@@ -204,22 +318,47 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     membership_request = academy.academy_membership_requests.create!(athlete: athlete, requested_by: athlete_user)
     sign_in_as owner
 
-    get academy_path(academy)
+    get notifications_academy_path(academy)
 
     assert_response :success
-    assert_includes response.body, "Join requests"
+    assert_includes response.body, "Notifications"
+    assert_includes response.body, "added Approved Academy in their athlete profile"
     assert_includes response.body, "Aarohi Shah"
     assert_includes response.body, approve_academy_academy_membership_request_path(academy, membership_request)
     assert_includes response.body, reject_academy_academy_membership_request_path(academy, membership_request)
+    assert_includes response.body, dismiss_academy_academy_membership_request_path(academy, membership_request)
 
     patch approve_academy_academy_membership_request_path(academy, membership_request)
 
-    assert_redirected_to academy_path(academy)
+    assert_redirected_to notifications_academy_path(academy)
     assert_equal "Athlete added to academy.", flash[:notice]
     assert_equal academy, athlete.reload.academy
     assert_predicate membership_request.reload, :approved?
     assert_equal owner, membership_request.reviewed_by
     assert_not_nil membership_request.reviewed_at
+  end
+
+  test "academy owner can dismiss join request notification without changing request status" do
+    owner = User.create!(name: "Academy Owner", email: "membership-dismiss-owner@example.com", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
+    athlete_user = User.create!(name: "Athlete User", email: "membership-dismiss-athlete@example.test", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    membership_request = academy.academy_membership_requests.create!(athlete: athlete, requested_by: athlete_user)
+    sign_in_as owner
+
+    assert_no_difference("AcademyMembershipRequest.pending.count") do
+      patch dismiss_academy_academy_membership_request_path(academy, membership_request)
+    end
+
+    assert_redirected_to notifications_academy_path(academy)
+    assert_equal "Notification dismissed.", flash[:notice]
+    assert_predicate membership_request.reload, :pending?
+    assert_not_nil membership_request.dismissed_at
+
+    get notifications_academy_path(academy)
+    assert_response :success
+    assert_not_includes response.body, "Aarohi Shah"
+    assert_includes response.body, "No notifications"
   end
 
   test "academy owner can reject athlete join request" do
@@ -232,7 +371,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
 
     patch reject_academy_academy_membership_request_path(academy, membership_request)
 
-    assert_redirected_to academy_path(academy)
+    assert_redirected_to notifications_academy_path(academy)
     assert_equal "Athlete request rejected.", flash[:notice]
     assert_nil athlete.reload.academy_id
     assert_predicate membership_request.reload, :rejected?
@@ -317,6 +456,39 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_predicate membership_request.reload, :rejected?
   end
 
+  test "academy owner remove unlinks even when athlete account belongs to owner" do
+    owner = User.create!(name: "Academy Owner", email: "remove-own-athlete-owner@example.com", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Owner Athlete Academy", city: "Pune", status: :approved, owner: owner)
+    athlete = owner.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    sign_in_as owner
+
+    assert_no_difference("Athlete.count") do
+      assert_enqueued_emails 1 do
+        delete athlete_path(athlete)
+      end
+    end
+
+    assert_redirected_to academy_path(academy)
+    assert_nil athlete.reload.academy_id
+    assert Athlete.exists?(athlete.id)
+  end
+
+  test "academy index cards hide visible status label and open from card body" do
+    academy = Academy.create!(name: "Card Dojang", city: "Pune", status: :approved)
+    academy.logo_image.attach(tournament_image_upload)
+
+    get academies_path
+
+    assert_response :success
+    assert_includes response.body, "academy-card"
+    assert_includes response.body, "academy-card-logo"
+    assert_includes response.body, "academy-card-body"
+    assert_includes response.body, "Open Card Dojang"
+    assert_includes response.body, academy_path(academy)
+    assert_includes response.body, "Card Dojang logo"
+    assert_not_includes response.body, "status-pill status-approved"
+  end
+
   test "index searches academies and orders oldest first" do
     newer = Academy.create!(name: "Newer Academy", city: "Pune", state: "Maharashtra", status: :approved)
     older = Academy.create!(name: "Older Academy", city: "Pune", state: "Maharashtra", status: :approved)
@@ -339,7 +511,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     owner.athletes.create!(academy: academy, first_name: "Aarav", last_name: "Mehta", date_of_birth: Date.new(2014, 5, 12), gender: "male")
     sign_in_as owner
 
-    get academy_path(academy)
+    get athletes_academy_path(academy)
 
     assert_response :success
     assert_operator response.body.index("Aarav Mehta"), :<, response.body.index("Zoya Kapoor")

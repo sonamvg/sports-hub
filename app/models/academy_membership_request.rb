@@ -6,6 +6,8 @@ class AcademyMembershipRequest < ApplicationRecord
 
   enum :status, { pending: 0, approved: 1, rejected: 2 }, default: :pending
 
+  scope :active_notifications, -> { where(dismissed_at: nil) }
+
   validates :academy_id, uniqueness: { scope: [:athlete_id, :status], conditions: -> { pending }, message: "already has a pending request for this athlete" }, if: :pending?
 
   def approve!(reviewer:)
@@ -17,5 +19,9 @@ class AcademyMembershipRequest < ApplicationRecord
 
   def reject!(reviewer:)
     update!(status: :rejected, reviewed_by: reviewer, reviewed_at: Time.current)
+  end
+
+  def dismiss!
+    update!(dismissed_at: Time.current)
   end
 end

@@ -1,0 +1,44 @@
+<section class="page-shell"><div class="container narrow">
+  <%= render "shared/breadcrumbs", items: [
+    { label: "Home", path: root_path },
+    { label: "Academies", path: academies_path },
+    { label: @academy.name, path: academy_path(@academy) },
+    { label: "Notifications" }
+  ] %>
+
+  <div class="page-heading compact-heading">
+    <div>
+      <p class="eyebrow">ACADEMY NOTIFICATIONS</p>
+      <h1 class="page-title">Notifications</h1>
+      <p class="page-copy">Review athletes who asked to join <%= @academy.name %>.</p>
+    </div>
+  </div>
+
+  <% if @membership_requests.any? %>
+    <div class="notification-list">
+      <% @membership_requests.each do |membership_request| %>
+        <% athlete = membership_request.athlete %>
+        <article class="notification-card">
+          <%= button_to dismiss_academy_academy_membership_request_path(@academy, membership_request), method: :patch, class: "notification-dismiss button-reset", aria: { label: "Dismiss notification for #{athlete.full_name}" } do %>
+            <%= ui_icon("x") %>
+          <% end %>
+          <div>
+            <span class="status-pill status-pending">Pending</span>
+            <h2><%= athlete.full_name %></h2>
+            <p><%= athlete.full_name %> added <%= @academy.name %> in their athlete profile and is waiting for your approval.</p>
+            <small>Requested <%= membership_request.created_at.strftime("%d %b %Y") %><% if membership_request.requested_by&.email.present? %> · <%= membership_request.requested_by.email %><% end %></small>
+          </div>
+          <div class="notification-actions">
+            <%= button_to "Accept", approve_academy_academy_membership_request_path(@academy, membership_request), method: :patch, class: "approve-button" %>
+            <%= button_to "Reject", reject_academy_academy_membership_request_path(@academy, membership_request), method: :patch, class: "reject-button" %>
+          </div>
+        </article>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="inline-empty-state">
+      <strong>No notifications</strong>
+      <p>New athlete join requests will appear here.</p>
+    </div>
+  <% end %>
+</div></section>

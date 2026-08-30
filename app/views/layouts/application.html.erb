@@ -27,8 +27,8 @@
                     <summary><%= academy.name %></summary>
                     <div class="side-tournament-links">
                       <%= link_to edit_academy_path(academy) do %><%= ui_icon("edit") %><span>Edit academy</span><% end %>
-                      <%= link_to academy_path(academy, anchor: "academy-athletes") do %><%= ui_icon("medal") %><span>My athletes</span><% end %>
-                      <%= link_to academy_path(academy, anchor: "academy-notifications") do %><%= ui_icon("user") %><span>Notifications</span><% end %>
+                      <%= link_to athletes_academy_path(academy) do %><%= ui_icon("medal") %><span>My athletes</span><% end %>
+                      <%= link_to notifications_academy_path(academy) do %><%= ui_icon("user") %><span>Notifications</span><% end %>
                     </div>
                   </details>
                 <% end %>

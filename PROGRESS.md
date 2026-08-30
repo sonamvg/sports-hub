@@ -2358,3 +2358,193 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `git diff --check`; result: clean.
 - Ran `mise exec -- bin/rails test test/controllers/draw_layout_contract_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/controllers/tournaments_controller_test.rb test/controllers/athletes_controller_test.rb test/controllers/academies_controller_test.rb test/models/registration_test.rb test/models/tournament_draw_match_test.rb`; result: 102 runs, 951 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails test`; result: 182 runs, 1534 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-30 - Academy Breadcrumbs And Athlete Row Action Menu
+
+### Reference
+- User request: for academy flow, add breadcrumbs.
+- User request: at the end of academy athlete rows, replace the separate view/remove buttons with a vertical dots/kebab menu and move view/edit/remove actions inside it, using appropriate icons.
+
+### Product Decisions
+- Added breadcrumbs to academy index, show, new, and edit pages.
+- Replaced visible row actions in the academy athlete list with a compact native `details` kebab menu.
+- Kept athlete edit visibility aligned with existing permissions: super admins and the athlete's own account can edit; academy owners can view/remove their academy athlete entries from this menu.
+- Added a copy-email menu item when the athlete is linked to a user email.
+
+### Change Log
+- Added `copy`, `eye`, `more-vertical`, and `trash` icons to `ApplicationHelper`.
+- Added academy breadcrumbs to academy flow views.
+- Added the academy athlete row actions dropdown with copy email, view profile, conditional edit member, and remove athlete actions.
+- Added clipboard feedback JavaScript for menu copy actions.
+- Added menu styling for compact icon trigger, floating actions panel, and destructive action state.
+- Added academy UI tests for breadcrumbs, kebab menu contents, edit permission visibility, and menu CSS contract.
+
+### Verification Log
+- Ran `git diff --check`; result: clean.
+- Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb test/controllers/academy_layout_contract_test.rb`; result: 22 runs, 261 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 185 runs, 1599 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-30 - Academy Cards, Removal Confirmation, And Athlete Breadcrumbs
+
+### Reference
+- User request: add breadcrumbs on athlete profile.
+- User request: after Copy email changes to Copied, the actions panel should disappear.
+- User request: when an academy owner removes an athlete, show a confirmation popup and unlink the athlete from the academy only if confirmed.
+- User request: on the academy homepage, remove the visible `Approved` word before the academy name while keeping stored status.
+- User request: redesign academy cards using the supplied screenshot as inspiration: academy image, academy name, three-dot menu with view/edit/add athlete, small registered-athlete photos, no plus icon on the card, and opening the details page when the card is clicked.
+
+### Product Decisions
+- Added an academy image upload using Active Storage, with a 5 MB maximum file size.
+- Kept academy status stored in the database and available as card metadata, but removed the visible status pill from academy cards.
+- Made the academy card body a link to the academy detail page, with the three-dot menu kept as a separate action surface.
+- Academy-owner removal now unlinks the athlete from the academy and notifies the athlete; it does not delete the athlete profile.
+- The athlete edit action in academy row menus remains limited to super admins or the athlete's own athlete account.
+
+### Change Log
+- Added athlete profile breadcrumbs.
+- Added `Academy#logo_image` and logo image validation.
+- Permitted academy logo uploads in `AcademiesController`.
+- Added logo upload field to the academy form.
+- Replaced academy index entity cards with reusable `academies/_academy_card`.
+- Added academy card logo, body, kebab menu, and athlete thumbnail stack styling.
+- Updated copy-email JavaScript to close the actions menu after copied feedback.
+- Updated academy row remove confirmation text.
+- Reordered athlete destroy logic so academy owners unlink academy athletes before any self-owned athlete deletion branch.
+- Added tests for logo uploads, academy card rendering, hidden visible status, athlete breadcrumbs, copy-close JavaScript, and academy-owner unlink behavior.
+
+### Verification Log
+- Ran `git diff --check`; result: clean.
+- Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb test/controllers/academy_layout_contract_test.rb test/controllers/athletes_controller_test.rb`; result: 46 runs, 495 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 189 runs, 1665 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-30 - Academy Logo And Contact Detail Polish
+
+### Reference
+- User request: remove the `Super admin approval required` text from the academy registration page and replace it with clearer user-facing guidance.
+- User request: show academy contact details better on the academy detail page.
+- User request: ask for and display an academy logo instead of a banner.
+- User request: place academy actions in a top-right three-dot menu and prevent the menu from being hidden by lower cards.
+
+### Product Decisions
+- Academy branding is now modeled as a logo upload rather than a banner upload.
+- Academy registration copy now describes the user outcome: once approved, the owner can manage the profile and add athletes.
+- Academy detail pages now lead with logo, academy identity, location, and a compact action menu.
+- Contact details are grouped in a dedicated panel with contact person, email, phone, and owner.
+
+### Change Log
+- Renamed the academy Active Storage attachment from `banner_image` to `logo_image`.
+- Updated academy create/update params and eager-loading to use `logo_image`.
+- Updated the academy form label, upload hint, and current-upload display.
+- Updated academy cards to display logo artwork or a logo placeholder.
+- Added a top-right action menu to academy detail pages and removed duplicate bottom action buttons.
+- Added z-index handling for open academy card menus so the panel stays above neighboring cards.
+- Added academy detail contact panel styling and mobile layout rules.
+- Updated academy controller/layout tests for logo uploads, academy registration copy, contact display, and top action menus.
+
+### Verification Log
+- Ran `git diff --check`; result: clean.
+- Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb test/controllers/academy_layout_contract_test.rb test/controllers/athletes_controller_test.rb`; result: 48 runs, 544 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 191 runs, 1714 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-30 - Academy Detail, Roster, And Notifications Split
+
+### Reference
+- User request: `/academies/:id` should show only academy details.
+- User request: academy athletes should be available, but on a separate page.
+- User request: academy notifications should be available on a separate page.
+- User request: each notification should have a small cross in the top right; clicking it should softly delete the notification.
+- User request: when an athlete adds a registered academy in their profile, the academy owner should be notified and able to accept or reject the athlete.
+
+### Product Decisions
+- Academy profile pages are now clean profile/detail pages for identity, logo, location, and contact details.
+- Academy roster and athlete tournament statuses live on an owner-only academy athletes page.
+- Academy join requests live on an owner-only notifications page.
+- Dismissing a notification sets `dismissed_at`; it does not delete the membership request or change the pending approval status.
+- If an athlete selects the same registered academy again after a dismissed pending request, the request is re-opened by clearing `dismissed_at`.
+
+### Change Log
+- Added `dismissed_at` to `academy_membership_requests` with an index.
+- Added `AcademyMembershipRequest.active_notifications` and `#dismiss!`.
+- Added `AcademiesController#athletes` and `#notifications`.
+- Added academy member routes for `athletes` and `notifications`.
+- Added `AcademyMembershipRequestsController#dismiss`.
+- Moved academy roster and athlete tournament status UI to `app/views/academies/athletes.html.erb`.
+- Moved academy join request review UI to `app/views/academies/notifications.html.erb`.
+- Added a top-right dismiss button to each academy notification.
+- Updated the signed-in academy owner side menu to use the new academy subpages.
+- Added an `x` icon for dismiss actions.
+- Updated athlete academy-request creation to re-open dismissed pending requests.
+- Updated academy/athlete tests for the new page split and notification dismissal behavior.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: `20260830180500 AddDismissedAtToAcademyMembershipRequests` migrated successfully.
+- Ran `git diff --check`; result: clean.
+- Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb test/controllers/athletes_controller_test.rb test/controllers/academy_layout_contract_test.rb`; result: 50 runs, 570 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 193 runs, 1740 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-30 - Academy Athlete Tournament Status Grouping
+
+### Reference
+- User request: on `/academies/:id/athletes`, group `Tournament status` entries based on tournament.
+
+### Product Decisions
+- Academy athlete tournament statuses are grouped by tournament, newest tournament first.
+- Each tournament group has a tournament header and keeps athlete/category/status rows underneath it.
+
+### Change Log
+- Updated `app/views/academies/athletes.html.erb` to group `@athlete_registrations` by tournament.
+- Added tournament status group styling to keep the grouped sections compact and scannable.
+- Expanded academy controller tests to cover grouped rendering and newest-first tournament ordering.
+
+### Verification Log
+- Ran `git diff --check`; result: clean.
+- Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb`; result: 25 runs, 342 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 193 runs, 1748 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-30 - Academy Tournament Status Table Polish
+
+### Reference
+- User request: on `/academies/:id/athletes`, remove redundant draw wording because `Draw not set` and `Draw pending` mean the same thing.
+- User request: arrange registration statuses in a tabular format because the status pills were not aligned well.
+- User request: add a small circular athlete photo and show more athlete details, using the supplied table screenshot as inspiration.
+
+### Product Decisions
+- The academy athletes page now uses a table-like layout for tournament status groups instead of nested draw cards.
+- Draw state appears once per registration row.
+- Athlete identity in the status table includes a circular photo/placeholder plus email, belt, and weight when available.
+
+### Change Log
+- Replaced the academy tournament status `approval-row` layout with `tournament-status-table` rows.
+- Added columns for athlete, category, weight check, draw, and application status.
+- Removed the embedded registration draw card from the academy status table to avoid redundant `Draw not set` / `Draw pending` wording.
+- Added table, avatar, and responsive mobile styles for tournament status rows.
+- Updated the academy status test to cover table classes, avatar output, athlete details, and removal of redundant draw pending text.
+
+### Verification Log
+- Ran `git diff --check`; result: clean.
+- Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb`; result: 25 runs, 366 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 193 runs, 1772 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-30 - Academy Status Table Refinement
+
+### Reference
+- User request: the academy athlete tournament status table looked shabby and needed better alignment.
+- User request: shorten the `Application submitted` status label.
+- User request: move each athlete detail to a new line in the athlete identity cell.
+- User request: commit to GitHub after completion and stop the server after 10 minutes.
+
+### Product Decisions
+- Registration `pending` status is now shown as `Submitted` in user-facing status pills.
+- The detailed helper text still explains that submitted registrations are waiting for organiser review where that context is needed.
+- The academy tournament status table keeps a single draw state and displays athlete email, belt, weight, and city on separate lines.
+
+### Change Log
+- Updated `Registration#athlete_status_label` to return `Submitted` for pending registrations.
+- Reworked the academy tournament status table row spacing, columns, hover treatment, and avatar sizing.
+- Updated academy athlete status rows so each athlete detail renders as its own line.
+- Updated academy and athlete controller tests for the shorter `Submitted` status label.
+
+### Verification Log
+- Ran `git diff --check`; result: clean.
+- Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb test/controllers/athletes_controller_test.rb test/controllers/tournament_draw_matches_controller_test.rb`; result: 52 runs, 610 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 193 runs, 1772 assertions, 0 failures, 0 errors, 0 skips.

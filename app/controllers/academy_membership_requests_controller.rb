@@ -6,12 +6,17 @@ class AcademyMembershipRequestsController < ApplicationController
 
   def approve
     @membership_request.approve!(reviewer: current_user)
-    redirect_to @academy, notice: "Athlete added to academy."
+    redirect_to notifications_academy_path(@academy), notice: "Athlete added to academy."
   end
 
   def reject
     @membership_request.reject!(reviewer: current_user)
-    redirect_to @academy, notice: "Athlete request rejected."
+    redirect_to notifications_academy_path(@academy), notice: "Athlete request rejected."
+  end
+
+  def dismiss
+    @membership_request.dismiss!
+    redirect_to notifications_academy_path(@academy), notice: "Notification dismissed."
   end
 
   private

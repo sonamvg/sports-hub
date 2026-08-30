@@ -1,0 +1,56 @@
+<article class="academy-card" data-status="<%= academy.status %>">
+  <%= link_to academy_path(academy), class: "academy-card-main", aria: { label: "Open #{academy.name}" } do %>
+    <div class="academy-card-logo">
+      <%= image_with_placeholder(
+        academy.logo_image.attached? ? academy.logo_image : nil,
+        alt: "#{academy.name} logo",
+        placeholder: academy.name.to_s.first&.upcase || "A"
+      ) %>
+    </div>
+    <div class="academy-card-body">
+      <h2><%= academy.name %></h2>
+      <p><%= [academy.city, academy.state].compact_blank.join(", ").presence || academy.country %></p>
+      <% if can_manage_academy?(academy) %>
+        <p class="muted"><%= pluralize(academy.athletes.size, "athlete") %></p>
+      <% end %>
+      <% athlete_preview = academy.athletes.first(5) %>
+      <% if athlete_preview.any? && can_manage_academy?(academy) %>
+        <div class="academy-athlete-stack" aria-label="Registered athletes">
+          <% athlete_preview.each do |athlete| %>
+            <span>
+              <%= image_with_placeholder(
+                athlete.profile_photo.attached? ? athlete.profile_photo : nil,
+                alt: "#{athlete.full_name} photo",
+                placeholder: athlete.full_name.to_s.split.map(&:first).join.first(2).presence || "A"
+              ) %>
+            </span>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <details class="kebab-menu academy-card-menu">
+    <summary aria-label="Actions for <%= academy.name %>"><%= ui_icon("more-vertical") %></summary>
+    <div class="kebab-menu-panel">
+      <%= link_to academy_path(academy), class: "kebab-menu-item" do %>
+        <%= ui_icon("eye") %><span>View academy</span>
+      <% end %>
+      <% if can_manage_academy?(academy) %>
+        <%= link_to edit_academy_path(academy), class: "kebab-menu-item" do %>
+          <%= ui_icon("edit") %><span>Edit academy</span>
+        <% end %>
+        <% if academy.approved? %>
+          <%= link_to new_athlete_path(academy_id: academy.id), class: "kebab-menu-item" do %>
+            <%= ui_icon("medal") %><span>Add athlete</span>
+          <% end %>
+        <% end %>
+      <% end %>
+      <% if super_admin? %>
+        <%= button_to academy_path(academy), method: :delete, class: "kebab-menu-item kebab-menu-danger", form: { data: { turbo_confirm: "Delete #{academy.name}?" } } do %>
+          <%= ui_icon("trash") %><span>Delete academy</span>
+        <% end %>
+      <% end %>
+    </div>
+  </details>
+</article>

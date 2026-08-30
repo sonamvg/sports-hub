@@ -10,6 +10,13 @@ document.addEventListener("input", (event) => {
   updateDrawTieDecision(event.target.closest("form"))
 })
 
+document.addEventListener("click", (event) => {
+  const copyButton = event.target.closest("[data-copy-text]")
+  if (!copyButton) return
+
+  copyText(copyButton)
+})
+
 document.addEventListener("turbo:load", updateAcademyOtherFields)
 document.addEventListener("turbo:load", scheduleAutoDismiss)
 document.addEventListener("turbo:load", updateDrawTieDecisions)
@@ -92,4 +99,25 @@ function updateDrawSubmit(submit, readyToFreeze) {
   const lockIcon = submit.querySelector(".draw-save-icon-lock")
   if (saveIcon) saveIcon.hidden = readyToFreeze
   if (lockIcon) lockIcon.hidden = !readyToFreeze
+}
+
+function copyText(button) {
+  const text = button.dataset.copyText
+  if (!text || !navigator.clipboard) return
+
+  navigator.clipboard.writeText(text).then(() => {
+    const label = button.querySelector("span")
+    const menu = button.closest("details")
+
+    if (!label) {
+      if (menu) menu.removeAttribute("open")
+      return
+    }
+    const original = label.textContent
+    label.textContent = "Copied"
+    window.setTimeout(() => {
+      label.textContent = original
+      if (menu) menu.removeAttribute("open")
+    }, 1200)
+  })
 }

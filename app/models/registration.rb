@@ -64,7 +64,7 @@ class Registration < ApplicationRecord
 
   def athlete_status_label
     case status
-    when "pending" then "Application submitted"
+    when "pending" then "Submitted"
     when "approved" then "Registered"
     when "rejected" then "Declined"
     when "weight_verified" then "Weight verified"

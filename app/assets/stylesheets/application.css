@@ -97,6 +97,410 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 .entity-card h2 { font-size:25px; letter-spacing:-.03em; margin:18px 0 8px; }
 .entity-card p { color:var(--muted); line-height:1.55; margin:0 0 12px; }
 .entity-card .text-link { margin-top:auto; }
+.academy-card {
+  background:white;
+  border:1px solid var(--line);
+  border-radius:8px;
+  box-shadow:0 14px 34px rgba(18,20,24,.08);
+  min-height:330px;
+  overflow:visible;
+  position:relative;
+  transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease;
+}
+.academy-card:has(.kebab-menu[open]) {
+  z-index:40;
+}
+.academy-card:hover {
+  border-color:#d8d8dc;
+  box-shadow:0 18px 44px rgba(18,20,24,.12);
+  transform:translateY(-2px);
+}
+.academy-card-main {
+  display:flex;
+  flex-direction:column;
+  min-height:330px;
+}
+.academy-card-logo {
+  align-items:center;
+  background:linear-gradient(145deg,#111318 0%,#23262d 100%);
+  border-radius:8px 8px 0 0;
+  display:flex;
+  height:172px;
+  justify-content:center;
+  overflow:hidden;
+  padding:28px;
+}
+.academy-card-logo img,
+.academy-card-logo .image-fallback,
+.academy-card-logo .fallback-placeholder {
+  display:flex;
+  height:100%;
+  object-fit:contain;
+  width:100%;
+}
+.academy-card-logo .fallback-placeholder {
+  border-radius:999px;
+  font-size:52px;
+  height:96px;
+  width:96px;
+}
+.academy-card-body {
+  display:flex;
+  flex:1;
+  flex-direction:column;
+  padding:20px;
+}
+.academy-card-body h2 {
+  font-size:24px;
+  letter-spacing:-.035em;
+  line-height:1.1;
+  margin:0 0 8px;
+}
+.academy-card-body p {
+  color:var(--muted);
+  line-height:1.45;
+  margin:0 0 8px;
+}
+.academy-card-menu {
+  position:absolute;
+  right:10px;
+  top:10px;
+  z-index:5;
+}
+.academy-card-menu[open] {
+  z-index:60;
+}
+.academy-card-menu summary {
+  background:rgba(17,19,24,.76);
+  border-color:rgba(255,255,255,.16);
+  color:white;
+}
+.academy-card-menu summary:hover,
+.academy-card-menu[open] summary {
+  background:#111318;
+  border-color:#111318;
+}
+.academy-athlete-stack {
+  display:flex;
+  margin-top:auto;
+  padding-top:14px;
+}
+.academy-athlete-stack span {
+  background:white;
+  border:2px solid white;
+  border-radius:999px;
+  box-shadow:0 4px 14px rgba(20,22,26,.16);
+  display:block;
+  height:34px;
+  margin-right:-9px;
+  overflow:hidden;
+  width:34px;
+}
+.academy-athlete-stack img,
+.academy-athlete-stack .image-fallback,
+.academy-athlete-stack .fallback-placeholder {
+  display:flex;
+  font-size:11px;
+  height:100%;
+  object-fit:cover;
+  padding:0;
+  width:100%;
+}
+.academy-show-header {
+  align-items:flex-start;
+  display:flex;
+  gap:24px;
+  justify-content:space-between;
+  margin-bottom:30px;
+  position:relative;
+  z-index:20;
+}
+.academy-show-identity {
+  align-items:center;
+  display:flex;
+  gap:22px;
+  min-width:0;
+}
+.academy-show-logo {
+  align-items:center;
+  background:#111318;
+  border-radius:8px;
+  box-shadow:0 14px 34px rgba(18,20,24,.12);
+  display:flex;
+  flex:0 0 auto;
+  height:118px;
+  justify-content:center;
+  overflow:hidden;
+  padding:20px;
+  width:118px;
+}
+.academy-show-logo img,
+.academy-show-logo .image-fallback,
+.academy-show-logo .fallback-placeholder {
+  display:flex;
+  height:100%;
+  object-fit:contain;
+  width:100%;
+}
+.academy-show-logo .fallback-placeholder {
+  border-radius:999px;
+  font-size:40px;
+}
+.academy-show-menu {
+  flex:0 0 auto;
+  margin-top:6px;
+  z-index:50;
+}
+.academy-contact-panel {
+  border:1px solid var(--line);
+  margin:22px 0 8px;
+  padding:24px;
+}
+.academy-contact-panel h2 {
+  font-size:24px;
+  letter-spacing:-.03em;
+  margin:0 0 20px;
+}
+.academy-contact-grid {
+  display:grid;
+  gap:18px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.academy-contact-grid div {
+  border-top:1px solid var(--line);
+  min-width:0;
+  padding-top:14px;
+}
+.academy-contact-grid span {
+  color:var(--muted);
+  display:block;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.academy-contact-grid strong {
+  display:block;
+  font-size:17px;
+  line-height:1.35;
+  margin-top:8px;
+  overflow-wrap:anywhere;
+}
+.academy-management-panel {
+  display:grid;
+  gap:16px;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  margin-top:24px;
+}
+.academy-management-card {
+  border:1px solid var(--line);
+  border-radius:8px;
+  display:grid;
+  gap:8px;
+  padding:20px;
+  transition:background .16s ease,border-color .16s ease,transform .16s ease;
+}
+.academy-management-card:hover {
+  background:#f7f7f5;
+  border-color:#d2d6dd;
+  transform:translateY(-1px);
+}
+.academy-management-card > span {
+  align-items:center;
+  background:#111318;
+  border-radius:8px;
+  color:white;
+  display:flex;
+  height:38px;
+  justify-content:center;
+  width:38px;
+}
+.academy-management-card strong {
+  font-size:18px;
+}
+.academy-management-card small {
+  color:var(--muted);
+  line-height:1.4;
+}
+.notification-list {
+  display:grid;
+  gap:14px;
+}
+.notification-card {
+  background:white;
+  border:1px solid var(--line);
+  border-radius:8px;
+  box-shadow:0 1px 0 rgba(16,17,20,.02);
+  display:grid;
+  gap:18px;
+  grid-template-columns:minmax(0,1fr) auto;
+  padding:22px;
+  position:relative;
+}
+.notification-card h2 {
+  font-size:24px;
+  letter-spacing:-.03em;
+  line-height:1.1;
+  margin:14px 0 8px;
+}
+.notification-card p {
+  color:var(--muted);
+  line-height:1.5;
+  margin:0 0 10px;
+}
+.notification-card small {
+  color:var(--muted);
+  font-weight:700;
+}
+.notification-dismiss {
+  align-items:center;
+  background:white;
+  border:1px solid transparent;
+  border-radius:8px;
+  color:var(--muted);
+  display:flex;
+  height:32px;
+  justify-content:center;
+  position:absolute;
+  right:12px;
+  top:12px;
+  width:32px;
+}
+.notification-dismiss:hover {
+  background:#f7f7f5;
+  border-color:var(--line);
+  color:var(--red);
+}
+.notification-dismiss .ui-icon {
+  height:16px;
+  width:16px;
+}
+.notification-actions {
+  align-items:end;
+  display:flex;
+  gap:10px;
+  padding-right:34px;
+}
+.tournament-status-groups {
+  display:grid;
+  gap:18px;
+}
+.tournament-status-group {
+  background:white;
+  border:1px solid var(--line);
+  border-radius:8px;
+  box-shadow:0 12px 30px rgba(16,17,20,.05);
+  overflow:hidden;
+}
+.tournament-status-header {
+  align-items:center;
+  background:#fcfcfb;
+  border-bottom:1px solid #edf0f2;
+  display:flex;
+  gap:18px;
+  justify-content:space-between;
+  padding:20px 24px;
+}
+.tournament-status-header h3 {
+  font-size:24px;
+  letter-spacing:-.03em;
+  line-height:1.15;
+  margin:6px 0 0;
+}
+.tournament-status-header .muted {
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.tournament-status-group .approval-table {
+  border:0;
+  border-radius:0;
+  margin-top:0;
+}
+.tournament-status-table {
+  display:grid;
+}
+.tournament-status-row {
+  align-items:start;
+  border-bottom:1px solid #edf0f2;
+  display:grid;
+  gap:22px;
+  grid-template-columns:minmax(230px,1.45fr) minmax(180px,1.15fr) minmax(170px,1fr) minmax(220px,1.25fr) minmax(120px,.7fr);
+  min-height:88px;
+  padding:20px 24px;
+}
+.tournament-status-row:not(.tournament-status-row-header):hover {
+  background:#fcfcfb;
+}
+.tournament-status-row:last-child {
+  border-bottom:0;
+}
+.tournament-status-row-header {
+  align-items:center;
+  background:#f8f8f6;
+  color:#767b84;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.1em;
+  min-height:44px;
+  padding-bottom:13px;
+  padding-top:13px;
+  text-transform:uppercase;
+}
+.tournament-status-row > div {
+  display:grid;
+  gap:5px;
+  min-width:0;
+}
+.tournament-status-row strong {
+  color:var(--ink);
+  line-height:1.25;
+  overflow-wrap:anywhere;
+}
+.tournament-status-row small {
+  color:var(--muted);
+  display:block;
+  font-size:13px;
+  font-weight:700;
+  line-height:1.45;
+  overflow-wrap:anywhere;
+}
+.tournament-status-athlete {
+  align-items:flex-start;
+  display:flex!important;
+  gap:14px;
+}
+.tournament-status-avatar {
+  background:#111318;
+  border-radius:999px;
+  display:block;
+  flex:0 0 auto;
+  height:56px;
+  overflow:hidden;
+  width:56px;
+}
+.tournament-status-avatar img,
+.tournament-status-avatar .image-fallback,
+.tournament-status-avatar .fallback-placeholder {
+  display:flex;
+  font-size:15px;
+  height:100%;
+  object-fit:cover;
+  padding:0;
+  width:100%;
+}
+.tournament-status-athlete-details {
+  display:grid;
+  gap:2px;
+}
+.tournament-status-athlete-details strong {
+  font-size:18px;
+}
+.tournament-status-draw .draw-state-pill {
+  justify-self:start;
+  margin-bottom:2px;
+}
 .organizer-card { min-height:320px; }
 .organizer-photo { width:96px; height:96px; border-radius:999px; overflow:hidden; background:var(--ink); color:white; display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:900; margin-bottom:18px; }
 .organizer-photo img,.organizer-photo .image-fallback,.organizer-photo .fallback-placeholder { width:100%; height:100%; object-fit:cover; display:flex; }
@@ -263,6 +667,76 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 .approval-row > div:first-child { display:flex; flex-direction:column; gap:5px; }
 .approval-row span { color:var(--muted); font-size:13px; }
 .row-actions { display:flex; gap:8px; }
+.kebab-menu {
+  justify-self:end;
+  position:relative;
+}
+.kebab-menu summary {
+  align-items:center;
+  background:white;
+  border:1px solid transparent;
+  border-radius:8px;
+  color:var(--ink);
+  cursor:pointer;
+  display:inline-flex;
+  height:36px;
+  justify-content:center;
+  list-style:none;
+  width:36px;
+}
+.kebab-menu summary::-webkit-details-marker { display:none; }
+.kebab-menu summary:hover,
+.kebab-menu[open] summary {
+  background:#f7f7f5;
+  border-color:var(--line);
+}
+.kebab-menu-panel {
+  background:white;
+  border:1px solid var(--line);
+  border-radius:10px;
+  box-shadow:0 18px 42px rgba(20,22,26,.14);
+  display:grid;
+  min-width:190px;
+  overflow:hidden;
+  padding:8px 0;
+  position:absolute;
+  right:0;
+  top:42px;
+  z-index:30;
+}
+.kebab-menu-item,
+.kebab-menu-panel .button_to button {
+  align-items:center;
+  background:white;
+  border:0;
+  color:var(--ink);
+  cursor:pointer;
+  display:flex;
+  font:inherit;
+  gap:12px;
+  padding:12px 16px;
+  text-align:left;
+  text-decoration:none;
+  width:100%;
+}
+.kebab-menu-item:hover,
+.kebab-menu-panel .button_to button:hover {
+  background:#f7f7f5;
+}
+.kebab-menu-panel .button_to {
+  border-top:1px solid var(--line);
+  margin:0;
+}
+.kebab-menu-danger,
+.kebab-menu-panel .button_to .kebab-menu-danger {
+  color:#d31220;
+}
+.kebab-menu-item .ui-icon,
+.kebab-menu-panel .button_to button .ui-icon {
+  flex:0 0 auto;
+  height:18px;
+  width:18px;
+}
 .approve-button,.reject-button { border:0; padding:10px 13px; font-weight:800; cursor:pointer; }
 .approve-button { background:#176532; color:white; }
 .reject-button { background:#eee; color:#8a1e1e; }
@@ -280,6 +754,15 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
   .category-row { grid-template-columns:1fr; align-items:flex-start; }
   .referee-row { grid-template-columns:1fr; align-items:flex-start; }
   .registered-athlete-row { grid-template-columns:1fr; align-items:flex-start; }
+  .academy-show-header,.academy-show-identity { align-items:flex-start; }
+  .academy-show-header { flex-direction:column; }
+  .academy-show-identity { flex-direction:column; }
+  .academy-contact-grid { grid-template-columns:1fr; }
+  .academy-management-panel,.notification-card { grid-template-columns:1fr; }
+  .notification-actions { align-items:flex-start; padding-right:0; }
+  .tournament-status-header { align-items:flex-start; flex-direction:column; }
+  .tournament-status-row { grid-template-columns:1fr; align-items:flex-start; }
+  .tournament-status-row-header { display:none; }
   .filter-bar,.filter-bar.compact-filter,.tournament-filter-grid { grid-template-columns:1fr; }
   .filter-panel-header { align-items:flex-start; flex-direction:column; }
   .tournament-filter-actions { justify-content:flex-start; min-width:0; }

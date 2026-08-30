@@ -1,75 +1,91 @@
-<section class="page-shell"><div class="container narrow"><p class="eyebrow">ACADEMY</p><h1 class="page-title"><%= @academy.name %></h1><div class="detail-card">
-  <span class="status-pill status-<%= @academy.status %>"><%= @academy.status.humanize %></span>
-  <p class="page-copy"><%= [@academy.city, @academy.state, @academy.country].compact.join(", ") %></p>
-  <dl class="detail-list">
-    <div><dt>Owner</dt><dd><%= @academy.owner&.name || "Not assigned" %></dd></div>
-    <div><dt>Contact</dt><dd><%= [@academy.contact_name, @academy.email, @academy.phone].compact.join(" · ").presence || "Not set" %></dd></div>
-    <% if @academy.rejected? && @academy.rejection_reason.present? %><div><dt>Reason</dt><dd><%= @academy.rejection_reason %></dd></div><% end %>
-  </dl>
-  <% if can_manage_academy?(@academy) %>
-    <div id="academy-notifications"></div>
-    <% if @membership_requests.any? %>
-      <h3>Join requests</h3>
-      <div class="approval-table">
-        <% @membership_requests.each do |membership_request| %>
-          <% athlete = membership_request.athlete %>
-          <div class="approval-row">
-            <div><strong><%= athlete.full_name %></strong><span>Requested <%= membership_request.created_at.strftime("%d %b %Y") %></span></div>
-            <span class="status-pill status-pending">Pending</span>
-            <div class="row-actions">
-              <%= button_to "Approve", approve_academy_academy_membership_request_path(@academy, membership_request), method: :patch, class: "approve-button" %>
-              <%= button_to "Reject", reject_academy_academy_membership_request_path(@academy, membership_request), method: :patch, class: "reject-button" %>
-            </div>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
-    <div id="academy-athletes"></div>
-    <h3>My athletes</h3>
-    <% if @athletes.any? %>
-      <div class="registered-athlete-list academy-athlete-list">
-        <% @athletes.each do |athlete| %>
-          <article class="registered-athlete-row">
-            <div><strong><%= athlete.full_name %></strong><span class="muted"><%= athlete.association_id || "--" %></span></div>
-            <span><strong>Belt</strong><%= athlete.belt&.titleize || "--" %></span>
-            <span><strong>Weight</strong><%= athlete.weight ? "#{athlete.weight} kg" : "--" %></span>
-            <span><strong>City</strong><%= athlete.city || "--" %></span>
-            <div class="row-actions">
-              <%= link_to "View", athlete_path(athlete), class: "text-link" %>
-              <%= button_to "Remove", athlete_path(athlete), method: :delete, class: "reject-button", form: { data: { turbo_confirm: "Remove #{athlete.full_name} from #{@academy.name}?" } } %>
-            </div>
-          </article>
-        <% end %>
-      </div>
-    <% else %>
-      <p class="muted">No athlete profiles assigned yet.</p>
-    <% end %>
-    <h3>Athlete tournament status</h3>
-    <% if @athlete_registrations.any? %>
-      <div class="approval-table">
-        <% @athlete_registrations.each do |registration| %>
-          <div class="approval-row">
-            <div>
-              <strong><%= registration.athlete.full_name %></strong>
-              <span><%= registration.tournament.name %> · <%= registration.tournament_category.name %></span>
-              <% registration.weight_check_summary.each do |attempt| %>
-                <span><%= attempt %></span>
-              <% end %>
-              <%= render "registrations/draw_status", registration: registration %>
-            </div>
-            <span class="status-pill status-<%= registration.status %>"><%= registration.athlete_status_label %></span>
-          </div>
-        <% end %>
-      </div>
-    <% else %>
-      <p class="muted">No tournament registrations yet.</p>
-    <% end %>
-  <% end %>
-  <div class="form-actions">
-    <% if can_manage_academy?(@academy) %><%= link_to "Edit academy", edit_academy_path(@academy), class: "primary-button" %><% end %>
-    <% if @academy.approved? && can_manage_academy?(@academy) %><%= link_to "Add athlete", new_athlete_path, class: "secondary-button" %><% end %>
-    <% if super_admin? %><%= button_to "Delete academy", academy_path(@academy), method: :delete, class: "reject-button", form: { data: { turbo_confirm: "Delete #{@academy.name}?" } } %><% end %>
-    <% if super_admin? && @academy.pending? %><%= button_to "Approve academy", approve_academy_path(@academy), method: :patch, class: "approve-button" %><%= button_to "Reject academy", reject_academy_path(@academy), method: :patch, class: "reject-button" %><% end %>
-    <%= link_to "Back", academies_path, class: "secondary-button" %>
+<section class="page-shell"><div class="container narrow">
+<%= render "shared/breadcrumbs", items: [
+  { label: "Home", path: root_path },
+  { label: "Academies", path: academies_path },
+  { label: @academy.name }
+] %>
+
+<div class="academy-show-header">
+  <div class="academy-show-identity">
+    <div class="academy-show-logo">
+      <%= image_with_placeholder(
+        @academy.logo_image.attached? ? @academy.logo_image : nil,
+        alt: "#{@academy.name} logo",
+        placeholder: @academy.name.to_s.first&.upcase || "A"
+      ) %>
+    </div>
+    <div>
+      <p class="eyebrow">ACADEMY</p>
+      <h1 class="page-title"><%= @academy.name %></h1>
+      <p class="page-copy"><%= [@academy.city, @academy.state, @academy.country].compact_blank.join(", ").presence || "Location not set" %></p>
+    </div>
   </div>
+
+  <details class="kebab-menu academy-show-menu">
+    <summary aria-label="Actions for <%= @academy.name %>"><%= ui_icon("more-vertical") %></summary>
+    <div class="kebab-menu-panel">
+      <%= link_to academies_path, class: "kebab-menu-item" do %>
+        <%= ui_icon("academy") %><span>All academies</span>
+      <% end %>
+      <% if can_manage_academy?(@academy) %>
+        <%= link_to edit_academy_path(@academy), class: "kebab-menu-item" do %>
+          <%= ui_icon("edit") %><span>Edit academy</span>
+        <% end %>
+        <% if @academy.approved? %>
+          <%= link_to new_athlete_path(academy_id: @academy.id), class: "kebab-menu-item" do %>
+            <%= ui_icon("medal") %><span>Add athlete</span>
+          <% end %>
+        <% end %>
+        <%= link_to athletes_academy_path(@academy), class: "kebab-menu-item" do %>
+          <%= ui_icon("medal") %><span>My athletes</span>
+        <% end %>
+        <%= link_to notifications_academy_path(@academy), class: "kebab-menu-item" do %>
+          <%= ui_icon("user") %><span>Notifications</span>
+        <% end %>
+      <% end %>
+      <% if super_admin? && @academy.pending? %>
+        <%= button_to approve_academy_path(@academy), method: :patch, class: "kebab-menu-item" do %>
+          <%= ui_icon("shield") %><span>Approve academy</span>
+        <% end %>
+        <%= button_to reject_academy_path(@academy), method: :patch, class: "kebab-menu-item kebab-menu-danger" do %>
+          <%= ui_icon("trash") %><span>Reject academy</span>
+        <% end %>
+      <% end %>
+      <% if super_admin? %>
+        <%= button_to academy_path(@academy), method: :delete, class: "kebab-menu-item kebab-menu-danger", form: { data: { turbo_confirm: "Delete #{@academy.name}?" } } do %>
+          <%= ui_icon("trash") %><span>Delete academy</span>
+        <% end %>
+      <% end %>
+    </div>
+  </details>
+</div>
+
+<div class="detail-card">
+  <span class="status-pill status-<%= @academy.status %>"><%= @academy.status.humanize %></span>
+  <section class="academy-contact-panel" aria-labelledby="academy-contact-heading">
+    <h2 id="academy-contact-heading">Contact details</h2>
+    <div class="academy-contact-grid">
+      <div><span>Contact person</span><strong><%= @academy.contact_name.presence || @academy.owner&.name || "--" %></strong></div>
+      <div><span>Email</span><strong><%= @academy.email.present? ? mail_to(@academy.email) : "--" %></strong></div>
+      <div><span>Phone</span><strong><%= @academy.phone.presence || "--" %></strong></div>
+      <div><span>Owner</span><strong><%= @academy.owner&.name || "--" %></strong></div>
+    </div>
+  </section>
+  <% if @academy.rejected? && @academy.rejection_reason.present? %>
+    <dl class="detail-list"><div><dt>Reason</dt><dd><%= @academy.rejection_reason %></dd></div></dl>
+  <% end %>
+  <% if can_manage_academy?(@academy) %>
+    <section class="academy-management-panel" aria-label="Academy management">
+      <%= link_to athletes_academy_path(@academy), class: "academy-management-card" do %>
+        <span><%= ui_icon("medal") %></span>
+        <strong>My athletes</strong>
+        <small>View roster and tournament status</small>
+      <% end %>
+      <%= link_to notifications_academy_path(@academy), class: "academy-management-card" do %>
+        <span><%= ui_icon("user") %></span>
+        <strong>Notifications</strong>
+        <small>Review academy join requests</small>
+      <% end %>
+    </section>
+  <% end %>
 </div></div></section>

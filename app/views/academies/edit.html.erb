@@ -1,1 +1,10 @@
-<section class="page-shell"><div class="container narrow"><p class="eyebrow">ACADEMY</p><h1 class="page-title">Edit academy</h1><%= render "form", academy: @academy %></div></section>
+<section class="page-shell"><div class="container narrow">
+  <%= render "shared/breadcrumbs", items: [
+    { label: "Home", path: root_path },
+    { label: "Academies", path: academies_path },
+    { label: @academy.name, path: academy_path(@academy) },
+    { label: "Edit academy" }
+  ] %>
+
+  <p class="eyebrow">ACADEMY</p><h1 class="page-title">Edit academy</h1><%= render "form", academy: @academy %>
+</div></section>

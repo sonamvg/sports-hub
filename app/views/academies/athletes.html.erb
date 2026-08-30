@@ -1,0 +1,149 @@
+<section class="page-shell"><div class="container">
+  <%= render "shared/breadcrumbs", items: [
+    { label: "Home", path: root_path },
+    { label: "Academies", path: academies_path },
+    { label: @academy.name, path: academy_path(@academy) },
+    { label: "My athletes" }
+  ] %>
+
+  <div class="page-heading compact-heading">
+    <div>
+      <p class="eyebrow">ACADEMY ROSTER</p>
+      <h1 class="page-title">My athletes</h1>
+      <p class="page-copy"><%= @academy.name %></p>
+    </div>
+    <% if @academy.approved? %>
+      <%= link_to new_athlete_path(academy_id: @academy.id), class: "primary-button icon-label" do %>
+        <%= ui_icon("plus") %><span>Add athlete</span>
+      <% end %>
+    <% end %>
+  </div>
+
+  <% if @athletes.any? %>
+    <div class="registered-athlete-list academy-athlete-list">
+      <% @athletes.each do |athlete| %>
+        <article class="registered-athlete-row">
+          <div><strong><%= athlete.full_name %></strong><span class="muted"><%= athlete.user&.email || "--" %></span></div>
+          <span><strong>Belt</strong><%= athlete.belt&.titleize || "--" %></span>
+          <span><strong>Weight</strong><%= athlete.weight ? "#{athlete.weight} kg" : "--" %></span>
+          <span><strong>City</strong><%= athlete.city || "--" %></span>
+          <details class="kebab-menu">
+            <summary aria-label="Actions for <%= athlete.full_name %>"><%= ui_icon("more-vertical") %></summary>
+            <div class="kebab-menu-panel">
+              <% if athlete.user&.email.present? %>
+                <button type="button" class="kebab-menu-item button-reset" data-copy-text="<%= athlete.user.email %>">
+                  <%= ui_icon("copy") %><span>Copy email</span>
+                </button>
+              <% end %>
+              <%= link_to athlete_path(athlete), class: "kebab-menu-item" do %>
+                <%= ui_icon("eye") %><span>View profile</span>
+              <% end %>
+              <% if super_admin? || (current_user.athlete? && athlete.user_id == current_user.id) %>
+                <%= link_to edit_athlete_path(athlete), class: "kebab-menu-item" do %>
+                  <%= ui_icon("edit") %><span>Edit member</span>
+                <% end %>
+              <% end %>
+              <%= button_to athlete_path(athlete), method: :delete, class: "kebab-menu-item kebab-menu-danger", form: { data: { turbo_confirm: "Are you sure you want to remove #{athlete.full_name} from #{@academy.name}?" } } do %>
+                <%= ui_icon("trash") %><span>Remove athlete</span>
+              <% end %>
+            </div>
+          </details>
+        </article>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="inline-empty-state">
+      <strong>No athletes yet</strong>
+      <p>Add athletes from your academy roster when you are ready.</p>
+    </div>
+  <% end %>
+
+  <div class="section-compact">
+    <h2 class="section-title">Tournament status</h2>
+    <% if @athlete_registrations.any? %>
+      <div class="tournament-status-groups">
+        <% @athlete_registrations.group_by(&:tournament).sort_by { |tournament, _registrations| [tournament.start_date || Date.new(1900, 1, 1), tournament.created_at] }.reverse_each do |tournament, registrations| %>
+          <section class="tournament-status-group" aria-labelledby="academy-tournament-status-<%= tournament.id %>">
+            <header class="tournament-status-header">
+              <div>
+                <span class="muted">Tournament</span>
+                <h3 id="academy-tournament-status-<%= tournament.id %>"><%= tournament.name %></h3>
+              </div>
+              <span class="status-pill status-<%= tournament.status %>"><%= tournament.status.humanize %></span>
+            </header>
+            <div class="tournament-status-table" role="table" aria-label="<%= tournament.name %> athlete statuses">
+              <div class="tournament-status-row tournament-status-row-header" role="row">
+                <span role="columnheader">Athlete</span>
+                <span role="columnheader">Category</span>
+                <span role="columnheader">Weight check</span>
+                <span role="columnheader">Draw</span>
+                <span role="columnheader">Status</span>
+              </div>
+              <% registrations.each do |registration| %>
+                <% athlete = registration.athlete %>
+                <% current_match = registration.current_draw_match %>
+                <% completed_matches = registration.completed_draw_matches %>
+                <% medal = registration.medal_label %>
+                <div class="tournament-status-row" role="row">
+                  <div class="tournament-status-athlete" role="cell">
+                    <span class="tournament-status-avatar">
+                      <%= image_with_placeholder(
+                        athlete.profile_photo.attached? ? athlete.profile_photo : nil,
+                        alt: "#{athlete.full_name} photo",
+                        placeholder: athlete.full_name.to_s.split.map(&:first).join.first(2).presence || "A"
+                      ) %>
+                    </span>
+                    <span class="tournament-status-athlete-details">
+                      <strong><%= athlete.full_name %></strong>
+                      <% if athlete.user&.email.present? %><small><%= athlete.user.email %></small><% end %>
+                      <% if athlete.belt.present? %><small><%= athlete.belt.titleize %></small><% end %>
+                      <% if athlete.weight.present? %><small><%= athlete.weight %> kg</small><% end %>
+                      <% if athlete.city.present? %><small><%= athlete.city %></small><% end %>
+                      <% unless athlete.user&.email.present? || athlete.belt.present? || athlete.weight.present? || athlete.city.present? %><small>--</small><% end %>
+                    </span>
+                  </div>
+                  <div role="cell">
+                    <strong><%= registration.tournament_category.name %></strong>
+                    <small><%= registration.tournament_category.event_type.titleize %></small>
+                  </div>
+                  <div role="cell">
+                    <% weight_checks = registration.weight_check_summary %>
+                    <% if weight_checks.any? %>
+                      <% weight_checks.each do |attempt| %>
+                        <small><%= attempt %></small>
+                      <% end %>
+                    <% else %>
+                      <small>--</small>
+                    <% end %>
+                  </div>
+                  <div class="tournament-status-draw" role="cell">
+                    <span class="draw-state-pill <%= "draw-state-medal" if medal.present? %>"><%= medal ? "#{medal} medal" : registration.draw_status_label %></span>
+                    <% if registration.draw_status_detail.present? %>
+                      <small><%= registration.draw_status_detail %></small>
+                    <% end %>
+                    <% if current_match.present? %>
+                      <% color = registration.draw_head_guard_color(current_match) %>
+                      <small><%= current_match.round_label %> · Match <%= current_match.position %> · <%= color.to_s.titleize %></small>
+                    <% end %>
+                    <% completed_matches.each do |match| %>
+                      <% athlete_is_red = match.red_registration_id == registration.id %>
+                      <% athlete_points = athlete_is_red ? match.red_total_points : match.blue_total_points %>
+                      <% opponent_points = athlete_is_red ? match.blue_total_points : match.red_total_points %>
+                      <% athlete_sets = athlete_is_red ? match.red_round_wins : match.blue_round_wins %>
+                      <% opponent_sets = athlete_is_red ? match.blue_round_wins : match.red_round_wins %>
+                      <% athlete_color = athlete_is_red ? match.top_chest_guard_color : match.bottom_chest_guard_color %>
+                      <small><%= match.round_label %> · Match <%= match.position %> · <%= match.bye? ? "Bye" : "Sets #{athlete_sets} - #{opponent_sets}, #{athlete_points} - #{opponent_points}" %> · <%= athlete_color.titleize %> · <%= match.result_label_for(registration) %></small>
+                    <% end %>
+                  </div>
+                  <div role="cell"><span class="status-pill status-<%= registration.status %>"><%= registration.athlete_status_label %></span></div>
+                </div>
+              <% end %>
+            </div>
+          </section>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="muted">No tournament registrations yet.</p>
+    <% end %>
+  </div>
+</div></section>
