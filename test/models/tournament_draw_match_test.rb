@@ -92,7 +92,7 @@ class TournamentDrawMatchTest < ActiveSupport::TestCase
     assert_equal @second_registration, match.reload.winner_registration
   end
 
-  test "requires referee decision when round points are tied" do
+  test "does not freeze when round points are tied" do
     match = @draw.tournament_draw_matches.create!(
       round_number: 1,
       position: 1,
@@ -115,10 +115,10 @@ class TournamentDrawMatchTest < ActiveSupport::TestCase
         blue_head_guard_color: "blue"
       }
     )
-    assert_includes match.errors.full_messages, "Round 1 winner side must be selected when round 1 points are tied"
+    assert_includes match.errors.full_messages, "Resolve tied round scores before freezing result"
   end
 
-  test "uses referee decision for tied round winner" do
+  test "ready to freeze only when no completed rounds are tied" do
     match = @draw.tournament_draw_matches.create!(
       round_number: 1,
       position: 1,
@@ -128,23 +128,20 @@ class TournamentDrawMatchTest < ActiveSupport::TestCase
       blue_head_guard_color: "blue"
     )
 
-    assert match.record_result!(
-      actor: @organizer,
-      attributes: {
-        red_round_1_points: 5,
-        blue_round_1_points: 5,
-        red_round_2_points: 6,
-        blue_round_2_points: 4,
-        red_round_3_points: 3,
-        blue_round_3_points: 5,
-        red_head_guard_color: "red",
-        blue_head_guard_color: "blue",
-        round_1_winner_side: "blue"
-      }
+    match.assign_attributes(
+      red_round_1_points: 5,
+      blue_round_1_points: 5,
+      red_round_2_points: 6,
+      blue_round_2_points: 4,
+      red_round_3_points: 3,
+      blue_round_3_points: 5
     )
-    assert_equal 1, match.red_round_wins
-    assert_equal 2, match.blue_round_wins
-    assert_equal @second_registration, match.reload.winner_registration
+
+    assert_not_predicate match, :ready_to_freeze?
+
+    match.red_round_1_points = 4
+
+    assert_predicate match, :ready_to_freeze?
   end
 
   test "does not allow a frozen result to be changed" do
@@ -166,7 +163,7 @@ class TournamentDrawMatchTest < ActiveSupport::TestCase
     assert_equal 2, match.blue_round_1_points
   end
 
-  test "knows when tied round decision is needed before freeze" do
+  test "does not treat empty round scores as tied" do
     match = @draw.tournament_draw_matches.create!(
       round_number: 1,
       position: 1,
@@ -176,22 +173,15 @@ class TournamentDrawMatchTest < ActiveSupport::TestCase
       blue_head_guard_color: "red"
     )
 
-    match.assign_attributes(
-      red_round_1_points: 5,
-      blue_round_1_points: 5,
-      red_round_2_points: 6,
-      blue_round_2_points: 4,
-      red_round_3_points: 3,
-      blue_round_3_points: 5
-    )
+    assert_not match.round_points_tied?(1)
 
-    assert_not_predicate match, :ready_to_freeze?
-    assert_predicate match, :set_wins_tied?
+    match.red_round_1_points = 5
 
-    match.round_1_winner_side = "red"
+    assert_not match.round_points_tied?(1)
 
-    assert_predicate match, :ready_to_freeze?
-    assert_equal :red, match.round_winner_side(1)
+    match.blue_round_1_points = 5
+
+    assert match.round_points_tied?(1)
   end
 
   test "advances bye winner" do

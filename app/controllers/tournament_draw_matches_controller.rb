@@ -45,8 +45,7 @@ class TournamentDrawMatchesController < ApplicationController
     params.require(:tournament_draw_match).permit(
       :red_round_1_points, :blue_round_1_points,
       :red_round_2_points, :blue_round_2_points,
-      :red_round_3_points, :blue_round_3_points,
-      :round_1_winner_side, :round_2_winner_side, :round_3_winner_side
+      :red_round_3_points, :blue_round_3_points
     )
   end
 end

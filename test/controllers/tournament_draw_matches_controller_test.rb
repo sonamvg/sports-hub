@@ -79,7 +79,50 @@ class TournamentDrawMatchesControllerTest < ActionDispatch::IntegrationTest
     assert_equal @first_registration, @final.reload.red_registration
   end
 
-  test "organizer must choose round winner when round points are tied" do
+  test "frozen result is reflected on athlete and academy pages" do
+    academy_owner = User.create!(name: "Academy Owner", email: "draw-propagation-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Propagation Academy", city: "Pune", status: :approved, owner: academy_owner)
+    @first_registration.athlete.update!(academy: academy, external_academy_name: nil)
+
+    patch result_tournament_draw_match_path(@match), params: {
+      score_action: "Freeze result",
+      tournament_draw_match: {
+        red_round_1_points: 10,
+        blue_round_1_points: 8,
+        red_round_2_points: 6,
+        blue_round_2_points: 9,
+        red_round_3_points: 7,
+        blue_round_3_points: 5
+      }
+    }
+
+    assert_redirected_to draw_tournament_path(@tournament)
+    assert_equal @first_registration, @match.reload.winner_registration
+
+    delete logout_path
+    sign_in_as @first_registration.athlete.user
+    get athlete_path(@first_registration.athlete)
+
+    assert_response :success
+    assert_includes response.body, "Waiting for opponent"
+    assert_includes response.body, "You have advanced to"
+    assert_includes response.body, "23 - 22"
+    assert_includes response.body, "Blue"
+
+    delete logout_path
+    sign_in_as academy_owner
+    get academy_path(academy)
+
+    assert_response :success
+    assert_includes response.body, "Athlete tournament status"
+    assert_includes response.body, @first_registration.athlete.full_name
+    assert_includes response.body, "Waiting for opponent"
+    assert_includes response.body, "You have advanced to"
+    assert_includes response.body, "23 - 22"
+    assert_includes response.body, "Blue"
+  end
+
+  test "organizer cannot freeze when round points are tied" do
     patch result_tournament_draw_match_path(@match), params: {
       score_action: "Freeze result",
       tournament_draw_match: {
@@ -93,22 +136,21 @@ class TournamentDrawMatchesControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_redirected_to draw_tournament_path(@tournament)
-    assert_equal "Round 1 winner side must be selected when round 1 points are tied", flash[:alert]
+    assert_equal "Resolve tied round scores before freezing result", flash[:alert]
     assert_nil @match.reload.winner_registration
     assert_nil @final.reload.red_registration
   end
 
-  test "organizer can choose round winner when round points are tied" do
+  test "organizer freezes when every completed round has a point winner" do
     patch result_tournament_draw_match_path(@match), params: {
       score_action: "Freeze result",
       tournament_draw_match: {
-        red_round_1_points: 10,
+        red_round_1_points: 9,
         blue_round_1_points: 10,
         red_round_2_points: 6,
         blue_round_2_points: 9,
         red_round_3_points: 4,
-        blue_round_3_points: 3,
-        round_1_winner_side: "blue"
+        blue_round_3_points: 3
       }
     }
 

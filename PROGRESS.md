@@ -2204,25 +2204,21 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 
 ### Product Decisions
 - Added one optional winner-side field per scored round: `round_1_winner_side`, `round_2_winner_side`, and `round_3_winner_side`.
-- Round winner calculation now uses points when one side leads, and uses that round's referee decision only when points are tied.
-- Match winner calculation remains based on sets won, but every completed tied set must have a per-round decision before freeze can succeed.
+- Round winner calculation used points when one side led, and used that round's referee decision only when points were tied.
+- Match winner calculation remained based on sets won, but every completed tied set required a per-round decision before freeze could succeed.
 - The match-level winner picker was removed from permitted params and UI.
-- The draw scorecard shows compact blue/red round-winner choices inline only for rounds whose entered points are tied.
+- This approach was later superseded by the no-referee-winner-option flow below.
 
 ### Change Log
 - Added migration `20260830000100_add_round_decisions_to_tournament_draw_matches`.
 - Updated `TournamentDrawMatch` round winner and freeze readiness logic.
 - Updated draw result params to permit round decision fields instead of match winner selection.
 - Replaced the match-level referee decision fieldset with per-round tie controls.
-- Updated JavaScript so `Freeze result` appears only after all scores and required tied-round decisions are complete.
+- Updated JavaScript so `Freeze result` appeared only after all scores and required tied-round decisions were complete.
 - Updated model, controller, and draw page tests for per-round referee decisions.
 
 ### Verification Log
 - Ran `mise exec -- bin/rails test test/models/tournament_draw_match_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 55 runs, 487 assertions, 0 failures, 0 errors, 0 skips.
-- Ran `mise exec -- bin/rails test test/models/tournament_draw_match_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/controllers/tournaments_controller_test.rb test/models/registration_test.rb test/controllers/athletes_controller_test.rb test/controllers/academies_controller_test.rb`; result: 99 runs, 875 assertions, 0 failures, 0 errors, 0 skips.
-- Ran `mise exec -- bin/rails test`; result: 179 runs, 1458 assertions, 0 failures, 0 errors, 0 skips.
-- Review follow-up: tightened the bye scoreboard assertion and JavaScript numeric parsing, then reran `mise exec -- bin/rails test test/models/tournament_draw_match_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 55 runs, 487 assertions, 0 failures, 0 errors, 0 skips.
-- Review follow-up: reran `mise exec -- bin/rails test`; result: 179 runs, 1458 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails test test/models/tournament_draw_match_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/controllers/tournaments_controller_test.rb test/models/registration_test.rb test/controllers/athletes_controller_test.rb test/controllers/academies_controller_test.rb`; result: 99 runs, 875 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails test`; result: 179 runs, 1458 assertions, 0 failures, 0 errors, 0 skips.
 
@@ -2237,7 +2233,7 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Kept the site's existing font family, but redesigned draw cards around the screenshot language: clean white panels, thin borders, wide spacing, uppercase operational labels, and squared action buttons.
 - Converted the match result submit into an icon button that starts as `Save result` and switches to `Freeze result` with a lock icon only when the scorecard can be frozen.
 - Kept tied-round referee choices compact and inline with the specific round that needs a decision.
-- Cleared stale round referee decisions when a previously tied round becomes non-tied.
+- Cleared stale round referee decisions when a previously tied round became non-tied.
 
 ### Change Log
 - Added save and lock icons to `ApplicationHelper`.
@@ -2248,3 +2244,117 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 
 ### Verification Log
 - Ran `mise exec -- bin/rails test test/models/tournament_draw_match_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 55 runs, 487 assertions, 0 failures, 0 errors, 0 skips.
+- Review follow-up: tightened the bye scoreboard assertion and JavaScript numeric parsing, then reran `mise exec -- bin/rails test test/models/tournament_draw_match_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 55 runs, 487 assertions, 0 failures, 0 errors, 0 skips.
+- Review follow-up: reran `mise exec -- bin/rails test`; result: 179 runs, 1458 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-30 - Draw Page Polish And Referee Winner Option Removal
+
+### Reference
+- User request: improve the full UI, modernize buttons, and especially improve the set draw page because it looked poor.
+- User request: remove the referee option for setting a winner.
+- User clarification: empty score inputs must not count as equal scores.
+
+### Product Decisions
+- Removed all active referee winner selection UI and controller/model paths.
+- Kept tied score detection as a small non-interactive state: a tied round can be saved as draft, but the match cannot be frozen until scores produce a point winner for every round.
+- Left previously added database columns in place because dropping them would be destructive and was not explicitly approved.
+- Refined the draw page toward a cleaner operations-sheet style: crisp panels, square match cards, tighter scoreboards, uppercase labels, modern action buttons, and cleaner blue/red visual mapping.
+- Updated shared primary, secondary, nav, and icon button styling to feel sleeker without changing the site font family.
+
+### Change Log
+- Removed round decision inputs from the draw page.
+- Removed round decision params from draw match result submission.
+- Changed draw match winner calculation to reject tied rounds during freeze instead of accepting manual winner choices.
+- Simplified score JavaScript to only show tied-round notes after both scores in that round are entered and equal.
+- Updated draw scoreboard and global button styling.
+- Removed a stale set-win tie helper that only supported the previous referee-decision flow.
+- Updated model, controller, and draw page tests for the no-referee-option scoring flow.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/models/tournament_draw_match_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 55 runs, 483 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test test/models/tournament_draw_match_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/controllers/tournaments_controller_test.rb test/models/registration_test.rb test/controllers/athletes_controller_test.rb test/controllers/academies_controller_test.rb`; result: 99 runs, 871 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 179 runs, 1454 assertions, 0 failures, 0 errors, 0 skips.
+- Final review follow-up: removed a stale set-win tie helper, ran `git diff --check`; result: clean.
+- Reran `mise exec -- bin/rails test test/models/tournament_draw_match_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 55 runs, 483 assertions, 0 failures, 0 errors, 0 skips.
+- Reran `mise exec -- bin/rails test`; result: 179 runs, 1454 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-30 - Removed Visible Round-Tied Draw Control
+
+### Reference
+- User request: remove the round tied button.
+
+### Product Decisions
+- Removed the visible `Round tied` pill/control from editable and frozen draw scoreboards.
+- Kept the scoring rule unchanged: tied rounds may be saved as draft scores, but a match cannot be frozen until each round has a point winner.
+
+### Change Log
+- Removed round-tied markup from the draw page.
+- Removed unused round-tied CSS.
+- Simplified draw score JavaScript so it only uses tied-round detection to decide whether the submit action can become `Freeze result`.
+- Updated draw page tests to assert that the `Round tied` UI and data hook are absent.
+
+### Verification Log
+- Ran `git diff --check`; result: clean.
+- Ran `mise exec -- bin/rails test test/models/tournament_draw_match_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 55 runs, 485 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-30 - Compact And Uniform Draw Match Cards
+
+### Reference
+- User feedback: draw containers were uneven, empty fields were too large, and bye blocks did not feel consistent with the rest of the draw page.
+
+### Product Decisions
+- Standardized draw match card sizing so ready, bye, and pending matches share the same compact visual system.
+- Empty future slots and bye slots now render as quiet neutral rows instead of full red/blue athlete blocks.
+- Scoreboards and score inputs remain available only for real matches, but use a smaller, denser layout.
+
+### Change Log
+- Added match state classes for ready, bye, and pending draw matches.
+- Added empty entrant row styling for unassigned bracket slots.
+- Reduced draw column width, card rail width, entrant height, scoreboard spacing, score input height, and action button height.
+- Aligned connector spacing with the tighter bracket layout.
+
+### Verification Log
+- Ran `git diff --check`; result: clean.
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/models/tournament_draw_match_test.rb`; result: 55 runs, 485 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-30 - Horizontal Dendrogram Draw Layout
+
+### Reference
+- User feedback: the tree UI was messed up and should look like a proper horizontal dendrogram.
+
+### Product Decisions
+- Replaced margin-based bracket spacing with explicit row-span placement per match.
+- Collapsed scoreboards by default so scoring controls do not distort the bracket tree.
+- Kept bye and pending matches compact while centering them in the same bracket slot system as live matches.
+
+### Change Log
+- Added bracket size, match row start, row span, and connector height CSS variables to draw match markup.
+- Updated draw bracket CSS to use shared slot rows, centered match cards, and connector lines between rounds.
+- Adjusted match card and slot dimensions so real matches, byes, and pending slots remain visually aligned.
+- Updated draw page tests to assert the rendered bracket carries dendrogram layout variables.
+
+### Verification Log
+- Ran `git diff --check`; result: clean.
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/models/tournament_draw_match_test.rb`; result: 55 runs, 491 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-30 - Draw Flow Hardening Before External Review
+
+### Reference
+- User request: Claude and Copilot will review the code later, so make sure flows have no errors, write tests, put everything properly, add UI testing for button/container sizing, ensure action results appear on other user surfaces, remove unwanted code, and push to GitHub.
+
+### Product Decisions
+- Kept the implementation inside the Rails/Minitest stack already used by the project instead of adding a new browser-testing dependency.
+- Added a CSS/layout contract test for the draw dendrogram and shared button styling so future edits cannot easily break the bracket structure silently.
+- Added a cross-role flow test that freezes a match through the organiser endpoint, then verifies the athlete profile and academy page both show the updated draw state.
+- Removed active stale referee-winner code paths from app and test files. The old database columns remain dormant because dropping persisted columns is a destructive schema change and should be approved separately.
+
+### Change Log
+- Added `DrawLayoutContractTest` for draw row-grid, connector, compact card, bye/pending, and button styling invariants.
+- Extended draw page integration assertions for bracket layout variables, collapsed scoreboards, and bye placeholder states.
+- Added a tournament draw match controller propagation test covering organiser result freeze to athlete and academy views.
+- Searched active app/test code for previous referee-decision selectors/helpers and confirmed they are no longer present.
+
+### Verification Log
+- Ran `git diff --check`; result: clean.
+- Ran `mise exec -- bin/rails test test/controllers/draw_layout_contract_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/controllers/tournaments_controller_test.rb test/controllers/athletes_controller_test.rb test/controllers/academies_controller_test.rb test/models/registration_test.rb test/models/tournament_draw_match_test.rb`; result: 102 runs, 951 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 182 runs, 1534 assertions, 0 failures, 0 errors, 0 skips.

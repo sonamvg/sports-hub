@@ -10,12 +10,6 @@ document.addEventListener("input", (event) => {
   updateDrawTieDecision(event.target.closest("form"))
 })
 
-document.addEventListener("change", (event) => {
-  if (!event.target.matches("[data-draw-round-decision-input]")) return
-
-  updateDrawTieDecision(event.target.closest("form"))
-})
-
 document.addEventListener("turbo:load", updateAcademyOtherFields)
 document.addEventListener("turbo:load", scheduleAutoDismiss)
 document.addEventListener("turbo:load", updateDrawTieDecisions)
@@ -65,25 +59,10 @@ function updateDrawTieDecision(form) {
   const submit = form.querySelector("[data-draw-score-submit]")
   const roundScores = [1, 2, 3].map((round) => scoreValuesForRound(form, round))
   const hasAllScores = roundScores.every((scores) => scores.red !== null && scores.blue !== null)
-  let hasOpenTieDecision = false
 
-  roundScores.forEach((scores) => {
-    const decision = form.querySelector(`[data-draw-round-decision='${scores.round}']`)
-    if (!decision) return
+  const hasTiedRound = roundScores.some((scores) => scores.red !== null && scores.blue !== null && scores.red === scores.blue)
 
-    const showDecision = scores.red !== null && scores.blue !== null && scores.red === scores.blue
-    const decisionSelected = Boolean(decision.querySelector("input[type='radio']:checked"))
-
-    decision.hidden = !showDecision
-    decision.querySelectorAll("input[type='radio']").forEach((input) => {
-      input.disabled = !showDecision
-      if (!showDecision) input.checked = false
-    })
-
-    if (showDecision && !decisionSelected) hasOpenTieDecision = true
-  })
-
-  updateDrawSubmit(submit, hasAllScores && !hasOpenTieDecision)
+  updateDrawSubmit(submit, hasAllScores && !hasTiedRound)
 }
 
 function scoreValuesForRound(form, round) {

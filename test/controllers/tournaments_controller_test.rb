@@ -835,12 +835,18 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     get draw_tournament_path(tournament)
     assert_response :success
     assert_includes response.body, "draw-bracket"
+    assert_includes response.body, "--bracket-size:"
+    assert_includes response.body, "--match-row-start:"
+    assert_includes response.body, "--match-row-span:"
+    assert_includes response.body, "--connector-height:"
     assert_includes response.body, "Graphical Draw Open"
     assert_includes response.body, "Kyorugi Female Age 12-14 33-37kg".upcase
     assert_includes response.body, "Aarohi Shah"
     assert_includes response.body, "Meera Rao"
     assert_includes response.body, "Save result"
-    assert_match(/data-draw-round-decision="1" hidden/, response.body)
+    assert_no_match(/<details class="draw-scoreboard" open/, response.body)
+    assert_not_includes response.body, "Round tied"
+    assert_not_includes response.body, "data-draw-round-tie"
     assert_no_match(/Waiting\s*<\/span>\s*<strong>Previous winner/, response.body)
     assert_includes response.body, "draw-score-box-blue"
     assert_includes response.body, "draw-score-box-red"
@@ -866,6 +872,8 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, "Solo Athlete"
+    assert_includes response.body, "draw-bye-match"
+    assert_includes response.body, "draw-entrant-empty"
     assert_no_match(/<span>Scoreboard<\/span>/, response.body)
     assert_no_match(/Save result|Freeze result/, response.body)
   end

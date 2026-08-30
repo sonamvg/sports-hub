@@ -29,23 +29,30 @@
             <p><%= pluralize(draw.entry_count, "athlete") %> / <%= draw.bracket_size %>-slot bracket</p>
           </header>
 
-          <div class="draw-bracket" style="--round-count: <%= draw.round_count %>;">
+          <div class="draw-bracket" style="--round-count: <%= draw.round_count %>; --bracket-size: <%= draw.bracket_size %>;">
             <% draw.matches_by_round.each do |round_number, matches| %>
               <div class="draw-round">
                 <h3><%= matches.first.round_label %></h3>
                 <div class="draw-round-matches">
                   <% matches.each do |match| %>
-                    <article class="draw-match <%= "draw-bye-match" if match.bye? %>" style="--match-span: <%= 2**(round_number - 1) %>;">
+                    <% match_classes = ["draw-match"] %>
+                    <% match_classes << "draw-bye-match" if match.bye? %>
+                    <% match_classes << "draw-ready-match" if match.ready_for_result? && !match.bye? %>
+                    <% match_classes << "draw-pending-match" unless match.ready_for_result? || match.bye? %>
+                    <% row_span = 2**round_number %>
+                    <% row_start = ((match.position - 1) * row_span) + 1 %>
+                    <% connector_height = row_span * 36 %>
+                    <article class="<%= match_classes.join(" ") %>" style="--match-row-start: <%= row_start %>; --match-row-span: <%= row_span %>; --connector-height: <%= connector_height %>px;">
                       <div class="draw-match-number"><%= round_number == 1 ? match.position : "#{round_number}.#{match.position}" %></div>
                       <%= form_with model: match, url: result_tournament_draw_match_path(match), method: :patch, class: "draw-match-form" do |form| %>
-                        <div class="draw-entrant draw-entrant-<%= match.top_chest_guard_color %>">
+                        <div class="draw-entrant draw-entrant-<%= match.top_chest_guard_color %> <%= "draw-entrant-empty" unless match.red_registration.present? %>">
                           <span class="draw-entrant-name"><%= match.red_label %></span>
                           <% if match.red_registration.present? && match.complete? %>
                             <span class="draw-entrant-result"><%= match.result_label_for(match.red_registration) %></span>
                           <% end %>
                         </div>
 
-                        <div class="draw-entrant draw-entrant-<%= match.bottom_chest_guard_color %>">
+                        <div class="draw-entrant draw-entrant-<%= match.bottom_chest_guard_color %> <%= "draw-entrant-empty" unless match.blue_registration.present? %>">
                           <span class="draw-entrant-name"><%= match.blue_label %></span>
                           <% if match.blue_registration.present? && match.complete? %>
                             <span class="draw-entrant-result"><%= match.result_label_for(match.blue_registration) %></span>
@@ -53,7 +60,7 @@
                         </div>
 
                         <% if match.ready_for_result? && !match.bye? %>
-                          <details class="draw-scoreboard" <%= "open" unless match.complete? %>>
+                          <details class="draw-scoreboard">
                             <summary>
                               <span>Scoreboard</span>
                               <small><%= match.complete? ? "Frozen" : "Live" %></small>
@@ -65,12 +72,6 @@
                                   <span>R<%= round %></span>
                                   <output class="draw-score-box draw-score-box-blue"><%= match.public_send(:"red_round_#{round}_points") %></output>
                                   <output class="draw-score-box draw-score-box-red"><%= match.public_send(:"blue_round_#{round}_points") %></output>
-                                  <% if match.round_points_tied?(round) %>
-                                    <div class="draw-round-decision draw-round-decision-readonly">
-                                      <span>Decision</span>
-                                      <strong><%= match.round_winner_side(round).to_s.titleize %></strong>
-                                    </div>
-                                  <% end %>
                                 <% end %>
                               </div>
 
@@ -84,17 +85,6 @@
                                   <span>R<%= round %></span>
                                   <%= form.number_field :"red_round_#{round}_points", min: 0, step: 1, class: "draw-score-box draw-score-box-blue", data: { draw_score_side: "red", draw_score_round: round } %>
                                   <%= form.number_field :"blue_round_#{round}_points", min: 0, step: 1, class: "draw-score-box draw-score-box-red", data: { draw_score_side: "blue", draw_score_round: round } %>
-                                  <fieldset class="draw-round-decision" data-draw-round-decision="<%= round %>" <%= "hidden" unless match.round_points_tied?(round) %>>
-                                    <legend>Decision</legend>
-                                    <label class="draw-round-choice draw-round-choice-blue">
-                                      <%= form.radio_button :"round_#{round}_winner_side", "red", data: { draw_round_decision_input: true } %>
-                                      <span>Blue</span>
-                                    </label>
-                                    <label class="draw-round-choice draw-round-choice-red">
-                                      <%= form.radio_button :"round_#{round}_winner_side", "blue", data: { draw_round_decision_input: true } %>
-                                      <span>Red</span>
-                                    </label>
-                                  </fieldset>
                                 <% end %>
                               </div>
 
