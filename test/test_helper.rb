@@ -11,6 +11,10 @@ module AuthenticationTestHelper
     Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/identity.pdf"), "application/pdf")
   end
 
+  def identity_image_upload
+    Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/tournament-image.png"), "image/png")
+  end
+
   def tournament_image_upload
     Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/tournament-image.png"), "image/png")
   end

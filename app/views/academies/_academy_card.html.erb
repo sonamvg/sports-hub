@@ -30,27 +30,4 @@
     </div>
   <% end %>
 
-  <details class="kebab-menu academy-card-menu">
-    <summary aria-label="Actions for <%= academy.name %>"><%= ui_icon("more-vertical") %></summary>
-    <div class="kebab-menu-panel">
-      <%= link_to academy_path(academy), class: "kebab-menu-item" do %>
-        <%= ui_icon("eye") %><span>View academy</span>
-      <% end %>
-      <% if can_manage_academy?(academy) %>
-        <%= link_to edit_academy_path(academy), class: "kebab-menu-item" do %>
-          <%= ui_icon("edit") %><span>Edit academy</span>
-        <% end %>
-        <% if academy.approved? %>
-          <%= link_to new_athlete_path(academy_id: academy.id), class: "kebab-menu-item" do %>
-            <%= ui_icon("medal") %><span>Add athlete</span>
-          <% end %>
-        <% end %>
-      <% end %>
-      <% if super_admin? %>
-        <%= button_to academy_path(academy), method: :delete, class: "kebab-menu-item kebab-menu-danger", form: { data: { turbo_confirm: "Delete #{academy.name}?" } } do %>
-          <%= ui_icon("trash") %><span>Delete academy</span>
-        <% end %>
-      <% end %>
-    </div>
-  </details>
 </article>

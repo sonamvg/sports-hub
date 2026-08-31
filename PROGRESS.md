@@ -2704,3 +2704,102 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `mise exec -- bundle install`; result: `aws-sdk-s3` and dependencies installed, bundle complete.
 - Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/organizer_registrations_controller_test.rb test/controllers/draw_layout_contract_test.rb`; result: 52 runs, 589 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- env RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy AWS_REGION=auto AWS_ENDPOINT_URL_S3=https://example.com BUCKET_NAME=dummy-bucket bin/rails runner 'puts Rails.env; puts Rails.application.config.active_storage.service; puts ActiveStorage::Blob.service.name'`; result: production booted with Active Storage service `amazon`.
+
+## 2026-09-01 - Set Draw Dark Bracket UI
+
+### Reference
+- User supplied `/Users/sonamgoyal/Desktop/Screenshot 2026-09-01 at 12.30.52 AM.png` as a visual reference for improving the set draw UI.
+
+### Product Decisions
+- Keep the existing draw/scoring behavior unchanged.
+- Restyle only the set draw board so it feels like a focused tournament bracket surface.
+- Use a dark canvas, compact match cards, grey round headers, amber connector accents, and slim side color indicators inspired by the reference.
+
+### Change Log
+- Updated draw page background, heading, sheet, round labels, connector lines, match cards, entrant rows, scoreboard, result bar, and button hover styling.
+- Added draw layout contract assertions for the dark board and connector/card visual system.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/draw_layout_contract_test.rb test/controllers/tournaments_controller_test.rb test/controllers/tournament_draw_matches_controller_test.rb`; result: 53 runs, 600 assertions, 0 failures, 0 errors, 0 skips.
+- Ran a headless Chromium probe against `http://127.0.0.1:3000/tournaments/8/draw` as `organizer@sportshub.test`; result: draw page background rendered `rgb(9, 10, 11)`, draw sheet rendered `rgb(13, 14, 16)`, round headers rendered as light grey pills, entrant rows rendered dark, and connector lines rendered `rgb(54, 56, 61)`.
+- Captured and visually inspected `/tmp/sports-hub-set-draw-dark.png`; result: set draw page now uses a dark focused bracket board, compact match cards, amber match badges, grey round labels, and subtle connector lines inspired by the supplied reference.
+- Ran `mise exec -- bin/rails test`; result: 196 runs, 1856 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-01 - Athlete Flow Cleanup
+
+### Reference
+- User requested cleanup across the athlete profile/edit/registration/tournament views, including upload limits, emergency contact display, academy selector copy, upcoming tournament alignment, hiding athlete registration details from athlete tournament pages, and academy card kebab menu placement.
+
+### Product Decisions
+- Athlete profile photo and athlete government document uploads accept JPG or PNG only, up to 5 MB.
+- A blank academy selection in the athlete self-service profile leaves the athlete without a selected academy instead of creating a join request.
+- Athlete tournament profile status should show one clear status pill per registration; draw setup is not repeated in a separate card.
+- Signed-in athletes can see tournament details and categories on tournament pages without seeing the registered athletes operational section.
+
+### Change Log
+- Added content-type validation for `Athlete#profile_photo` and `Athlete#identity_document`.
+- Updated athlete edit profile copy for registered academy approval requests and unregistered academy entry.
+- Updated athlete file inputs and hints to show JPG/PNG up to 5 MB.
+- Displayed emergency contact name and phone number on separate profile lines.
+- Replaced athlete upcoming/previous tournament rows with aligned event rows and removed the repeated draw status container from those lists.
+- Removed the `Required when submitting.` sentence from the payment receipt upload hint.
+- Hid the tournament registered-athletes section from signed-in athlete users.
+- Anchored academy card kebab menus to the tile's top-right corner with a stronger floating panel layer.
+
+### Verification Log
+- First focused test run exposed a regression where inline draw advancement details disappeared from athlete pages; fixed by restoring draw details inside the aligned event rows without reintroducing the old draw status card.
+- Ran `mise exec -- bin/rails test test/models/athlete_test.rb test/controllers/athletes_controller_test.rb test/controllers/tournaments_controller_test.rb test/controllers/academy_layout_contract_test.rb`; result: 78 runs, 757 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test test/controllers/tournament_draw_matches_controller_test.rb test/models/athlete_test.rb test/controllers/athletes_controller_test.rb test/controllers/tournaments_controller_test.rb test/controllers/academy_layout_contract_test.rb`; result: 84 runs, 819 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 200 runs, 1885 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-01 - Academy Tile Menu Removal
+
+### Reference
+- User requested removing the three-dot/kebab menu from all academy tiles on `/academies`.
+
+### Product Decisions
+- Academy tiles should be simple clickable cards on the academy index.
+- Academy management actions remain available from academy detail and dedicated academy navigation, not from the tile menu.
+
+### Change Log
+- Removed the kebab menu markup from the shared academy card partial.
+- Removed academy-card-specific kebab positioning styles.
+- Updated academy card layout tests and academy index controller assertions to require no tile menu.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb test/controllers/academy_layout_contract_test.rb`; result: 29 runs, 414 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-01 - Athlete Registered Pill and Tournament CTA Alignment
+
+### Reference
+- User supplied `/Users/sonamgoyal/Desktop/Screenshot 2026-09-01 at 1.29.06 AM.png` and requested removing the green `Registered` pill from the athlete upcoming tournament block and aligning the `Register for tournament` button on tournament detail pages.
+
+### Product Decisions
+- Accepted athlete registrations should rely on the explanatory status sentence instead of repeating the state as a green pill.
+- Other athlete registration states remain visible as status pills because they communicate action or risk.
+- The tournament registration CTA should keep its text centered and on one line.
+
+### Change Log
+- Hid the athlete event status pill for accepted registrations on athlete profile event lists.
+- Added a tournament-specific register button class with centered, single-line text.
+- Updated athlete profile controller coverage to assert the accepted detail remains and the registered pill is not rendered.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 68 runs, 678 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-01 - Add Athlete Copy and Error Highlighting
+
+### Reference
+- User requested changing the add-athlete page copy and highlighting all invalid text boxes together when the athlete create flow returns validation errors.
+
+### Product Decisions
+- The athlete-owned create flow should speak directly to the athlete: `Your profile will be reused across future tournament registrations.`
+- Validation feedback should preserve the summary list and also mark each invalid control visually.
+
+### Change Log
+- Updated the athlete new-page helper copy for non-academy-owner users.
+- Added CSS for Rails `field_with_errors` wrappers so invalid inputs, selects, textareas, and file fields receive a red border, soft red background, and focus outline.
+- Added athlete controller tests for the updated copy and multi-field invalid-state highlighting.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb`; result: 24 runs, 213 assertions, 0 failures, 0 errors, 0 skips.

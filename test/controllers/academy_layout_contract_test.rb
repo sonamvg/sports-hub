@@ -16,7 +16,7 @@ class AcademyLayoutContractTest < ActionDispatch::IntegrationTest
     assert_includes css, ".kebab-menu-danger"
   end
 
-  test "academy cards keep the logo and menu card contract" do
+  test "academy cards keep the logo card contract without tile menus" do
     css = Rails.root.join("app/assets/stylesheets/application.css").read
 
     assert_includes css, ".academy-card"
@@ -24,8 +24,8 @@ class AcademyLayoutContractTest < ActionDispatch::IntegrationTest
     assert_includes css, ".academy-card-main"
     assert_includes css, ".academy-card-logo"
     assert_includes css, "height:172px;"
-    assert_includes css, ".academy-card-menu"
-    assert_includes css, ".academy-card:has(.kebab-menu[open])"
+    assert_not_includes css, ".academy-card-menu"
+    assert_not_includes css, ".academy-card:has(.kebab-menu[open])"
     assert_includes css, ".academy-athlete-stack"
   end
 

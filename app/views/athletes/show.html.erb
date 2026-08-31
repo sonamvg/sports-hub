@@ -29,7 +29,19 @@
         <div><dt>Association ID</dt><dd><%= @athlete.association_id || "Not set" %></dd></div>
       <% end %>
       <div><dt>Contact number</dt><dd><%= @athlete.contact_number || "Not set" %></dd></div>
-      <div><dt>Emergency contact</dt><dd><%= [@athlete.emergency_contact_name, @athlete.emergency_contact_phone].compact_blank.join(" · ").presence || "Not set" %></dd></div>
+      <div>
+        <dt>Emergency contact</dt>
+        <dd>
+          <% emergency_contact_parts = [@athlete.emergency_contact_name, @athlete.emergency_contact_phone].compact_blank %>
+          <% if emergency_contact_parts.any? %>
+            <% emergency_contact_parts.each do |contact_part| %>
+              <span class="stacked-detail"><%= contact_part %></span>
+            <% end %>
+          <% else %>
+            Not set
+          <% end %>
+        </dd>
+      </div>
       <div><dt>Address</dt><dd><%= [@athlete.address, @athlete.city, @athlete.state, @athlete.country].compact_blank.join(", ").presence || "Not set" %></dd></div>
       <div><dt>Government ID</dt><dd><%= @athlete.government_id_document_type || "Not set" %><%= @athlete.identity_document.attached? ? " · Uploaded" : "" %></dd></div>
     </dl>
@@ -45,26 +57,55 @@
   </div>
   <div class="section-compact">
     <h2 class="section-title">Upcoming tournaments</h2>
-    <div class="approval-table">
+    <div class="athlete-event-table">
       <% if @upcoming_registrations.any? %>
         <% @upcoming_registrations.each do |registration| %>
-          <div class="approval-row">
-            <div>
+          <% current_match = registration.current_draw_match %>
+          <% completed_matches = registration.completed_draw_matches %>
+          <% medal = registration.medal_label %>
+          <article class="athlete-event-row">
+            <div class="athlete-event-main">
               <strong><%= registration.tournament.name %></strong>
-              <span><%= registration.tournament_category.name %> · <%= registration.tournament.start_date.strftime("%d %b %Y") %></span>
+              <span><%= registration.tournament_category.name %></span>
+            </div>
+            <div class="athlete-event-meta">
+              <span>Tournament date</span>
+              <strong><%= registration.tournament.start_date.strftime("%d %b %Y") %></strong>
+            </div>
+            <div class="athlete-event-notes">
               <% if registration.athlete_status_detail.present? %>
                 <span><%= registration.athlete_status_detail %></span>
               <% end %>
               <% registration.weight_check_summary.each do |attempt| %>
                 <span><%= attempt %></span>
               <% end %>
-              <%= render "registrations/draw_status", registration: registration %>
+              <% if registration.active_tournament_draw.present? && registration.draw_status_label != "Draw set" %>
+                <span><%= medal ? "#{medal} medal" : registration.draw_status_label %></span>
+              <% end %>
+              <% if registration.draw_status_detail.present? %>
+                <span><%= registration.draw_status_detail %></span>
+              <% end %>
+              <% if current_match.present? %>
+                <% color = registration.draw_head_guard_color(current_match) %>
+                <span><%= current_match.round_label %> · Match <%= current_match.position %> · <%= color.to_s.titleize %></span>
+              <% end %>
+              <% completed_matches.each do |match| %>
+                <% athlete_is_red = match.red_registration_id == registration.id %>
+                <% athlete_points = athlete_is_red ? match.red_total_points : match.blue_total_points %>
+                <% opponent_points = athlete_is_red ? match.blue_total_points : match.red_total_points %>
+                <% athlete_sets = athlete_is_red ? match.red_round_wins : match.blue_round_wins %>
+                <% opponent_sets = athlete_is_red ? match.blue_round_wins : match.red_round_wins %>
+                <% athlete_color = athlete_is_red ? match.top_chest_guard_color : match.bottom_chest_guard_color %>
+                <span><%= match.round_label %> · Match <%= match.position %> · <%= match.bye? ? "Bye" : "Sets #{athlete_sets} - #{opponent_sets}, #{athlete_points} - #{opponent_points}" %> · <%= athlete_color.titleize %> · <%= match.result_label_for(registration) %></span>
+              <% end %>
             </div>
-            <span class="status-pill status-<%= registration.status %>"><%= registration.athlete_status_label %></span>
-          </div>
+            <% unless registration.approved? %>
+              <span class="status-pill status-<%= registration.status %>"><%= registration.athlete_status_label %></span>
+            <% end %>
+          </article>
         <% end %>
       <% else %>
-        <div class="approval-row">
+        <div class="athlete-event-empty">
           <div><strong>No upcoming tournaments yet</strong><span>Find an open tournament and submit your registration.</span></div>
         </div>
       <% end %>
@@ -72,20 +113,52 @@
   </div>
   <div class="section-compact">
     <h2 class="section-title">Previous competitions</h2>
-    <div class="approval-table">
+    <div class="athlete-event-table">
       <% if @previous_registrations.any? %>
         <% @previous_registrations.each do |registration| %>
-          <div class="approval-row">
-            <div>
+          <% current_match = registration.current_draw_match %>
+          <% completed_matches = registration.completed_draw_matches %>
+          <% medal = registration.medal_label %>
+          <article class="athlete-event-row">
+            <div class="athlete-event-main">
               <strong><%= registration.tournament.name %></strong>
-              <span><%= registration.tournament_category.name %> · <%= registration.tournament.start_date.strftime("%d %b %Y") %></span>
-              <%= render "registrations/draw_status", registration: registration %>
+              <span><%= registration.tournament_category.name %></span>
             </div>
-            <span class="status-pill status-<%= registration.status %>"><%= registration.athlete_status_label %></span>
-          </div>
+            <div class="athlete-event-meta">
+              <span>Tournament date</span>
+              <strong><%= registration.tournament.start_date.strftime("%d %b %Y") %></strong>
+            </div>
+            <div class="athlete-event-notes">
+              <% if registration.athlete_status_detail.present? %>
+                <span><%= registration.athlete_status_detail %></span>
+              <% end %>
+              <% if registration.active_tournament_draw.present? && registration.draw_status_label != "Draw set" %>
+                <span><%= medal ? "#{medal} medal" : registration.draw_status_label %></span>
+              <% end %>
+              <% if registration.draw_status_detail.present? %>
+                <span><%= registration.draw_status_detail %></span>
+              <% end %>
+              <% if current_match.present? %>
+                <% color = registration.draw_head_guard_color(current_match) %>
+                <span><%= current_match.round_label %> · Match <%= current_match.position %> · <%= color.to_s.titleize %></span>
+              <% end %>
+              <% completed_matches.each do |match| %>
+                <% athlete_is_red = match.red_registration_id == registration.id %>
+                <% athlete_points = athlete_is_red ? match.red_total_points : match.blue_total_points %>
+                <% opponent_points = athlete_is_red ? match.blue_total_points : match.red_total_points %>
+                <% athlete_sets = athlete_is_red ? match.red_round_wins : match.blue_round_wins %>
+                <% opponent_sets = athlete_is_red ? match.blue_round_wins : match.red_round_wins %>
+                <% athlete_color = athlete_is_red ? match.top_chest_guard_color : match.bottom_chest_guard_color %>
+                <span><%= match.round_label %> · Match <%= match.position %> · <%= match.bye? ? "Bye" : "Sets #{athlete_sets} - #{opponent_sets}, #{athlete_points} - #{opponent_points}" %> · <%= athlete_color.titleize %> · <%= match.result_label_for(registration) %></span>
+              <% end %>
+            </div>
+            <% unless registration.approved? %>
+              <span class="status-pill status-<%= registration.status %>"><%= registration.athlete_status_label %></span>
+            <% end %>
+          </article>
         <% end %>
       <% else %>
-        <div class="approval-row">
+        <div class="athlete-event-empty">
           <div><strong>No previous competitions yet</strong><span>Completed tournaments will appear here.</span></div>
         </div>
       <% end %>

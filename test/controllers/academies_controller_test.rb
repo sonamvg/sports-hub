@@ -150,14 +150,13 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "academy-card"
     assert_includes response.body, "academy-card-main"
     assert_includes response.body, "academy-card-logo"
-    assert_includes response.body, "academy-card-menu"
-    assert_includes response.body, edit_academy_path(owned_academy)
-    assert_includes response.body, new_athlete_path(academy_id: owned_academy.id)
-    assert_includes response.body, "Edit academy"
     assert_includes response.body, "My athletes"
     assert_includes response.body, "Notifications"
     assert_includes response.body, athletes_academy_path(owned_academy)
     assert_includes response.body, notifications_academy_path(owned_academy)
+    assert_not_includes response.body, "academy-card-menu"
+    assert_not_includes response.body, "Actions for Owned Academy"
+    assert_not_includes response.body, new_athlete_path(academy_id: owned_academy.id)
 
     get academy_path(other_academy)
     assert_response :success

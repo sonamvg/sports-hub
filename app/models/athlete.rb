@@ -14,6 +14,7 @@ class Athlete < ApplicationRecord
   ].freeze
   MIN_UPLOAD_SIZE = 1.byte
   MAX_UPLOAD_SIZE = 5.megabytes
+  ACCEPTED_UPLOAD_TYPES = %w[image/jpeg image/png].freeze
 
   belongs_to :user
   belongs_to :academy, optional: true
@@ -96,5 +97,9 @@ class Athlete < ApplicationRecord
     elsif attachment.blob.byte_size > MAX_UPLOAD_SIZE
       errors.add(attribute, "must be 5 MB or smaller")
     end
+
+    return if attachment.blob.content_type.in?(ACCEPTED_UPLOAD_TYPES)
+
+    errors.add(attribute, "must be a JPG or PNG file")
   end
 end

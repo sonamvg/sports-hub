@@ -25,7 +25,7 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
           state: "Maharashtra",
           government_id_document_type: "Aadhaar",
           profile_photo: tournament_image_upload,
-          identity_document: identity_document_upload
+          identity_document: identity_image_upload
         }
       }
     end
@@ -40,6 +40,33 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_predicate athlete.identity_document, :attached?
     assert_redirected_to athlete_path(athlete)
     assert_equal "Athlete profile created.", flash[:notice]
+  end
+
+  test "new athlete page uses athlete-specific profile copy" do
+    get new_athlete_path
+
+    assert_response :success
+    assert_includes response.body, "Your profile will be reused across future tournament registrations."
+    assert_not_includes response.body, "This profile will be reused across future tournament registrations."
+  end
+
+  test "invalid athlete create highlights every field with validation errors" do
+    post athletes_path, params: {
+      athlete: {
+        first_name: "",
+        last_name: "",
+        date_of_birth: "",
+        gender: ""
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Please fix the following:"
+    assert_includes response.body, "First name"
+    assert_includes response.body, "Last name"
+    assert_includes response.body, "Date of birth"
+    assert_includes response.body, "Gender"
+    assert_operator response.body.scan("field_with_errors").size, :>=, 4
   end
 
   test "athlete account without profile is redirected to profile setup" do
@@ -118,13 +145,13 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Future Open"
     assert_includes response.body, "Submitted"
     assert_includes response.body, "Waiting for organiser review."
-    assert_includes response.body, "Registered"
+    assert_includes response.body, "Your registration has been accepted by the organiser."
+    assert_not_includes response.body, 'status-approved">Registered'
     assert_includes response.body, "Declined"
     assert_includes response.body, "Weight verified"
     assert_includes response.body, "Attempt 1: 32.8 kg passed"
-    assert_includes response.body, "Gold medal"
-    assert_includes response.body, "22 - 12"
-    assert_includes response.body, "Blue"
+    assert_not_includes response.body, "registration-draw-card"
+    assert_not_includes response.body, "Draw set"
     assert_includes response.body, "Disqualified"
     assert_includes response.body, "Attempt 3: 38 kg failed"
     assert_includes response.body, "Previous competitions"
@@ -223,8 +250,35 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Registered Academy"
     assert_includes response.body, "Other"
     assert_includes response.body, "data-academy-choice-select"
+    assert_includes response.body, "A request will be sent to the academy owner for approval."
+    assert_includes response.body, "If your academy is not already registered, please enter its name above."
+    assert_includes response.body, "Accepted: JPG or PNG, up to 5 MB."
     assert_not_includes response.body, "Association ID"
     assert_not_includes response.body, "TKD-123"
+  end
+
+  test "athlete can clear academy selection from self service profile" do
+    owner = User.create!(name: "Academy Owner", email: "clear-academy-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Linked Academy", city: "Pune", status: :approved, owner: owner)
+    athlete_user = User.create!(name: "Athlete User", email: "clear-academy-athlete@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", external_academy_name: "Old External")
+    sign_in_as athlete_user
+
+    assert_no_difference("AcademyMembershipRequest.count") do
+      patch athlete_path(athlete), params: {
+        athlete: {
+          first_name: "Aarohi",
+          last_name: "Shah",
+          date_of_birth: Date.new(2014, 5, 12),
+          gender: "female",
+          academy_id: ""
+        }
+      }
+    end
+
+    assert_redirected_to athlete_path(athlete)
+    assert_nil athlete.reload.academy_id
+    assert_nil athlete.external_academy_name
   end
 
   test "athlete can save unregistered academy name without membership request" do

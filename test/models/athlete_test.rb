@@ -68,4 +68,32 @@ class AthleteTest < ActiveSupport::TestCase
     assert_not athlete.valid?
     assert_includes athlete.errors[:academy], "must be approved before athletes can be assigned"
   end
+
+  test "rejects athlete profile uploads that are not jpg or png" do
+    athlete = @user.athletes.build(
+      first_name: "Aarohi",
+      last_name: "Shah",
+      date_of_birth: Date.new(2014, 5, 12),
+      gender: "female"
+    )
+    athlete.profile_photo.attach(io: StringIO.new("not an image"), filename: "profile.txt", content_type: "text/plain")
+    athlete.identity_document.attach(io: StringIO.new("%PDF-1.4"), filename: "id.pdf", content_type: "application/pdf")
+
+    assert_not athlete.valid?
+    assert_includes athlete.errors[:profile_photo], "must be a JPG or PNG file"
+    assert_includes athlete.errors[:identity_document], "must be a JPG or PNG file"
+  end
+
+  test "accepts jpg and png athlete profile uploads under five megabytes" do
+    athlete = @user.athletes.build(
+      first_name: "Aarohi",
+      last_name: "Shah",
+      date_of_birth: Date.new(2014, 5, 12),
+      gender: "female"
+    )
+    athlete.profile_photo.attach(io: StringIO.new("jpg-data"), filename: "profile.jpg", content_type: "image/jpeg")
+    athlete.identity_document.attach(io: StringIO.new("png-data"), filename: "id.png", content_type: "image/png")
+
+    assert_predicate athlete, :valid?
+  end
 end

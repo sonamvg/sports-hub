@@ -31,13 +31,13 @@
         <% if pending_academy_request %>
           <p class="field-hint">Join request pending with <%= pending_academy_request.academy.name %>.</p>
         <% else %>
-          <p class="field-hint">Registered academy changes are sent to the academy owner for approval.</p>
+          <p class="field-hint">A request will be sent to the academy owner for approval.</p>
         <% end %>
       </div>
       <div class="full" data-academy-other-field <%= "hidden" unless selected_academy_choice == "other" %>>
         <%= form.label :external_academy_name, "Academy name" %>
         <%= form.text_field :external_academy_name, placeholder: "Enter academy name", data: { academy_other_input: true }, disabled: selected_academy_choice != "other" %>
-        <p class="field-hint">Use Other only when the academy is not registered in Sports Hub.</p>
+        <p class="field-hint">If your academy is not already registered, please enter its name above.</p>
       </div>
     <% else %>
       <div class="full">
@@ -64,8 +64,8 @@
     <div><%= form.label :emergency_contact_phone %><%= form.telephone_field :emergency_contact_phone %></div>
     <div class="full">
       <%= form.label :profile_photo, "Athlete photo" %>
-      <%= form.file_field :profile_photo, accept: "image/png,image/jpeg,image/webp" %>
-      <p class="field-hint">Accepted size: 1 byte to 5 MB.</p>
+      <%= form.file_field :profile_photo, accept: "image/png,image/jpeg" %>
+      <p class="field-hint">Accepted: JPG or PNG, up to 5 MB.</p>
     </div>
     <div class="full">
       <fieldset class="checkbox-fieldset">
@@ -80,8 +80,8 @@
     </div>
     <div class="full">
       <%= form.label :identity_document, "Upload government ID document" %>
-      <%= form.file_field :identity_document, accept: "image/png,image/jpeg,application/pdf" %>
-      <p class="field-hint">Accepted size: 1 byte to 5 MB. PDF, JPG, or PNG is accepted.</p>
+      <%= form.file_field :identity_document, accept: "image/png,image/jpeg" %>
+      <p class="field-hint">Accepted: JPG or PNG, up to 5 MB.</p>
     </div>
   </div>
   <div class="form-actions"><%= form.submit class: "primary-button button-reset" %><%= link_to "Cancel", @return_to.presence || athletes_path, class: "secondary-button" %></div>

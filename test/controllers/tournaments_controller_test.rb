@@ -449,6 +449,30 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "9876543210"
   end
 
+  test "athlete show sees tournament details and categories without registered athletes section" do
+    athlete_user = User.create!(name: "Athlete User", email: "athlete-tournament-show@example.test", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    tournament.registrations.create!(athlete: athlete, tournament_category: category, registered_weight: 39.5, status: :approved, payment_receipt: payment_receipt_upload)
+    sign_in_as athlete_user
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Pune Invitational"
+    assert_includes response.body, "Categories"
+    assert_includes response.body, category.name
+    assert_not_includes response.body, "Registered athletes"
+    assert_not_includes response.body, "registered-athlete-list"
+  end
+
   test "organizer show hides category registration actions" do
     tournament = Tournament.create!(
       name: "Pune Invitational",

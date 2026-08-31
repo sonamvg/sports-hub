@@ -21,7 +21,7 @@
         <%= button_to "Delete tournament", tournament_path(@tournament), method: :delete, class: "reject-button", form: { data: { turbo_confirm: "Delete #{@tournament.name}?" } } %>
       <% end %>
     <% elsif can_register_for_tournament?(@tournament) %>
-      <%= link_to "Register for tournament", new_tournament_registration_path(@tournament), class: "primary-button" %>
+      <%= link_to "Register for tournament", new_tournament_registration_path(@tournament), class: "primary-button tournament-register-button" %>
     <% end %>
   </div>
 
@@ -58,7 +58,7 @@
     <div><dt>Refund policy</dt><dd><%= display_value.call(@tournament.refund_policy) %></dd></div>
   </div>
 
-  <% if current_user %>
+  <% if current_user && !current_user.athlete? %>
     <div class="section-compact">
     <div class="page-heading compact-heading">
       <div>

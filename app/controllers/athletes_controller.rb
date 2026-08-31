@@ -183,8 +183,13 @@ class AthletesController < ApplicationController
 
     academy_choice = params.dig(:athlete, :academy_id).to_s
     permitted.delete(:association_id)
-    permitted.delete(:academy_id)
-    permitted[:external_academy_name] = nil unless academy_choice == "other"
+    if academy_choice.blank?
+      permitted[:academy_id] = nil
+      permitted[:external_academy_name] = nil
+    else
+      permitted.delete(:academy_id)
+      permitted[:external_academy_name] = nil unless academy_choice == "other"
+    end
     permitted
   end
 
