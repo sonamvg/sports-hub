@@ -1,3 +1,61 @@
-<section class="page-shell organizer-page"><div class="container"><p class="eyebrow">ORGANIZER</p><h1 class="page-title">Registration approvals</h1><p class="page-copy">Pending registrations appear first. Any organizer assigned to a tournament can view receipts and accept or deny athletes.</p>
-<div class="approval-table"><% @registrations.each do |registration| %><div class="approval-row"><div><strong><%= registration.athlete.full_name %></strong><span><%= registration.tournament.name %> · <%= registration.tournament_category.name %></span></div><span class="status-pill status-<%= registration.status %>"><%= registration.status.humanize %></span><div class="row-actions"><%= link_to "View", organizer_registration_path(registration), class: "text-link" %><% if registration.payment_receipt.attached? %><%= link_to "View receipt", url_for(registration.payment_receipt), class: "text-link", target: "_blank", rel: "noopener" %><% end %><% if registration.pending? %><%= button_to "Accept", approve_organizer_registration_path(registration), method: :patch, class: "approve-button" %><%= button_to "Deny", reject_organizer_registration_path(registration), method: :patch, class: "reject-button" %><% end %></div></div><% end %></div>
-</div></section>
+<section class="page-shell organizer-page">
+  <div class="container">
+    <p class="eyebrow">ORGANIZER</p>
+    <h1 class="page-title">Registration approvals</h1>
+    <p class="page-copy">Pending registrations appear first. Any organizer assigned to a tournament can view receipts and accept or deny athletes.</p>
+
+    <div class="approval-table organizer-registration-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Athlete</th>
+            <th>Tournament</th>
+            <th>Category</th>
+            <th>Status</th>
+            <th>Receipt</th>
+            <th class="table-actions-heading">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @registrations.each do |registration| %>
+            <tr>
+              <td>
+                <strong><%= registration.athlete.full_name %></strong>
+              </td>
+              <td><%= registration.tournament.name %></td>
+              <td><%= registration.tournament_category.name %></td>
+              <td>
+                <span class="status-pill status-<%= registration.status %>"><%= registration.status.humanize %></span>
+              </td>
+              <td>
+                <% if registration.payment_receipt.attached? %>
+                  <%= link_to "View receipt", url_for(registration.payment_receipt), class: "receipt-action-link", target: "_blank", rel: "noopener" %>
+                <% else %>
+                  <span class="muted-value">--</span>
+                <% end %>
+              </td>
+              <td class="table-actions-cell">
+                <details class="kebab-menu">
+                  <summary aria-label="Actions for <%= registration.athlete.full_name %>"><%= ui_icon("more-vertical") %></summary>
+                  <div class="kebab-menu-panel">
+                    <%= link_to organizer_registration_path(registration), class: "kebab-menu-item" do %>
+                      <%= ui_icon("eye") %><span>View</span>
+                    <% end %>
+                    <% if registration.pending? %>
+                      <%= button_to approve_organizer_registration_path(registration), method: :patch, class: "kebab-menu-item" do %>
+                        <%= ui_icon("shield") %><span>Accept</span>
+                      <% end %>
+                      <%= button_to reject_organizer_registration_path(registration), method: :patch, class: "kebab-menu-item kebab-menu-danger" do %>
+                        <%= ui_icon("x") %><span>Deny</span>
+                      <% end %>
+                    <% end %>
+                  </div>
+                </details>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

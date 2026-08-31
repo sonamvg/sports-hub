@@ -2566,3 +2566,141 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 - Ran `git diff --check`; result: clean.
 - Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb`; result: 25 runs, 362 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails test`; result: 193 runs, 1768 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-31 - Draw Match Number Labels
+
+### Reference
+- User request: for organisers, match numbers should be simple sequential numbers like `1, 2, 3, 4`, not decimal labels such as `2.2`.
+
+### Product Decisions
+- The draw page now keeps database round/position values for bracket logic, but uses a separate display number for organiser-facing match labels.
+- Display numbers are assigned by ordered draw match sequence: round number, then position.
+
+### Change Log
+- Updated `app/views/tournaments/draw.html.erb` to compute visible match numbers from the ordered draw matches.
+- Replaced the previous round/position label expression that could render decimal-style labels.
+- Added a tournament controller regression test for sequential draw labels across multiple rounds.
+
+### Verification Log
+- Ran `git diff --check`; result: clean.
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/models/tournament_draw_match_test.rb test/models/tournament_draw_generator_test.rb`; result: 61 runs, 576 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 194 runs, 1787 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-31 - Draw Scoreboard Layout Repair
+
+### Reference
+- User reported the organiser draw UI was broken and supplied screenshots showing vertical match-number rails and expanded scoreboards overlapping adjacent matches.
+
+### Product Decisions
+- Match numbers remain simple sequential labels, but are now rendered as compact horizontal badges instead of vertical rails.
+- Open scoreboards reserve enough bracket height so expanded inputs do not overlap the next match card.
+
+### Change Log
+- Replaced the vertical `.draw-match-number` rail styling with a compact absolute-positioned badge.
+- Removed the dedicated match-number grid column from `.draw-match`.
+- Increased draw slot height and open-scoreboard minimum height to keep expanded scoreboards inside their bracket lanes.
+- Slightly increased pending/bye match height for consistency with the new badge.
+- Updated draw layout contract tests to prevent the vertical rail and overlap-prone sizing from returning.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/tournament_draw_matches_controller_test.rb test/models/tournament_draw_match_test.rb test/models/tournament_draw_generator_test.rb test/controllers/draw_layout_contract_test.rb`; result: 63 runs, 624 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 194 runs, 1797 assertions, 0 failures, 0 errors, 0 skips.
+- Ran a headless Chromium layout probe against `http://127.0.0.1:3000/tournaments/8/draw` as `organizer@sportshub.test`; result: match number badges render horizontally, all scoreboards in the first draw can be opened, and no measured match-form overlaps were detected.
+
+## 2026-08-31 - Organizer Registration Approval Table
+
+### Reference
+- User request: arrange `/organizer/registrations` data in a proper table.
+- User request: keep status shown as is, keep `View receipt` as an action but change its font color, and move `View` and other options into a kebab/three-dot menu.
+
+### Product Decisions
+- Organizer registration approvals now use table semantics with columns for athlete, tournament, category, status, receipt, and row actions.
+- `View receipt` stays directly visible for fast receipt review.
+- Secondary row actions live in the existing shared kebab menu pattern used elsewhere in the app.
+
+### Change Log
+- Reworked `app/views/organizer/registrations/index.html.erb` from compressed grid rows into a full table.
+- Added table-specific CSS and a blue receipt action link style.
+- Added organiser registration controller assertions for the table contract, visible receipt action, and kebab menu actions.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/organizer_registrations_controller_test.rb`; result: 5 runs, 61 assertions, 0 failures, 0 errors, 0 skips.
+- Ran a headless Chromium probe against `http://127.0.0.1:3000/organizer/registrations` as `organizer@sportshub.test`; result: six-column table rendered, 26 rows present, `View receipt` remained directly visible with blue link color, and the kebab menu opened successfully.
+- Ran `mise exec -- bin/rails test`; result: 194 runs, 1815 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-31 - Tournament Setup Visibility and Organizer Invites
+
+### Reference
+- User request: in tournament creation, remove the timezone control and remove `Pair Poomsae`.
+- User request: selected refund policy should appear on the tournament details page for athlete and academy viewers.
+- User request: other organiser flow should include an `Organiser does not have an account` checkbox; when selected, the existing-organiser dropdown should be disabled and a new invite email field should appear. Multiple organisers can be added to a tournament.
+
+### Product Decisions
+- Timezone remains in the database for existing data compatibility, but is no longer shown in the tournament create/edit form or tournament details summary.
+- `Pair Poomsae` is removed from the default competition format checklist.
+- Existing verified organisers are still added through the search/datalist picker.
+- New organiser invites can now be added as multiple email chips and are sent when the tournament is saved.
+- The refund policy remains public tournament information and is visible to signed-out, athlete, and academy viewers.
+
+### Change Log
+- Removed the timezone field from the tournament form and tournament detail summary.
+- Removed `Pair Poomsae` from `Tournament::DEFAULT_COMPETITION_FORMATS`.
+- Reworked the other-organiser picker UI to show selected organiser chips, an existing-organiser search row, an account-missing checkbox, and invite email chips.
+- Updated tournament invitation handling to accept both the existing single email field and the new multiple email array.
+- Added controller coverage for form visibility, multiple organiser invitations, and public refund policy display.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb`; result: 45 runs, 470 assertions, 0 failures, 0 errors, 0 skips.
+- Ran a headless Chromium probe against `http://127.0.0.1:3000/tournaments/new` as `organizer@sportshub.test`; result: timezone and `Pair Poomsae` were absent, the invite field was hidden by default, selecting `Organiser does not have an account` disabled the existing-organiser search, revealed the invite field, and added an invite email chip with a hidden submit value.
+- Ran `mise exec -- bin/rails test`; result: 196 runs, 1836 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-31 - Draw Connector Line Repair
+
+### Reference
+- User request: the draw graph connecting lines looked broken and needed the connecting lines updated.
+
+### Product Decisions
+- Connector height now matches the current bracket slot sizing instead of the old compact-card sizing.
+- The draw graph uses deliberate horizontal connector segments from match cards plus vertical joins into later rounds, avoiding wrapper borders that made the tree look uneven.
+
+### Change Log
+- Updated draw connector height calculation from the old 36px unit to the current 87px half-slot unit.
+- Removed the wrapper-level right border/connector from draw matches.
+- Added explicit outgoing connector lines from match cards before the final round.
+- Strengthened draw layout tests for connector height and connector CSS.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/draw_layout_contract_test.rb`; result: 47 runs, 528 assertions, 0 failures, 0 errors, 0 skips.
+- Ran a headless Chromium probe against `http://127.0.0.1:3000/tournaments/8/draw` as `organizer@sportshub.test`; result: second-round connector height was `348px`, first-round outgoing connector width was `24px`, wrapper right border was `0px`, and connector color rendered as `rgb(201, 200, 195)`.
+- Captured and visually inspected `/tmp/sports-hub-draw-connectors.png`; result: match number rail stayed removed and bracket connector joins followed the updated bracket spacing.
+- Ran `mise exec -- bin/rails test`; result: 196 runs, 1846 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-08-31 - Fly.io Rails Deployment Setup
+
+### Reference
+- User reported Fly launch failing with macOS system Ruby/Bundler errors and later shared a partial Fly launch summary for the Rails app.
+- User wants to deploy the Rails app, not a Static app, to Fly.io.
+
+### Product Decisions
+- Fly commands must be run from `/Users/sonamgoyal/Documents/taekwondo-hub` through `mise exec --` so Fly's Rails scanner uses the project Ruby/Bundler instead of macOS Ruby 2.6.
+- The Fly app name is `taekwondo-hub` and the primary region is `sin`.
+- Production database connection remains environment-driven through `DATABASE_URL`.
+- Production uploads use Fly Tigris through Active Storage's S3 adapter.
+- Use a Dockerfile-based deploy because this app does not have the Rails Dockerfile generator installed.
+
+### Change Log
+- Added `Dockerfile`, `.dockerignore`, `bin/docker-entrypoint`, and `fly.toml` for Fly deployment.
+- Added `aws-sdk-s3` for Active Storage S3/Tigris support and updated `Gemfile.lock`.
+- Added an `amazon` S3 service to `config/storage.yml`.
+- Configured production Active Storage to use the `amazon` service.
+
+### Operational Notes
+- `mise exec -- fly apps list` showed Fly app `taekwondo-hub` in `pending` state with no deployed image.
+- `mise exec -- fly secrets list --app taekwondo-hub` showed staged `SECRET_KEY_BASE`, `DATABASE_URL`, and Tigris S3 secrets that still need explicit deployment.
+- `mise exec -- fly mpg list -o personal` showed two Basic plan clusters named `taekwondo-hub-db`: one attached to `taekwondo-hub` and one with no attached apps. The unattached cluster should be reviewed for deletion to avoid unintended cost.
+- Secret deployment was intentionally not performed because it requires explicit user approval to publish database and Tigris credentials to Fly.
+
+### Verification Log
+- Ran `mise exec -- bundle install`; result: `aws-sdk-s3` and dependencies installed, bundle complete.
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/organizer_registrations_controller_test.rb test/controllers/draw_layout_contract_test.rb`; result: 52 runs, 589 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- env RAILS_ENV=production SECRET_KEY_BASE_DUMMY=1 AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy AWS_REGION=auto AWS_ENDPOINT_URL_S3=https://example.com BUCKET_NAME=dummy-bucket bin/rails runner 'puts Rails.env; puts Rails.application.config.active_storage.service; puts ActiveStorage::Blob.service.name'`; result: production booted with Active Storage service `amazon`.

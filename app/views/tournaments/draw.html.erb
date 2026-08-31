@@ -20,6 +20,7 @@
 
     <% if @draws.any? %>
       <% @draws.each do |draw| %>
+        <% match_numbers = draw.tournament_draw_matches.order(:round_number, :position).pluck(:id).each_with_index.to_h { |id, index| [id, index + 1] } %>
         <section class="draw-sheet">
           <header class="draw-sheet-header">
             <div>
@@ -41,9 +42,9 @@
                     <% match_classes << "draw-pending-match" unless match.ready_for_result? || match.bye? %>
                     <% row_span = 2**round_number %>
                     <% row_start = ((match.position - 1) * row_span) + 1 %>
-                    <% connector_height = row_span * 36 %>
+                    <% connector_height = row_span * 87 %>
                     <article class="<%= match_classes.join(" ") %>" style="--match-row-start: <%= row_start %>; --match-row-span: <%= row_span %>; --connector-height: <%= connector_height %>px;">
-                      <div class="draw-match-number"><%= round_number == 1 ? match.position : "#{round_number}.#{match.position}" %></div>
+                      <div class="draw-match-number"><%= match_numbers[match.id] %></div>
                       <%= form_with model: match, url: result_tournament_draw_match_path(match), method: :patch, class: "draw-match-form" do |form| %>
                         <div class="draw-entrant draw-entrant-<%= match.top_chest_guard_color %> <%= "draw-entrant-empty" unless match.red_registration.present? %>">
                           <span class="draw-entrant-name"><%= match.red_label %></span>

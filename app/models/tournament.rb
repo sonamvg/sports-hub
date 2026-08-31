@@ -15,7 +15,6 @@ class Tournament < ApplicationRecord
   DEFAULT_COMPETITION_FORMATS = [
     "Kyorugi",
     "Individual Poomsae",
-    "Pair Poomsae",
     "Team Poomsae"
   ].freeze
 

@@ -18,7 +18,6 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       "End date",
       "Registration opens at",
       "Registration closes at",
-      "Time zone",
       "Venue",
       "Primary contact",
       "Competition formats",
@@ -44,6 +43,12 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     ].each do |label|
       assert_includes response.body, label
     end
+
+    assert_not_includes response.body, "Pair Poomsae"
+    assert_not_includes response.body, "Time zone"
+    assert_includes response.body, "Organiser does not have an account"
+    assert_includes response.body, "data-organizer-missing-account"
+    assert_includes response.body, "data-selected-invites"
   end
 
   test "creates tournament" do
@@ -279,6 +284,32 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "new-organizer@example.test", invitation.email
   end
 
+  test "tournament form can invite multiple new organizers by email" do
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+
+    assert_difference("TournamentOrganizerInvitation.count", 2) do
+      patch tournament_path(tournament), params: {
+        tournament: {
+          name: "Pune Invitational",
+          start_date: "2026-12-05",
+          end_date: "2026-12-06",
+          invite_organizer_emails: ["first-new-organizer@example.test", "second-new-organizer@example.test"]
+        }
+      }
+    end
+
+    assert_redirected_to tournament_path(tournament)
+    assert_equal(
+      ["first-new-organizer@example.test", "second-new-organizer@example.test"],
+      tournament.tournament_organizer_invitations.order(:email).pluck(:email)
+    )
+  end
+
   test "tournament collaborator can edit tournament" do
     collaborator = User.create!(name: "Collaborator", email: "collaborator@example.test", password: "password123", role: :organizer)
     tournament = Tournament.create!(
@@ -470,6 +501,25 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "<span>--</span>"
     assert_not_includes response.body, "Not set"
+  end
+
+  test "show renders selected refund policy for public tournament viewers" do
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6),
+      refund_policy: "Full refund before registration closes, Refund only if event is cancelled",
+      time_zone: "Mumbai"
+    )
+    delete logout_path
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Refund policy"
+    assert_includes response.body, "Full refund before registration closes, Refund only if event is cancelled"
+    assert_not_includes response.body, "Time zone"
   end
 
   test "show renders tournament breadcrumbs" do
@@ -839,6 +889,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "--match-row-start:"
     assert_includes response.body, "--match-row-span:"
     assert_includes response.body, "--connector-height:"
+    assert_includes response.body, "--connector-height: 174px;"
     assert_includes response.body, "Graphical Draw Open"
     assert_includes response.body, "Kyorugi Female Age 12-14 33-37kg".upcase
     assert_includes response.body, "Aarohi Shah"
@@ -876,6 +927,30 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "draw-entrant-empty"
     assert_no_match(/<span>Scoreboard<\/span>/, response.body)
     assert_no_match(/Save result|Freeze result/, response.body)
+  end
+
+  test "draw page uses simple sequential match numbers across rounds" do
+    tournament = Tournament.create!(
+      name: "Sequential Draw Open",
+      organizer: @organizer,
+      status: :draw_scheduling,
+      start_date: 2.days.from_now.to_date,
+      end_date: 3.days.from_now.to_date
+    )
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    draw = tournament.tournament_draws.create!(tournament_category: category, generated_by: @organizer, bracket_size: 8, round_count: 3, entry_count: 4, generated_at: Time.current)
+    4.times { |index| draw.tournament_draw_matches.create!(round_number: 1, position: index + 1) }
+    2.times { |index| draw.tournament_draw_matches.create!(round_number: 2, position: index + 1, red_source_match_position: (index * 2) + 1, blue_source_match_position: (index * 2) + 2) }
+    draw.tournament_draw_matches.create!(round_number: 3, position: 1, red_source_match_position: 1, blue_source_match_position: 2)
+
+    get draw_tournament_path(tournament)
+
+    assert_response :success
+    (1..7).each do |number|
+      assert_includes response.body, %(<div class="draw-match-number">#{number}</div>)
+    end
+    assert_not_includes response.body, "2.2"
+    assert_not_includes response.body, "3.1"
   end
 
   test "set draw is blocked without draw ready category" do

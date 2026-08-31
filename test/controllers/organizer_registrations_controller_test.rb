@@ -41,6 +41,15 @@ class OrganizerRegistrationsControllerTest < ActionDispatch::IntegrationTest
     get organizer_registrations_path
 
     assert_response :success
+    assert_includes response.body, "organizer-registration-table"
+    assert_includes response.body, "<table>"
+    assert_includes response.body, "<th>Athlete</th>"
+    assert_includes response.body, "<th>Tournament</th>"
+    assert_includes response.body, "<th>Category</th>"
+    assert_includes response.body, "<th>Status</th>"
+    assert_includes response.body, "<th>Receipt</th>"
+    assert_includes response.body, "receipt-action-link"
+    assert_includes response.body, "kebab-menu"
     assert_includes response.body, "View receipt"
     assert_includes response.body, "Accept"
     assert_includes response.body, "Deny"

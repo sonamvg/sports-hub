@@ -152,16 +152,30 @@ class TournamentsController < ApplicationController
   end
 
   def send_organizer_invitation
-    email = params.dig(:tournament, :invite_organizer_email).to_s.downcase.squish
-    return [nil, nil] if email.blank?
+    emails = organizer_invitation_emails
+    return [nil, nil] if emails.blank?
 
-    invitation = @tournament.tournament_organizer_invitations.build(email: email, invited_by: current_user)
-    if invitation.save
-      TournamentOrganizerInvitationMailer.with(invitation: invitation).invite.deliver_later
-      ["Organizer invitation sent.", nil]
-    else
-      [nil, invitation.errors.full_messages.to_sentence]
+    invitations = emails.map do |email|
+      @tournament.tournament_organizer_invitations.build(email: email, invited_by: current_user)
     end
+    invalid_invitation = invitations.find(&:invalid?)
+
+    if invalid_invitation.nil?
+      invitations.each do |invitation|
+        invitation.save!
+        TournamentOrganizerInvitationMailer.with(invitation: invitation).invite.deliver_later
+      end
+      ["#{invitations.size} #{'organizer invitation'.pluralize(invitations.size)} sent.", nil]
+    else
+      [nil, invalid_invitation.errors.full_messages.to_sentence]
+    end
+  end
+
+  def organizer_invitation_emails
+    tournament_params = params[:tournament] || {}
+    emails = Array(tournament_params[:invite_organizer_emails])
+    emails << tournament_params[:invite_organizer_email]
+    emails.map { |email| email.to_s.downcase.squish }.reject(&:blank?).uniq
   end
 
   def ensure_default_categories

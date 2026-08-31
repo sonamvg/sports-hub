@@ -82,11 +82,6 @@
     </div>
 
     <div>
-      <%= form.label :time_zone, "Time zone" %>
-      <%= form.time_zone_select :time_zone, ActiveSupport::TimeZone.all, { include_blank: "Select time zone" }, required: true %>
-    </div>
-
-    <div>
       <%= form.label :start_date %>
       <%= form.date_field :start_date, required: true %>
     </div>
@@ -281,15 +276,6 @@
       <% selected_organizers = tournament.organizer_users.reject { |organizer| organizer.id == current_user.id || organizer.id == tournament.organizer_id } %>
       <% search_organizers = @available_organizers.reject { |organizer| organizer.id == current_user.id || organizer.id == tournament.organizer_id } %>
       <div class="organizer-picker" data-organizer-picker data-organizers="<%= json_escape(search_organizers.map { |organizer| { id: organizer.id, label: "#{organizer.name} (#{organizer.email})" } }.to_json) %>">
-        <div class="organizer-picker-search">
-          <input type="search" placeholder="Start typing an organiser name or email" list="organizer-options">
-          <button type="button" class="secondary-button button-reset" data-add-organizer>Add</button>
-        </div>
-        <datalist id="organizer-options">
-          <% search_organizers.each do |organizer| %>
-            <option value="<%= "#{organizer.name} (#{organizer.email})" %>"></option>
-          <% end %>
-        </datalist>
         <div class="organizer-picker-selected" data-selected-organizers>
           <% selected_organizers.each do |organizer| %>
             <span class="organizer-chip" data-organizer-chip="<%= organizer.id %>">
@@ -299,10 +285,29 @@
             </span>
           <% end %>
         </div>
-        <button type="button" class="text-link button-reset invite-toggle" data-show-organizer-invite>Invite new organiser</button>
+
+        <div class="organizer-picker-search" data-existing-organizer-row>
+          <input type="search" placeholder="Select organisers" list="organizer-options" data-organizer-search>
+          <button type="button" class="secondary-button button-reset" data-add-organizer>Add</button>
+        </div>
+        <datalist id="organizer-options">
+          <% search_organizers.each do |organizer| %>
+            <option value="<%= "#{organizer.name} (#{organizer.email})" %>"></option>
+          <% end %>
+        </datalist>
+
+        <label class="checkbox-option organizer-account-toggle">
+          <%= check_box_tag "organizer_missing_account", "1", false, data: { organizer_missing_account: true } %>
+          <span>Organiser does not have an account</span>
+        </label>
+
         <div class="organizer-invite-field" data-organizer-invite hidden>
-          <%= email_field_tag "tournament[invite_organizer_email]", nil, placeholder: "organiser@example.com" %>
-          <p class="field-hint">If the organiser is not in Sports Hub yet, enter their email. An organiser account invitation will be sent when this tournament is saved.</p>
+          <div class="organizer-picker-search">
+            <%= email_field_tag "tournament[invite_organizer_email]", nil, placeholder: "organiser@example.com", data: { organizer_invite_email: true } %>
+            <button type="button" class="secondary-button button-reset" data-add-invite-organizer>Add invite</button>
+          </div>
+          <div class="organizer-picker-selected" data-selected-invites></div>
+          <p class="field-hint">Add one or more email addresses. Each person will receive an organiser account invitation when this tournament is saved.</p>
         </div>
       </div>
       <p class="field-hint">Only verified organisers can be selected. The creator remains the super organiser for this tournament.</p>
@@ -352,7 +357,7 @@
     if (!picker) return;
 
     if (event.target.matches("[data-add-organizer]")) {
-      const input = picker.querySelector("input[type='search']");
+      const input = picker.querySelector("[data-organizer-search]");
       const selected = picker.querySelector("[data-selected-organizers]");
       const organizers = JSON.parse(picker.dataset.organizers || "[]");
       const match = organizers.find(function(organizer) {
@@ -388,10 +393,65 @@
       event.target.closest("[data-organizer-chip]").remove();
     }
 
-    if (event.target.matches("[data-show-organizer-invite]")) {
-      const invite = picker.querySelector("[data-organizer-invite]");
-      invite.hidden = false;
-      invite.querySelector("input[type='email']").focus();
+    if (event.target.matches("[data-add-invite-organizer]")) {
+      const inviteInput = picker.querySelector("[data-organizer-invite-email]");
+      const selectedInvites = picker.querySelector("[data-selected-invites]");
+      const email = inviteInput.value.trim().toLowerCase();
+
+      if (!inviteInput.checkValidity()) {
+        inviteInput.reportValidity();
+        return;
+      }
+      if (selectedInvites.querySelector("[data-organizer-invite-chip='" + email + "']")) return;
+
+      const chip = document.createElement("span");
+      chip.className = "organizer-chip";
+      chip.dataset.organizerInviteChip = email;
+      chip.appendChild(document.createTextNode(email));
+
+      const hiddenInput = document.createElement("input");
+      hiddenInput.type = "hidden";
+      hiddenInput.name = "tournament[invite_organizer_emails][]";
+      hiddenInput.value = email;
+      chip.appendChild(hiddenInput);
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.setAttribute("aria-label", "Remove organiser invite");
+      removeButton.setAttribute("data-remove-invite-organizer", "");
+      removeButton.textContent = "x";
+      chip.appendChild(removeButton);
+
+      selectedInvites.appendChild(chip);
+      inviteInput.value = "";
+    }
+
+    if (event.target.matches("[data-remove-invite-organizer]")) {
+      event.target.closest("[data-organizer-invite-chip]").remove();
+    }
+  });
+
+  document.addEventListener("change", function(event) {
+    if (!event.target.matches("[data-organizer-missing-account]")) return;
+
+    const picker = event.target.closest("[data-organizer-picker]");
+    const invite = picker.querySelector("[data-organizer-invite]");
+    const existingRow = picker.querySelector("[data-existing-organizer-row]");
+    const existingInput = picker.querySelector("[data-organizer-search]");
+    const existingButton = picker.querySelector("[data-add-organizer]");
+    const inviteInput = picker.querySelector("[data-organizer-invite-email]");
+    const checked = event.target.checked;
+
+    invite.hidden = !checked;
+    existingRow.classList.toggle("is-disabled", checked);
+    existingInput.disabled = checked;
+    existingButton.disabled = checked;
+
+    if (checked) {
+      existingInput.value = "";
+      inviteInput.focus();
+    } else {
+      inviteInput.value = "";
     }
   });
 </script>

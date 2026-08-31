@@ -39,7 +39,6 @@
     <div><strong>Level</strong><span><%= display_value.call(@tournament.tournament_level) %></span></div>
     <div><strong>Status</strong><span><%= @tournament.status.humanize %></span></div>
     <div><strong>Organisation</strong><span><%= display_value.call(@tournament.organizing_organization) %></span></div>
-    <div><strong>Time zone</strong><span><%= display_value.call(@tournament.time_zone) %></span></div>
     <div><strong>Super organizer</strong><span><%= @tournament.organizer.name %></span></div>
     <div><strong>Organizers</strong><span><%= @tournament.organizer_users.order(:name).map(&:name).join(", ").presence || @tournament.organizer.name %></span></div>
     <div><strong>Website</strong><span><%= @tournament.website_url.present? ? link_to("Open site", @tournament.website_url, class: "text-link", target: "_blank", rel: "noopener") : "--" %></span></div>

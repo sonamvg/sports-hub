@@ -1,0 +1,11 @@
+.git
+.github
+.gstack
+.DS_Store
+log/*
+tmp/*
+storage/*
+vendor/bundle
+public/assets
+.env
+config/master.key
