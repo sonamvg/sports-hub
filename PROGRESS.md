@@ -2803,3 +2803,49 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 
 ### Verification Log
 - Ran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb`; result: 24 runs, 213 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-01 - Academy Registration Copy and Inline Form Errors
+
+### Reference
+- User requested academy registration copy changes, academy form validation feedback, logo upload validation, and notification copy cleanup.
+
+### Product Decisions
+- The academy registration login flow should use `Register academy` and `Sign in and create academy`, without the public CTA saying `academy owner`.
+- The academy form intro should say `Add your academy profile` and explain that athletes can be added after approval.
+- Field-level errors should appear under inputs while the existing summary remains at the top.
+- Forms should reserve inline error space and clear the visible error/highlight once a user edits the field.
+- Academy logos accept PNG/JPG only and must be under 5 MB.
+
+### Change Log
+- Added a reusable `field_error` helper for inline form error slots.
+- Added inline error slots to academy and account registration forms, and to the athlete profile form.
+- Added CSS for inline error text, reserved error height, resolved error hiding, and existing invalid field highlighting.
+- Added JavaScript to clear resolved field highlights and inline messages on input/change.
+- Updated academy registration/login labels and academy form intro copy.
+- Added server-side academy logo content-type validation and updated the logo hint.
+- Removed the academy notifications subheading and updated the empty notification message.
+- Updated academy/session/user/layout tests and added academy logo model coverage.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/models/academy_test.rb test/controllers/academies_controller_test.rb test/controllers/academy_layout_contract_test.rb test/controllers/sessions_controller_test.rb test/controllers/users_controller_test.rb test/controllers/athletes_controller_test.rb`; result: 77 runs, 826 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 205 runs, 1947 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-01 - Academy Roster and Notification Review Alignment
+
+### Reference
+- User requested better table alignment on `/academies/5/athletes`, better button/text alignment on `/academies/5/notifications`, and the ability for an academy owner to click a pending athlete name, view the athlete profile, return, and still accept or reject the request.
+
+### Product Decisions
+- Academy owners can view athlete profiles that have pending join requests for one of their approved academies.
+- Notification athlete names link to the profile with a safe return path back to the academy notification queue.
+- Roster rows and tournament status rows use explicit alignment rules so avatars, details, statuses, and action menus line up consistently.
+
+### Change Log
+- Added pending academy membership request athletes to the academy owner's visible athlete scope.
+- Added return-path support to athlete profile pages.
+- Linked notification athlete names to the athlete profile with `return_to` pointing back to notifications.
+- Updated roster/tournament status/notification CSS for row alignment and centered action button text.
+- Added controller and layout coverage for the pending athlete review path and aligned row/action styles.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb test/controllers/academy_layout_contract_test.rb test/controllers/athletes_controller_test.rb`; result: 56 runs, 685 assertions, 0 failures, 0 errors, 0 skips.

@@ -16,6 +16,7 @@ class AthletesController < ApplicationController
   end
 
   def show
+    @return_to = safe_return_path(params[:return_to])
     registrations = @athlete.registrations.includes(:tournament, :tournament_category, :registration_weight_checks)
     @upcoming_registrations = registrations.select { |registration| registration.tournament.end_date >= Date.current }.sort_by { |registration| [registration.tournament.start_date, registration.created_at] }
     @previous_registrations = registrations.select { |registration| registration.tournament.end_date < Date.current }.sort_by { |registration| [registration.tournament.start_date, registration.created_at] }.reverse
@@ -139,6 +140,7 @@ class AthletesController < ApplicationController
     owned_academy_ids = current_user.owned_academies.approved.select(:id)
     athlete_ids = Athlete.where(user_id: current_user.id).pluck(:id)
     athlete_ids += Athlete.where(academy_id: owned_academy_ids).pluck(:id)
+    athlete_ids += Athlete.joins(:academy_membership_requests).where(academy_membership_requests: { academy_id: owned_academy_ids, status: AcademyMembershipRequest.statuses[:pending] }).pluck(:id)
     athlete_ids += registered_athletes_for_managed_tournaments.pluck(:id) if current_user.can_organize_tournaments?
 
     Athlete.where(id: athlete_ids.uniq)

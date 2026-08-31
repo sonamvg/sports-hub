@@ -46,6 +46,9 @@
       <div><dt>Government ID</dt><dd><%= @athlete.government_id_document_type || "Not set" %><%= @athlete.identity_document.attached? ? " · Uploaded" : "" %></dd></div>
     </dl>
     <div class="form-actions">
+      <% if @return_to.present? %>
+        <%= link_to @return_to, class: "secondary-button icon-label" do %><%= ui_icon("arrow-right") %><span>Back</span><% end %>
+      <% end %>
       <% if super_admin? || @athlete.user_id == current_user.id %>
         <%= link_to edit_athlete_path(@athlete), class: "primary-button icon-label" do %><%= ui_icon("edit") %><span>Edit profile</span><% end %>
       <% end %>

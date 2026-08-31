@@ -30,10 +30,11 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     get new_user_path(account_type: "academy_owner", return_to: new_academy_path)
 
     assert_response :success
-    assert_includes response.body, "ACADEMY OWNER ACCOUNT"
-    assert_includes response.body, "Create academy owner account"
+    assert_includes response.body, "ACADEMY ACCOUNT"
+    assert_includes response.body, "Register academy"
     assert_includes response.body, "submit your academy"
     assert_includes response.body, 'value="academy_owner"'
+    assert_not_includes response.body, "Create academy owner account"
   end
 
   test "signed in user cannot open another account registration page" do

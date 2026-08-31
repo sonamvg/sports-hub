@@ -10,6 +10,9 @@ document.addEventListener("input", (event) => {
   updateDrawTieDecision(event.target.closest("form"))
 })
 
+document.addEventListener("input", clearResolvedFieldError)
+document.addEventListener("change", clearResolvedFieldError)
+
 document.addEventListener("click", (event) => {
   const copyButton = event.target.closest("[data-copy-text]")
   if (!copyButton) return
@@ -119,5 +122,18 @@ function copyText(button) {
       label.textContent = original
       if (menu) menu.removeAttribute("open")
     }, 1200)
+  })
+}
+
+function clearResolvedFieldError(event) {
+  const field = event.target
+  if (!field.matches("input, select, textarea")) return
+
+  const wrapper = field.closest(".field_with_errors")
+  const fieldContainer = wrapper ? wrapper.parentElement : field.parentElement
+  if (wrapper) wrapper.classList.remove("field_with_errors")
+
+  fieldContainer?.querySelectorAll("[data-field-error-message]").forEach((message) => {
+    message.classList.add("is-resolved")
   })
 }

@@ -64,9 +64,10 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, 'aria-label="Breadcrumb"'
     assert_includes response.body, "Add academy"
-    assert_includes response.body, "Build your academy profile"
-    assert_includes response.body, "Once your academy is approved, you can manage this profile and add athletes from your academy roster."
+    assert_includes response.body, "Add your academy profile"
+    assert_includes response.body, "Once the academy is approved, you can add athletes and manage academy profile."
     assert_includes response.body, "Academy logo"
+    assert_includes response.body, "File size should be less than 5 MB and PNG/JPG is accepted."
     assert_not_includes response.body, "Super admin approval required"
 
     get edit_academy_path(academy)
@@ -75,6 +76,29 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'aria-label="Breadcrumb"'
     assert_includes response.body, "Breadcrumb Academy"
     assert_includes response.body, "Edit academy"
+  end
+
+  test "invalid academy submission shows inline field errors" do
+    owner = User.create!(name: "Demo Parent", email: "inline-academy-errors@example.com", password: "password123", role: :parent)
+    sign_in_as owner
+
+    post academies_path, params: {
+      academy: {
+        name: "",
+        city: "",
+        email: "not-an-email",
+        logo_image: identity_document_upload
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Please fix the following:"
+    assert_includes response.body, "Name can&#39;t be blank"
+    assert_includes response.body, "City can&#39;t be blank"
+    assert_includes response.body, "Email is invalid"
+    assert_includes response.body, "Logo image file size should be less than 5 MB and PNG/JPG is accepted"
+    assert_operator response.body.scan("field-error-message").size, :>=, 4
+    assert_operator response.body.scan("field_with_errors").size, :>=, 4
   end
 
   test "logged out index hides academy athlete counts" do
@@ -320,10 +344,17 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Notifications"
     assert_includes response.body, "added Approved Academy in their athlete profile"
+    assert_not_includes response.body, "Review athletes who asked to join"
     assert_includes response.body, "Aarohi Shah"
+    assert_includes response.body, athlete_path(athlete, return_to: notifications_academy_path(academy))
     assert_includes response.body, approve_academy_academy_membership_request_path(academy, membership_request)
     assert_includes response.body, reject_academy_academy_membership_request_path(academy, membership_request)
     assert_includes response.body, dismiss_academy_academy_membership_request_path(academy, membership_request)
+
+    get athlete_path(athlete, return_to: notifications_academy_path(academy))
+    assert_response :success
+    assert_includes response.body, "Aarohi Shah"
+    assert_includes response.body, notifications_academy_path(academy)
 
     patch approve_academy_academy_membership_request_path(academy, membership_request)
 
@@ -356,6 +387,8 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_not_includes response.body, "Aarohi Shah"
     assert_includes response.body, "No notifications"
+    assert_includes response.body, "New athlete join requests and other notifications will appear here."
+    assert_not_includes response.body, "New athlete join requests will appear here."
   end
 
   test "academy owner can reject athlete join request" do

@@ -305,6 +305,7 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
   gap:14px;
 }
 .notification-card {
+  align-items:center;
   background:white;
   border:1px solid var(--line);
   border-radius:8px;
@@ -320,6 +321,12 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
   letter-spacing:-.03em;
   line-height:1.1;
   margin:14px 0 8px;
+}
+.notification-athlete-link {
+  color:var(--ink);
+}
+.notification-athlete-link:hover {
+  color:var(--red);
 }
 .notification-card p {
   color:var(--muted);
@@ -354,9 +361,10 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
   width:16px;
 }
 .notification-actions {
-  align-items:end;
+  align-items:center;
   display:flex;
   gap:10px;
+  justify-content:flex-end;
   padding-right:34px;
 }
 .tournament-status-groups {
@@ -400,7 +408,7 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
   display:grid;
 }
 .tournament-status-row {
-  align-items:start;
+  align-items:center;
   border-bottom:1px solid #edf0f2;
   display:grid;
   gap:22px;
@@ -445,7 +453,7 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
   overflow-wrap:anywhere;
 }
 .tournament-status-athlete {
-  align-items:flex-start;
+  align-items:center;
   display:flex!important;
   gap:14px;
 }
@@ -570,6 +578,21 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 .field_with_errors textarea:focus {
   outline:2px solid rgba(201,22,43,.22);
 }
+.field-error-message {
+  color:#a81122;
+  display:block;
+  font-size:12px;
+  font-weight:800;
+  line-height:1.35;
+  margin:7px 0 0;
+  min-height:17px;
+}
+.field-error-placeholder {
+  visibility:hidden;
+}
+.field-error-message.is-resolved {
+  visibility:hidden;
+}
 .filter-bar { border:1px solid var(--line); background:#f7f7f5; padding:18px; margin:0 0 28px; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; align-items:end; }
 .filter-bar.compact-filter { grid-template-columns:1fr auto; }
 .filter-bar label { display:block; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; margin-bottom:7px; }
@@ -647,6 +670,22 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 .registered-athlete-row span { display:flex; flex-direction:column; gap:5px; color:var(--muted); font-size:14px; }
 .registered-athlete-row strong { color:var(--ink); }
 .registered-athlete-row span strong { text-transform:uppercase; letter-spacing:.08em; font-size:10px; }
+.academy-athlete-list .registered-athlete-row {
+  grid-template-columns:minmax(240px,1.4fr) minmax(110px,.6fr) minmax(110px,.6fr) minmax(130px,.7fr) 48px;
+}
+.academy-athlete-list .registered-athlete-row,
+.tournament-status-row {
+  text-align:left;
+}
+.academy-athlete-list .registered-athlete-row > span,
+.tournament-status-row > div,
+.tournament-status-row > span {
+  align-self:center;
+}
+.academy-athlete-list .kebab-menu {
+  align-self:center;
+  justify-self:end;
+}
 .athlete-event-table {
   background:white;
   border:1px solid var(--line);
@@ -869,7 +908,7 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
   height:18px;
   width:18px;
 }
-.approve-button,.reject-button { border:0; padding:10px 13px; font-weight:800; cursor:pointer; }
+.approve-button,.reject-button { align-items:center; border:0; display:inline-flex; justify-content:center; min-height:40px; padding:10px 13px; font-weight:800; cursor:pointer; text-align:center; }
 .approve-button { background:#176532; color:white; }
 .reject-button { background:#eee; color:#8a1e1e; }
 .flash { position:relative; z-index:20; padding:13px 20px; text-align:center; font-weight:700; transition:opacity .2s ease, transform .2s ease; }

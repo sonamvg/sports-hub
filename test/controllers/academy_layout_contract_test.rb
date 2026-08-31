@@ -47,4 +47,29 @@ class AcademyLayoutContractTest < ActionDispatch::IntegrationTest
     assert_includes js, "menu.removeAttribute(\"open\")"
     assert_includes js, "label.textContent = \"Copied\""
   end
+
+  test "forms reserve inline error space and clear resolved errors" do
+    css = Rails.root.join("app/assets/stylesheets/application.css").read
+    js = Rails.root.join("app/assets/javascripts/application.js").read
+
+    assert_includes css, ".field-error-message"
+    assert_includes css, "min-height:17px;"
+    assert_includes css, ".field-error-placeholder"
+    assert_includes css, ".field-error-message.is-resolved"
+    assert_includes js, "clearResolvedFieldError"
+    assert_includes js, "data-field-error-message"
+  end
+
+  test "academy roster and notifications have aligned row actions" do
+    css = Rails.root.join("app/assets/stylesheets/application.css").read
+
+    assert_includes css, ".academy-athlete-list .registered-athlete-row"
+    assert_includes css, "grid-template-columns:minmax(240px,1.4fr) minmax(110px,.6fr) minmax(110px,.6fr) minmax(130px,.7fr) 48px;"
+    assert_includes css, ".notification-card"
+    assert_includes css, ".notification-actions"
+    assert_includes css, "justify-content:flex-end;"
+    assert_includes css, ".notification-athlete-link"
+    assert_includes css, ".approve-button,.reject-button"
+    assert_includes css, "display:inline-flex;"
+  end
 end

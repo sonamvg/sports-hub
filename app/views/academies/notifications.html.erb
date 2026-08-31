@@ -10,7 +10,6 @@
     <div>
       <p class="eyebrow">ACADEMY NOTIFICATIONS</p>
       <h1 class="page-title">Notifications</h1>
-      <p class="page-copy">Review athletes who asked to join <%= @academy.name %>.</p>
     </div>
   </div>
 
@@ -24,7 +23,7 @@
           <% end %>
           <div>
             <span class="status-pill status-pending">Pending</span>
-            <h2><%= athlete.full_name %></h2>
+            <h2><%= link_to athlete.full_name, athlete_path(athlete, return_to: notifications_academy_path(@academy)), class: "notification-athlete-link" %></h2>
             <p><%= athlete.full_name %> added <%= @academy.name %> in their athlete profile and is waiting for your approval.</p>
             <small>Requested <%= membership_request.created_at.strftime("%d %b %Y") %><% if membership_request.requested_by&.email.present? %> · <%= membership_request.requested_by.email %><% end %></small>
           </div>
@@ -38,7 +37,7 @@
   <% else %>
     <div class="inline-empty-state">
       <strong>No notifications</strong>
-      <p>New athlete join requests will appear here.</p>
+      <p>New athlete join requests and other notifications will appear here.</p>
     </div>
   <% end %>
 </div></section>

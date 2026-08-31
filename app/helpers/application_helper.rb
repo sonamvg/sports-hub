@@ -66,4 +66,12 @@ module ApplicationHelper
   def user_first_name(user)
     user.name.to_s.squish.split.first.presence || user.email.to_s.split("@").first
   end
+
+  def field_error(record, attribute)
+    messages = record.errors[attribute]
+    classes = ["field-error-message"]
+    classes << "field-error-placeholder" if messages.blank?
+
+    tag.p(messages.to_sentence, class: classes, data: { field_error_message: true })
+  end
 end

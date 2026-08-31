@@ -23,9 +23,11 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     get login_path(return_to: new_academy_path)
 
     assert_response :success
-    assert_includes response.body, "Sign in as an academy owner"
-    assert_includes response.body, "Sign in as academy owner"
-    assert_includes response.body, "Create academy owner account"
+    assert_includes response.body, "Sign in to submit and manage your academy."
+    assert_includes response.body, "Sign in and create academy"
+    assert_includes response.body, "Register academy"
+    assert_not_includes response.body, "Create academy owner account"
+    assert_not_includes response.body, "Sign in as academy owner"
     assert_not_includes response.body, "Join as athlete"
   end
 
@@ -81,7 +83,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Sign in as organizer"
     assert_not_includes response.body, "Create organizer account"
-    assert_not_includes response.body, "Create academy owner account"
+    assert_not_includes response.body, "Register academy"
     assert_not_includes response.body, "Join as athlete"
   end
 

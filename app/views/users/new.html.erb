@@ -2,13 +2,13 @@
   <div class="container narrow">
     <% organizer_account = @account_type == "organizer" %>
     <% academy_owner_account = @account_type == "academy_owner" %>
-    <p class="eyebrow"><%= organizer_account ? "ORGANIZER ACCOUNT" : (academy_owner_account ? "ACADEMY OWNER ACCOUNT" : "ATHLETE ACCOUNT") %></p>
-    <h1 class="page-title"><%= organizer_account ? "Create organizer account" : (academy_owner_account ? "Create academy owner account" : "Join as athlete") %></h1>
+    <p class="eyebrow"><%= organizer_account ? "ORGANIZER ACCOUNT" : (academy_owner_account ? "ACADEMY ACCOUNT" : "ATHLETE ACCOUNT") %></p>
+    <h1 class="page-title"><%= organizer_account ? "Create organizer account" : (academy_owner_account ? "Register academy" : "Join as athlete") %></h1>
     <p class="page-copy">
       <% if organizer_account %>
         Create an organizer account. A super admin will verify it before you can publish tournaments, manage categories, or review registrations.
       <% elsif academy_owner_account %>
-        Create an academy owner account to submit your academy for approval and manage academy details.
+        Create your academy account to submit your academy for approval and manage academy details.
       <% else %>
         Create an athlete account. No approval is required; after signup you will complete your athlete profile.
       <% end %>
@@ -19,34 +19,38 @@
       <%= hidden_field_tag :account_type, @account_type %>
       <%= hidden_field_tag :return_to, params[:return_to] if params[:return_to].present? %>
       <div class="form-grid two-col">
-        <div><%= form.label :name %><%= form.text_field :name, required: true, autocomplete: "name" %></div>
-        <div><%= form.label :phone, organizer_account ? "Mobile number" : "Phone number" %><%= form.telephone_field :phone, required: organizer_account || (!academy_owner_account && !organizer_account), autocomplete: "tel" %></div>
+        <div><%= form.label :name %><%= form.text_field :name, required: true, autocomplete: "name" %><%= field_error(@user, :name) %></div>
+        <div><%= form.label :phone, organizer_account ? "Mobile number" : "Phone number" %><%= form.telephone_field :phone, required: organizer_account || (!academy_owner_account && !organizer_account), autocomplete: "tel" %><%= field_error(@user, :phone) %></div>
         <% if organizer_account %>
           <div>
             <%= form.label :organizer_designation, "Designation" %>
             <%= form.text_field :organizer_designation, required: true, placeholder: "Tournament director, coach, academy owner" %>
+            <%= field_error(@user, :organizer_designation) %>
           </div>
           <div>
             <%= form.label :organizer_academy_id, "Academy affiliation" %>
             <%= form.collection_select :organizer_academy_id, @available_academies, :id, :name, include_blank: "No academy affiliation" %>
+            <%= field_error(@user, :organizer_academy_id) %>
           </div>
           <div class="full">
             <%= form.label :profile_photo_url, "Profile photo URL" %>
             <%= form.url_field :profile_photo_url, placeholder: "https://example.com/photo.jpg" %>
+            <%= field_error(@user, :profile_photo_url) %>
             <p class="field-hint">Optional. This appears on the public organizer directory after verification.</p>
           </div>
           <div class="full">
             <%= form.label :identity_document, "Identity verification document" %>
             <%= form.file_field :identity_document, required: true, accept: "image/png,image/jpeg,application/pdf" %>
+            <%= field_error(@user, :identity_document) %>
             <p class="field-hint">Upload one document such as Aadhaar or another identity proof. PDF, JPG, or PNG is accepted.</p>
           </div>
         <% end %>
-        <div class="full"><%= form.label :email %><%= form.email_field :email, required: true, autocomplete: "email" %></div>
-        <div><%= form.label :password %><%= form.password_field :password, required: true, autocomplete: "new-password" %></div>
-        <div><%= form.label :password_confirmation %><%= form.password_field :password_confirmation, required: true, autocomplete: "new-password" %></div>
+        <div class="full"><%= form.label :email %><%= form.email_field :email, required: true, autocomplete: "email" %><%= field_error(@user, :email) %></div>
+        <div><%= form.label :password %><%= form.password_field :password, required: true, autocomplete: "new-password" %><%= field_error(@user, :password) %></div>
+        <div><%= form.label :password_confirmation %><%= form.password_field :password_confirmation, required: true, autocomplete: "new-password" %><%= field_error(@user, :password_confirmation) %></div>
       </div>
       <div class="form-actions">
-        <%= form.submit organizer_account ? "Create organizer account" : (academy_owner_account ? "Create academy owner account" : "Create athlete account"), class: "primary-button button-reset" %>
+        <%= form.submit organizer_account ? "Create organizer account" : (academy_owner_account ? "Register academy" : "Create athlete account"), class: "primary-button button-reset" %>
         <%= link_to "Sign in", login_path(return_to: params[:return_to]), class: "secondary-button" %>
       </div>
     <% end %>
