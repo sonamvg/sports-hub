@@ -4,5 +4,5 @@ APP_ROOT = File.expand_path("..", __dir__)
 Dir.chdir(APP_ROOT) do
   system("bundle check") || system("bundle install") || abort("bundle install failed")
   system("bin/rails db:prepare") || abort("database setup failed")
-  puts "Sports Hub is ready. Run: bin/rails server"
+  puts "PodiumCircle is ready. Run: bin/rails server"
 end

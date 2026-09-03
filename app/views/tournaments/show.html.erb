@@ -14,12 +14,14 @@
       <p class="page-copy"><%= @tournament.description.presence || "Tournament registration and category information." %></p>
     </div>
     <% if can_manage_tournament?(@tournament) %>
-      <%= link_to edit_tournament_path(@tournament), class: "icon-button", title: "Edit tournament", aria: { label: "Edit tournament" } do %>
-        <span aria-hidden="true">✎</span>
-      <% end %>
-      <% if super_admin? %>
-        <%= button_to "Delete tournament", tournament_path(@tournament), method: :delete, class: "reject-button", form: { data: { turbo_confirm: "Delete #{@tournament.name}?" } } %>
-      <% end %>
+      <div class="page-actions">
+        <%= link_to edit_tournament_path(@tournament), class: "icon-button", title: "Edit tournament", aria: { label: "Edit tournament" } do %>
+          <span aria-hidden="true">✎</span>
+        <% end %>
+        <% if super_admin? %>
+          <%= button_to "Delete tournament", tournament_path(@tournament), method: :delete, class: "reject-button delete-action-button", form: { data: { turbo_confirm: "Are you sure you want to delete #{@tournament.name}?" } } %>
+        <% end %>
+      </div>
     <% elsif can_register_for_tournament?(@tournament) %>
       <%= link_to "Register for tournament", new_tournament_registration_path(@tournament), class: "primary-button tournament-register-button" %>
     <% end %>

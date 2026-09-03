@@ -45,6 +45,19 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to athlete_path(athlete)
   end
 
+  test "terms page is visible to signed in athletes" do
+    user = User.create!(name: "Athlete User", email: "athlete-terms@example.com", phone: "9876543210", password: "password123", role: :athlete)
+    user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    sign_in_as user
+
+    get terms_path
+
+    assert_response :success
+    assert_includes response.body, "Terms and conditions"
+    assert_includes response.body, "Information sharing"
+    assert_includes response.body, "PodiumCircle records consent time"
+  end
+
   test "homepage shows previous competitions" do
     get root_path
 

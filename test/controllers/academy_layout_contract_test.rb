@@ -46,6 +46,9 @@ class AcademyLayoutContractTest < ActionDispatch::IntegrationTest
     assert_includes js, "const menu = button.closest(\"details\")"
     assert_includes js, "menu.removeAttribute(\"open\")"
     assert_includes js, "label.textContent = \"Copied\""
+    assert_includes js, "closeKebabMenusOutside"
+    assert_includes js, "details.kebab-menu[open]"
+    assert_includes js, "if (!menu.contains(event.target)) menu.removeAttribute(\"open\")"
   end
 
   test "forms reserve inline error space and clear resolved errors" do
@@ -71,5 +74,15 @@ class AcademyLayoutContractTest < ActionDispatch::IntegrationTest
     assert_includes css, ".notification-athlete-link"
     assert_includes css, ".approve-button,.reject-button"
     assert_includes css, "display:inline-flex;"
+  end
+
+  test "page and card actions keep destructive buttons aligned" do
+    css = Rails.root.join("app/assets/stylesheets/application.css").read
+
+    assert_includes css, ".page-actions"
+    assert_includes css, "justify-content:flex-end;"
+    assert_includes css, ".card-links .button_to"
+    assert_includes css, ".delete-action-button"
+    assert_includes css, "white-space:nowrap;"
   end
 end

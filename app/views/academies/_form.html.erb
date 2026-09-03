@@ -24,6 +24,21 @@
         <p class="field-hint">Current upload: <%= academy.logo_image.filename %></p>
       <% end %>
     </div>
+    <% if academy.new_record? %>
+      <div class="full consent-panel">
+        <label class="checkbox-option">
+          <%= form.check_box :terms_accepted, required: true %>
+          <span>I accept the <%= link_to "PodiumCircle terms and conditions", terms_path, class: "text-link", target: "_blank", rel: "noopener" %>.</span>
+        </label>
+        <%= field_error(academy, :terms_accepted) %>
+
+        <label class="checkbox-option">
+          <%= form.check_box :data_sharing_consent, required: true %>
+          <span>I consent to sharing this academy profile, contact details, logo, roster actions, athlete join requests, and approval status with authorised PodiumCircle admins and users who need it for academy and tournament operations.</span>
+        </label>
+        <%= field_error(academy, :data_sharing_consent) %>
+      </div>
+    <% end %>
   </div>
   <div class="form-actions"><%= form.submit class: "primary-button button-reset" %><%= link_to "Cancel", academies_path, class: "secondary-button" %></div>
 <% end %>

@@ -42,7 +42,7 @@
             <%= form.label :identity_document, "Identity verification document" %>
             <%= form.file_field :identity_document, required: true, accept: "image/png,image/jpeg,application/pdf" %>
             <%= field_error(@user, :identity_document) %>
-            <p class="field-hint">Upload one document such as Aadhaar or another identity proof. PDF, JPG, or PNG is accepted.</p>
+            <p class="field-hint">Upload one document such as Aadhaar or another identity proof. PDF, JPG, or PNG up to 5 MB is accepted.</p>
           </div>
         <% end %>
         <div class="full"><%= form.label :email %><%= form.email_field :email, required: true, autocomplete: "email" %><%= field_error(@user, :email) %></div>

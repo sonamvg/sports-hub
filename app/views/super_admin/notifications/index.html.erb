@@ -1,0 +1,58 @@
+<section class="page-shell"><div class="container">
+  <%= render "shared/breadcrumbs", items: [
+    { label: "Home", path: root_path },
+    { label: "Super admin notifications" }
+  ] %>
+
+  <div class="page-heading compact-heading">
+    <div>
+      <p class="eyebrow">SUPER ADMIN</p>
+      <h1 class="page-title">Notifications</h1>
+      <p class="page-copy">Review academy approvals, unregistered academy athletes, and newly created tournaments.</p>
+    </div>
+  </div>
+
+  <% if @notifications.any? %>
+    <div class="notification-list">
+      <% @notifications.each do |notification| %>
+        <% record = notification.notifiable %>
+        <article class="notification-card">
+          <%= button_to dismiss_super_admin_notification_path(notification), method: :patch, class: "notification-dismiss button-reset", aria: { label: "Dismiss #{notification.title}" } do %>
+            <%= ui_icon("x") %>
+          <% end %>
+
+          <div>
+            <span class="status-pill status-<%= notification.status %>"><%= notification.status.humanize %></span>
+            <h2><%= notification.title %></h2>
+            <p><%= notification.message.presence || super_admin_notification_message(notification) %></p>
+            <small>
+              Received <%= notification.created_at.strftime("%d %b %Y, %I:%M %p") %>
+              <% if notification.actor&.email.present? %> · <%= notification.actor.email %><% end %>
+            </small>
+          </div>
+
+          <div class="notification-actions">
+            <% if notification.academy_submission? %>
+              <%= link_to "View academy", academy_path(record), class: "text-link" %>
+              <%= button_to "Accept", approve_super_admin_notification_path(notification), method: :patch, class: "approve-button" %>
+              <%= button_to "Reject", reject_super_admin_notification_path(notification), method: :patch, class: "reject-button" %>
+            <% elsif notification.unregistered_academy_athlete? %>
+              <%= link_to "View athlete", athlete_path(record, return_to: super_admin_notifications_path), class: "text-link" %>
+              <%= button_to "Accept", approve_super_admin_notification_path(notification), method: :patch, class: "approve-button" %>
+              <%= button_to "Reject", reject_super_admin_notification_path(notification), method: :patch, class: "reject-button" %>
+            <% elsif notification.tournament_submission? %>
+              <%= link_to "View tournament", tournament_path(record), class: "text-link" %>
+              <%= button_to "Mark reviewed", approve_super_admin_notification_path(notification), method: :patch, class: "approve-button" %>
+            <% end %>
+          </div>
+        </article>
+      <% end %>
+    </div>
+    <%= render "shared/pagination", pagination: @pagination %>
+  <% else %>
+    <div class="inline-empty-state">
+      <strong>No notifications</strong>
+      <p>Academy approvals, unregistered academy athletes, and tournament creation alerts will appear here.</p>
+    </div>
+  <% end %>
+</div></section>

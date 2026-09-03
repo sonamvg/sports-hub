@@ -5,7 +5,7 @@ class AthleteAccountMailer < ApplicationMailer
     @password = params[:password]
     @login_url = login_url(default_url_options)
 
-    mail(to: @athlete.user.email, subject: "Your Sports Hub athlete account")
+    mail(to: @athlete.user.email, subject: "Your PodiumCircle athlete account")
   end
 
   def academy_removed

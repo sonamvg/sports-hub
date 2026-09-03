@@ -1,0 +1,67 @@
+<section class="page-shell"><div class="container">
+  <%= render "shared/breadcrumbs", items: [
+    { label: "Home", path: root_path },
+    { label: "Super admin athletes" }
+  ] %>
+
+  <div class="page-heading compact-heading">
+    <div>
+      <p class="eyebrow">SUPER ADMIN</p>
+      <h1 class="page-title">Athlete</h1>
+      <p class="page-copy">View every athlete profile and remove records when needed.</p>
+    </div>
+  </div>
+
+  <% if @athletes.any? %>
+    <div class="table-card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Athlete</th>
+            <th>Academy</th>
+            <th>Contact</th>
+            <th>Profile</th>
+            <th class="table-actions-heading">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @athletes.each do |athlete| %>
+            <tr>
+              <td>
+                <div class="table-person">
+                  <div class="avatar-circle"><%= athlete.full_name.split.map { |part| part.first }.compact.first(2).join.upcase %></div>
+                  <div>
+                    <%= link_to athlete.full_name, athlete_path(athlete), class: "notification-athlete-link" %>
+                    <span><%= [athlete.gender&.titleize, athlete.date_of_birth&.strftime("%d %b %Y")].compact_blank.join(" · ") %></span>
+                  </div>
+                </div>
+              </td>
+              <td><%= athlete.academy_display_name.presence || "--" %></td>
+              <td><%= athlete.user.email %></td>
+              <td><%= [athlete.belt&.titleize, athlete.weight ? "#{athlete.weight} kg" : nil].compact_blank.join(" · ").presence || "--" %></td>
+              <td class="table-actions-cell">
+                <details class="kebab-menu">
+                  <summary aria-label="Actions for <%= athlete.full_name %>"><%= ui_icon("more-vertical") %></summary>
+                  <div class="kebab-menu-panel">
+                    <%= link_to athlete_path(athlete), class: "kebab-menu-item" do %>
+                      <%= ui_icon("eye") %><span>View profile</span>
+                    <% end %>
+                    <%= button_to super_admin_athlete_path(athlete), method: :delete, class: "kebab-menu-item kebab-menu-danger", form: { data: { turbo_confirm: "Are you sure you want to delete #{athlete.full_name}?" } } do %>
+                      <%= ui_icon("trash") %><span>Delete athlete</span>
+                    <% end %>
+                  </div>
+                </details>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+    <%= render "shared/pagination", pagination: @pagination %>
+  <% else %>
+    <div class="inline-empty-state">
+      <strong>No athletes</strong>
+      <p>Athlete profiles will appear here after users create them.</p>
+    </div>
+  <% end %>
+</div></section>

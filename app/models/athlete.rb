@@ -1,4 +1,6 @@
 class Athlete < ApplicationRecord
+  include ConsentRecordable
+
   attr_accessor :account_email
 
   GENDERS = %w[female male other].freeze

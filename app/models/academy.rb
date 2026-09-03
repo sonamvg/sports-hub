@@ -1,4 +1,6 @@
 class Academy < ApplicationRecord
+  include ConsentRecordable
+
   MAX_LOGO_IMAGE_SIZE = 5.megabytes
   ACCEPTED_LOGO_IMAGE_TYPES = %w[image/jpeg image/png].freeze
 
@@ -25,4 +27,5 @@ class Academy < ApplicationRecord
     errors.add(:logo_image, "file size should be less than 5 MB and PNG/JPG is accepted") if logo_image.blob.byte_size > MAX_LOGO_IMAGE_SIZE
     errors.add(:logo_image, "file size should be less than 5 MB and PNG/JPG is accepted") unless logo_image.blob.content_type.in?(ACCEPTED_LOGO_IMAGE_TYPES)
   end
+
 end

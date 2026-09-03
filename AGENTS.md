@@ -1,6 +1,6 @@
-# Sports Hub Codex Instructions
+# PodiumCircle Codex Instructions
 
-Sports Hub is a Ruby on Rails tournament-management platform.
+PodiumCircle is a Ruby on Rails tournament-management platform.
 
 ## Stack
 - Ruby on Rails 8.1

@@ -24,7 +24,7 @@ class TournamentCategoriesControllerTest < ActionDispatch::IntegrationTest
     get tournament_tournament_categories_path(@tournament)
 
     assert_response :success
-    assert_includes response.body, "This tournament uses Sports Hub default categories."
+    assert_includes response.body, "This tournament uses PodiumCircle default categories."
     assert_includes response.body, @category.name
     assert_includes response.body, "View -&gt;"
     assert_no_match(/Add category/, response.body)

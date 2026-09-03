@@ -80,7 +80,7 @@
               <%= link_to "Website", tournament.website_url, class: "text-link muted-link", target: "_blank", rel: "noopener" %>
             <% end %>
             <% if super_admin? %>
-              <%= button_to "Delete", tournament_path(tournament), method: :delete, class: "reject-button", form: { data: { turbo_confirm: "Delete #{tournament.name}?" } } %>
+              <%= button_to "Delete", tournament_path(tournament), method: :delete, class: "reject-button delete-action-button", form: { data: { turbo_confirm: "Are you sure you want to delete #{tournament.name}?" } } %>
             <% end %>
           </div>
         </article>

@@ -32,11 +32,13 @@ class AthletesController < ApplicationController
     return create_academy_owned_athlete if current_user.academy_owner?
 
     @athlete = current_user.athletes.build(athlete_params)
+    @athlete.require_consent = true
     @return_to = safe_return_path(params[:return_to])
     requested_academy_id = academy_request_id
 
     if @athlete.save
       create_academy_request_if_needed(@athlete, requested_academy_id)
+      sync_super_admin_unregistered_academy_notification(@athlete)
       redirect_to(@return_to.presence || @athlete, notice: athlete_saved_notice(requested_academy_id, created: true))
     else
       render :new, status: :unprocessable_entity
@@ -53,6 +55,7 @@ class AthletesController < ApplicationController
 
     if @athlete.update(athlete_params)
       create_academy_request_if_needed(@athlete, requested_academy_id)
+      sync_super_admin_unregistered_academy_notification(@athlete)
       redirect_to(@return_to.presence || @athlete, notice: athlete_saved_notice(requested_academy_id, created: false))
     else
       render :edit, status: :unprocessable_entity
@@ -81,6 +84,7 @@ class AthletesController < ApplicationController
 
   def create_academy_owned_athlete
     @athlete = Athlete.new(athlete_params)
+    @athlete.require_consent = true
     @athlete.account_email = athlete_account_email
     @return_to = safe_return_path(params[:return_to])
     validate_academy_owned_athlete
@@ -181,6 +185,10 @@ class AthletesController < ApplicationController
       :emergency_contact_phone, :address, :government_id_document_type,
       :external_academy_name, :profile_photo, :identity_document
     )
+    permitted.merge!(
+      terms_accepted: params.dig(:athlete, :terms_accepted),
+      data_sharing_consent: params.dig(:athlete, :data_sharing_consent)
+    )
     return permitted unless athlete_account_self_service?
 
     academy_choice = params.dig(:athlete, :academy_id).to_s
@@ -235,6 +243,22 @@ class AthletesController < ApplicationController
     membership_request.requested_by ||= current_user
     membership_request.dismissed_at = nil
     membership_request.save!
+  end
+
+  def sync_super_admin_unregistered_academy_notification(athlete)
+    return unless athlete_account_self_service?
+
+    if athlete.academy_id.present? || athlete.external_academy_name.blank?
+      SuperAdminNotification.pending.unregistered_academy_athlete.where(notifiable: athlete).find_each(&:dismiss!)
+      return
+    end
+
+    SuperAdminNotification.notify!(
+      kind: :unregistered_academy_athlete,
+      notifiable: athlete,
+      actor: current_user,
+      message: "#{athlete.full_name} listed #{athlete.external_academy_name} as an unregistered academy."
+    )
   end
 
   def athlete_saved_notice(academy_id, created:)

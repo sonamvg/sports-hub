@@ -1,5 +1,5 @@
 class HomeController < ApplicationController
-  before_action :redirect_athlete_to_profile
+  before_action :redirect_athlete_to_profile, except: :terms
 
   def index
     @previous_competitions = [
@@ -151,6 +151,8 @@ class HomeController < ApplicationController
       }
     ]
   end
+
+  def terms; end
 
   private
 

@@ -4,7 +4,7 @@
       <div>
         <p class="eyebrow">ATHLETES</p>
         <h1 class="page-title"><%= super_admin? ? "All athletes" : "My athletes" %></h1>
-        <p class="page-copy"><%= super_admin? ? "Review and manage every athlete profile in Sports Hub." : "Manage eligible athletes and keep competition details ready." %></p>
+        <p class="page-copy"><%= super_admin? ? "Review and manage every athlete profile in PodiumCircle." : "Manage eligible athletes and keep competition details ready." %></p>
       </div>
       <%= link_to new_athlete_path, class: "primary-button icon-label" do %><%= ui_icon("plus") %><span>Add athlete</span><% end %>
     </div>

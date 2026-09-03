@@ -1,4 +1,7 @@
 class User < ApplicationRecord
+  MAX_IDENTITY_DOCUMENT_SIZE = 5.megabytes
+  ACCEPTED_IDENTITY_DOCUMENT_TYPES = %w[image/jpeg image/png application/pdf].freeze
+
   has_secure_password
   has_many :athletes, dependent: :destroy
   has_many :owned_academies, class_name: "Academy", foreign_key: :owner_id, dependent: :nullify
@@ -22,6 +25,7 @@ class User < ApplicationRecord
   validates :phone, presence: true, if: :organizer_registration_pending?
   validates :organizer_designation, presence: true, if: :organizer_registration_pending?
   validate :identity_document_required_for_pending_organizer
+  validate :identity_document_size
 
   scope :verified_organizers, -> { organizer.organizer_verified }
   scope :pending_organizers, -> { organizer.organizer_pending }
@@ -74,5 +78,12 @@ class User < ApplicationRecord
     return if identity_document.attached?
 
     errors.add(:identity_document, "must be uploaded")
+  end
+
+  def identity_document_size
+    return unless identity_document.attached?
+
+    errors.add(:identity_document, "must be 5 MB or smaller") if identity_document.blob.byte_size > MAX_IDENTITY_DOCUMENT_SIZE
+    errors.add(:identity_document, "must be a JPG, PNG, or PDF file") unless identity_document.blob.content_type.in?(ACCEPTED_IDENTITY_DOCUMENT_TYPES)
   end
 end

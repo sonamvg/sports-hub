@@ -72,6 +72,7 @@ class ApplicationController < ActionController::Base
     return unless current_user&.athlete?
     return if current_user.athletes.exists?
     return if controller_name == "athletes" && %w[new create].include?(action_name)
+    return if controller_name == "home" && action_name == "terms"
     return if controller_name == "sessions" && action_name == "destroy"
     return if controller_name == "users"
 

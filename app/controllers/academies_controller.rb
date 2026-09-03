@@ -37,9 +37,11 @@ class AcademiesController < ApplicationController
 
   def create
     @academy = current_user.owned_academies.build(academy_params)
+    @academy.require_consent = true
     @academy.status = super_admin? ? :approved : :pending
 
     if @academy.save
+      notify_super_admin_of_academy_submission
       redirect_to @academy, notice: academy_created_notice
     else
       render :new, status: :unprocessable_entity
@@ -105,10 +107,22 @@ class AcademiesController < ApplicationController
     "Academy submitted for super admin approval."
   end
 
+  def notify_super_admin_of_academy_submission
+    return if super_admin?
+
+    SuperAdminNotification.notify!(
+      kind: :academy_submission,
+      notifiable: @academy,
+      actor: current_user,
+      message: "#{@academy.name} was submitted for approval."
+    )
+  end
+
   def academy_params
     params.require(:academy).permit(
       :name, :registration_number, :city, :state, :country,
-      :contact_name, :phone, :email, :logo_image
+      :contact_name, :phone, :email, :logo_image,
+      :terms_accepted, :data_sharing_consent
     )
   end
 

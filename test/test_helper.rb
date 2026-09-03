@@ -22,6 +22,18 @@ module AuthenticationTestHelper
   def payment_receipt_upload
     Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/payment-receipt.png"), "image/png")
   end
+
+  def invalid_text_upload
+    Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/not-an-image.txt"), "text/plain")
+  end
+
+  def oversized_upload(filename: "oversized.png", content_type: "image/png")
+    Rack::Test::UploadedFile.new(StringIO.new("x" * (5.megabytes + 1)), content_type, original_filename: filename)
+  end
+
+  def consent_params
+    { terms_accepted: "1", data_sharing_consent: "1" }
+  end
 end
 
 class ActionDispatch::IntegrationTest

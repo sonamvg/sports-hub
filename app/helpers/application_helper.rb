@@ -2,6 +2,7 @@ module ApplicationHelper
   ICON_PATHS = {
     "academy" => '<path d="M4 10.5 12 6l8 4.5"/><path d="M6 11v7h12v-7"/><path d="M10 18v-4h4v4"/>',
     "arrow-right" => '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
+    "bell" => '<path d="M10.3 21a2 2 0 0 0 3.4 0"/><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>',
     "calendar" => '<path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/>',
     "chevron-right" => '<path d="m9 18 6-6-6-6"/>',
     "copy" => '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
@@ -73,5 +74,20 @@ module ApplicationHelper
     classes << "field-error-placeholder" if messages.blank?
 
     tag.p(messages.to_sentence, class: classes, data: { field_error_message: true })
+  end
+
+  def super_admin_notification_message(notification)
+    record = notification.notifiable
+
+    case notification.kind
+    when "academy_submission"
+      "#{record.name} was submitted for approval."
+    when "unregistered_academy_athlete"
+      "#{record.full_name} listed #{record.external_academy_name.presence || "an unregistered academy"} and needs review."
+    when "tournament_submission"
+      "#{record.name} was created by #{notification.actor&.name || record.organizer.name}."
+    else
+      notification.kind.humanize
+    end
   end
 end
