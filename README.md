@@ -1,4 +1,4 @@
-# Sports Hub
+# PodiumCircle
 
 A Rails-based platform for athletes, academies, tournaments, registrations, and competition operations.
 
@@ -9,6 +9,9 @@ A Rails-based platform for athletes, academies, tournaments, registrations, and 
 ## Long-lived implementation log
 
 Maintain [`PROGRESS.md`](PROGRESS.md) for every product decision, code change, validation rule, and verification result. This file is intended to remain useful as a multi-year project reference.
+
+## Author
+Sonam
 
 ## Tech stack
 - Ruby 3.3.8
@@ -54,14 +57,23 @@ export DATABASE_URL=postgres://postgres:postgres@localhost:5432/taekwondo_hub_de
 9. Fight results
 10. Medal tally
 
-## Demo credentials
+## Local seed credentials
 
-After seeding, use these local demo accounts:
+After seeding, use these local accounts:
 
-- Super admin: `admin@example.com` / `password123`
-- Academy owner: `academy-owner@example.com` / `password123`
-- Organizer: `organizer@example.com` / `password123`
-- General user: `parent@example.com` / `password123`
+- Super admin: `admin@podiumcircle.test` / `password123`
+- Academy owner: `academy@podiumcircle.test` / `password123`
+- Organizer: `organizer@podiumcircle.test` / `password123`
+- Athlete: `athlete@podiumcircle.test` / `password123`
+
+## Production domain
+
+The purchased domain is `podiumcircle.com`. In production, set:
+
+```bash
+APP_HOST=podiumcircle.com
+MAILER_FROM=no-reply@podiumcircle.com
+```
 
 After seeding, try this flow:
 
