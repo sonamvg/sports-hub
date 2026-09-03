@@ -10,10 +10,7 @@
   <div>
     <p class="eyebrow">WEIGHT CHECK</p>
     <h1 class="page-title"><%= @tournament.name %></h1>
-    <p class="page-copy">Find accepted athletes, record up to three locked weight attempts, and move passing athletes into the draw list.</p>
-  </div>
-  <div class="form-actions">
-    <%= button_to "Set draw", set_draw_tournament_path(@tournament), method: :patch, class: "primary-button button-reset" %>
+    <p class="page-copy">Find accepted athletes and record up to three locked weight attempts.</p>
   </div>
 </div>
 
@@ -60,7 +57,7 @@
             <%= form.submit "Save", class: "primary-button button-reset" %>
           <% end %>
         <% else %>
-          <div class="attempt-closed"><%= registration.weight_verified? ? "Ready for draw" : "Closed" %></div>
+          <div class="attempt-closed"><%= registration.weight_verified? ? "Weight verified" : "Closed" %></div>
         <% end %>
       </article>
     <% end %>

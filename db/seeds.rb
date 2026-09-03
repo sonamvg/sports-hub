@@ -1,4 +1,4 @@
-# Demo seed data for local testing.
+# Clean seed data for local testing and staging demos.
 #
 # These records cover current MVP roles and the newer tournament setup fields:
 # per-category fee, payment instructions, courts, referees, categories, athletes,
@@ -9,9 +9,27 @@ FIXTURE_DIR = Rails.root.join("test/fixtures/files")
 TOURNAMENT_IMAGE = FIXTURE_DIR.join("tournament-image.png")
 PAYMENT_RECEIPT = FIXTURE_DIR.join("payment-receipt.png")
 
+def cleanup_obsolete_seed_data
+  obsolete_tournament_names = [
+    "Demo Tournament",
+    "Test Tournament",
+    "Paged Tournament",
+    "Placeholder Open",
+    "Delete Me Open",
+    "Protected Open",
+    "Open Invitational"
+  ]
+
+  obsolete_tournament_names.each do |name|
+    Tournament.where("name ILIKE ?", "#{name}%").find_each(&:destroy)
+  end
+end
+
 def seed_user(email:, name:, role:, **attributes)
-  user = User.find_or_initialize_by(email: email)
+  legacy_email = email.to_s.sub("@podiumcircle.test", "@sportshub.test")
+  user = User.where(email: [email, legacy_email]).first || User.new(email: email)
   user.assign_attributes(attributes.merge(name: name, role: role, password: PASSWORD, password_confirmation: PASSWORD))
+  user.email = email
   user.save!
   user
 end
@@ -33,6 +51,7 @@ def seed_academy(name:, owner:, **attributes)
   academy = Academy.find_or_initialize_by(name: name)
   academy.assign_attributes(attributes.merge(owner: owner))
   academy.save!
+  attach_file(academy, :logo_image, TOURNAMENT_IMAGE, content_type: "image/png")
   academy
 end
 
@@ -51,6 +70,12 @@ def seed_tournament(name:, organizer:, **attributes)
   attach_file(tournament, :logo_image, TOURNAMENT_IMAGE, content_type: "image/png")
   attach_file(tournament, :banner_image, TOURNAMENT_IMAGE, content_type: "image/png")
   tournament
+end
+
+def seed_membership_request(academy:, athlete:, requested_by:)
+  return if athlete.academy_id == academy.id
+
+  AcademyMembershipRequest.find_or_create_by!(academy: academy, athlete: athlete, requested_by: requested_by, status: :pending)
 end
 
 def seed_category(tournament, template_key)
@@ -100,22 +125,24 @@ def seed_weight_checks(registration:, actor:, weights:)
   registration
 end
 
+cleanup_obsolete_seed_data
+
 super_admin = seed_user(
-  email: "admin@sportshub.test",
-  name: "Sports Hub Admin",
+  email: "admin@podiumcircle.test",
+  name: "PodiumCircle Admin",
   role: :super_admin
 )
 
 academy_owner = seed_user(
-  email: "academy@sportshub.test",
+  email: "academy@podiumcircle.test",
   name: "Pune Academy Owner",
   role: :academy_owner,
   phone: "9000000001"
 )
 
 organizer = seed_user(
-  email: "organizer@sportshub.test",
-  name: "Demo Tournament Organizer",
+  email: "organizer@podiumcircle.test",
+  name: "Kanchan Surudkar",
   role: :organizer,
   organizer_status: :verified,
   organizer_designation: "Tournament Director",
@@ -125,8 +152,8 @@ organizer = seed_user(
 )
 
 assistant_organizer = seed_user(
-  email: "assistant.organizer@sportshub.test",
-  name: "Assistant Organizer",
+  email: "assistant.organizer@podiumcircle.test",
+  name: "Nikhil Desai",
   role: :organizer,
   organizer_status: :verified,
   organizer_designation: "Operations Lead",
@@ -136,7 +163,7 @@ assistant_organizer = seed_user(
 )
 
 athlete_user = seed_user(
-  email: "athlete@sportshub.test",
+  email: "athlete@podiumcircle.test",
   name: "Aarohi Shah",
   role: :athlete,
   phone: "9000000004"
@@ -148,11 +175,91 @@ academy = seed_academy(
   city: "Pune",
   state: "Maharashtra",
   country: "India",
-  email: "academy@sportshub.test",
+  email: "academy@podiumcircle.test",
   phone: "020-40000000",
   contact_name: "Pune Academy Owner",
   registration_number: "PCTA-2026-001",
   status: :approved
+)
+
+shivneri_owner = seed_user(
+  email: "shivneri.owner@podiumcircle.test",
+  name: "Madhura Bhide",
+  role: :academy_owner,
+  phone: "9000000011"
+)
+
+deccan_owner = seed_user(
+  email: "deccan.owner@podiumcircle.test",
+  name: "Rahul Jadhav",
+  role: :academy_owner,
+  phone: "9000000012"
+)
+
+mumbai_owner = seed_user(
+  email: "mumbai.owner@podiumcircle.test",
+  name: "Naina Merchant",
+  role: :academy_owner,
+  phone: "9000000013"
+)
+
+shivneri_academy = seed_academy(
+  name: "Shivneri Martial Arts",
+  owner: shivneri_owner,
+  city: "Pune",
+  state: "Maharashtra",
+  country: "India",
+  email: "contact@shivnerimartialarts.in",
+  phone: "020-41234567",
+  contact_name: "Madhura Bhide",
+  registration_number: "SMA-2026-014",
+  status: :approved
+)
+
+deccan_academy = seed_academy(
+  name: "Deccan Elite Taekwondo",
+  owner: deccan_owner,
+  city: "Pune",
+  state: "Maharashtra",
+  country: "India",
+  email: "desk@deccanelitetkd.in",
+  phone: "020-42345678",
+  contact_name: "Rahul Jadhav",
+  registration_number: "DET-2026-022",
+  status: :approved
+)
+
+mumbai_academy = seed_academy(
+  name: "Mumbai Falcons Taekwondo",
+  owner: mumbai_owner,
+  city: "Mumbai",
+  state: "Maharashtra",
+  country: "India",
+  email: "hello@mumbaifalconstkd.in",
+  phone: "022-40123456",
+  contact_name: "Naina Merchant",
+  registration_number: "MFT-2026-009",
+  status: :approved
+)
+
+pending_academy = seed_academy(
+  name: "Riverfront Combat Academy",
+  owner: deccan_owner,
+  city: "Nashik",
+  state: "Maharashtra",
+  country: "India",
+  email: "admin@riverfrontcombat.in",
+  phone: "0253-4012000",
+  contact_name: "Sagar More",
+  registration_number: "RCA-2026-031",
+  status: :pending
+)
+
+SuperAdminNotification.notify!(
+  kind: :academy_submission,
+  notifiable: pending_academy,
+  actor: deccan_owner,
+  message: "Riverfront Combat Academy is waiting for academy approval."
 )
 
 athletes = [
@@ -218,10 +325,55 @@ athletes = [
   )
 ]
 
+additional_roster_specs = [
+  [shivneri_academy, "Ira", "Bapat", "female", Date.new(2015, 4, 8), "yellow", 24.3, "A+", "SMA-ATH-2101", "Kothrud"],
+  [shivneri_academy, "Nirav", "Joshi", "male", Date.new(2014, 10, 2), "green", 31.6, "B+", "SMA-ATH-2102", "Erandwane"],
+  [shivneri_academy, "Rhea", "Kulkarni", "female", Date.new(2012, 7, 19), "blue", 36.4, "O+", "SMA-ATH-2103", "Karve Nagar"],
+  [shivneri_academy, "Omkar", "Deshpande", "male", Date.new(2009, 11, 6), "red", 53.8, "AB+", "SMA-ATH-2104", "Shivajinagar"],
+  [deccan_academy, "Anika", "Gadgil", "female", Date.new(2016, 1, 21), "white", 18.7, "O-", "DET-ATH-3101", "Aundh"],
+  [deccan_academy, "Vedant", "Kale", "male", Date.new(2013, 3, 17), "green", 36.2, "A-", "DET-ATH-3102", "Pashan"],
+  [deccan_academy, "Mira", "Sawant", "female", Date.new(2010, 6, 28), "black", 48.1, "B-", "DET-ATH-3103", "Baner"],
+  [deccan_academy, "Shaurya", "Apte", "male", Date.new(2008, 12, 9), "black", 54.4, "AB-", "DET-ATH-3104", "Wakad"],
+  [mumbai_academy, "Tanish", "Bora", "male", Date.new(2015, 8, 14), "yellow", 22.6, "B+", "MFT-ATH-4101", "Andheri"],
+  [mumbai_academy, "Avni", "Menon", "female", Date.new(2014, 2, 11), "blue", 33.4, "O+", "MFT-ATH-4102", "Bandra"],
+  [mumbai_academy, "Reyansh", "Kapoor", "male", Date.new(2011, 5, 24), "red", 40.8, "A+", "MFT-ATH-4103", "Powai"],
+  [mumbai_academy, "Zara", "Contractor", "female", Date.new(2007, 9, 30), "black", 56.3, "AB+", "MFT-ATH-4104", "Dadar"]
+]
+
+additional_roster_specs.each_with_index do |(student_academy, first_name, last_name, gender, dob, belt, weight, blood_group, association_id, neighborhood), index|
+  user = seed_user(
+    email: "#{first_name.downcase}.#{last_name.downcase}@podiumcircle.test",
+    name: "#{first_name} #{last_name}",
+    role: :athlete,
+    phone: "90000009#{format('%02d', index + 1)}"
+  )
+
+  athletes << seed_athlete(
+    user: user,
+    academy: student_academy,
+    first_name: first_name,
+    last_name: last_name,
+    date_of_birth: dob,
+    gender: gender,
+    belt: belt,
+    weight: weight,
+    blood_group: blood_group,
+    association_id: association_id,
+    contact_number: "90000009#{format('%02d', index + 1)}",
+    emergency_contact_name: "#{last_name} family contact",
+    emergency_contact_phone: "90000010#{format('%02d', index + 1)}",
+    address: "#{neighborhood}, #{student_academy.city}",
+    city: student_academy.city,
+    state: student_academy.state,
+    country: student_academy.country,
+    government_id_document_type: "Aadhaar"
+  )
+end
+
 open_tournament = seed_tournament(
   name: "Pune Open Taekwondo Championship",
   organizer: organizer,
-  description: "Demo post-registration tournament with categories, payment details, referees, athletes, and weight-check data.",
+  description: "State-level competition with registration review, weigh-in operations, and referee coordination.",
   venue: "Balewadi Sports Complex",
   city: "Pune",
   state: "Maharashtra",
@@ -235,29 +387,29 @@ open_tournament = seed_tournament(
   organizing_organization: "Maharashtra Taekwondo Association",
   time_zone: "Mumbai",
   primary_contact_name: "Event Desk",
-  primary_contact_email: "events@sportshub.test",
+  primary_contact_email: "events@puneopentkd.in",
   primary_contact_phone: "9000000200",
   competition_formats: "Kyorugi, Individual Poomsae",
   eligibility_summary: "Age proof required, Valid academy or association membership, Medical fitness declaration",
-  category_generation_method: "Default category templates",
+  category_generation_method: "Default categories",
   registration_capacity: 250,
   registration_fee: 1000,
   currency: "INR",
   required_documents: "Age proof, Government identity proof, Association ID",
-  refund_policy: "Full refund before registration closes, No refund after draws are published",
+  refund_policy: "Full refund before registration closes, No refund after final schedules are published",
   payment_account_name: "Maharashtra Taekwondo Association",
-  payment_bank_name: "Demo Cooperative Bank",
-  payment_account_number: "123456789012",
-  payment_ifsc: "DEMO0001234",
+  payment_bank_name: "Maharashtra Cooperative Bank",
+  payment_account_number: "412300987654",
+  payment_ifsc: "MCBK0004123",
   payment_instructions: "Use athlete name and tournament name as payment reference.",
   courts_count: 4,
-  website_url: "https://example.com/pune-open"
+  website_url: "https://puneopentkd.in"
 )
 
 closed_tournament = seed_tournament(
   name: "Mumbai Invitational Taekwondo Cup",
   organizer: organizer,
-  description: "Demo post-registration tournament with venue and referee details ready for weight check.",
+  description: "Invitation tournament with completed registration and verified weigh-ins.",
   venue: "Andheri Sports Hall",
   city: "Mumbai",
   state: "Maharashtra",
@@ -271,25 +423,108 @@ closed_tournament = seed_tournament(
   organizing_organization: "Mumbai Taekwondo Committee",
   time_zone: "Mumbai",
   primary_contact_name: "Mumbai Event Desk",
-  primary_contact_email: "mumbai.events@sportshub.test",
+  primary_contact_email: "entries@mumbaiinvitationaltkd.in",
   primary_contact_phone: "9000000300",
   competition_formats: "Kyorugi",
   eligibility_summary: "Age proof required, Guardian consent for minors",
-  category_generation_method: "Default category templates",
+  category_generation_method: "Default categories",
   registration_capacity: 180,
   registration_fee: 800,
   currency: "INR",
   required_documents: "Age proof, Academy approval letter",
-  refund_policy: "No refund after draws are published",
+  refund_policy: "No refund after final schedules are published",
   payment_account_name: "Mumbai Taekwondo Committee",
-  payment_bank_name: "Demo National Bank",
-  payment_account_number: "987654321098",
-  payment_ifsc: "DEMO0009876",
+  payment_bank_name: "Western India Bank",
+  payment_account_number: "508800765432",
+  payment_ifsc: "WIBK0005088",
   payment_instructions: "Use athlete association ID as payment reference.",
   courts_count: 3
 )
 
-[open_tournament, closed_tournament].each do |tournament|
+bengaluru_organizer = seed_user(
+  email: "bengaluru.organizer@podiumcircle.test",
+  name: "Priya Raman",
+  role: :organizer,
+  organizer_status: :verified,
+  organizer_designation: "Event Convenor",
+  organizer_approved_at: Time.current,
+  organizer_reviewed_by: super_admin,
+  phone: "9000000014"
+)
+
+upcoming_tournament = seed_tournament(
+  name: "Bengaluru Classic Taekwondo League",
+  organizer: bengaluru_organizer,
+  description: "Open registration league for academies and independent athletes across South India.",
+  venue: "Koramangala Indoor Arena",
+  city: "Bengaluru",
+  state: "Karnataka",
+  country: "India",
+  start_date: 70.days.from_now.to_date,
+  end_date: 71.days.from_now.to_date,
+  registration_opens_at: 1.day.ago,
+  registration_closes_at: 35.days.from_now,
+  status: :registration_open,
+  tournament_level: "Regional",
+  organizing_organization: "Karnataka Taekwondo Events Council",
+  time_zone: "Asia/Kolkata",
+  primary_contact_name: "League Registration Desk",
+  primary_contact_email: "entries@bengaluruclassictkd.in",
+  primary_contact_phone: "9000000310",
+  competition_formats: "Kyorugi, Individual Poomsae, Team Poomsae",
+  eligibility_summary: "Age proof required, Valid academy or association membership, Medical fitness declaration",
+  category_generation_method: "Default categories",
+  registration_capacity: 320,
+  registration_fee: 1200,
+  currency: "INR",
+  required_documents: "Age proof, Government identity proof, Academy approval letter",
+  refund_policy: "Partial refund after registration closes, Refund only if event is cancelled",
+  payment_account_name: "Karnataka Taekwondo Events Council",
+  payment_bank_name: "South City Bank",
+  payment_account_number: "601200889900",
+  payment_ifsc: "SCBK0006012",
+  payment_instructions: "Use athlete full name and selected category count as the payment note.",
+  courts_count: 5,
+  website_url: "https://bengaluruclassictkd.in"
+)
+
+completed_tournament = seed_tournament(
+  name: "Delhi Winter Taekwondo Festival",
+  organizer: assistant_organizer,
+  description: "Completed national festival used for athlete history, results, medals, and archive views.",
+  venue: "Talkatora Indoor Stadium",
+  city: "New Delhi",
+  state: "Delhi",
+  country: "India",
+  start_date: 40.days.ago.to_date,
+  end_date: 39.days.ago.to_date,
+  registration_opens_at: 90.days.ago,
+  registration_closes_at: 55.days.ago,
+  status: :completed,
+  tournament_level: "National",
+  organizing_organization: "Delhi Taekwondo Council",
+  time_zone: "Asia/Kolkata",
+  primary_contact_name: "Festival Office",
+  primary_contact_email: "office@delhiwintertkd.in",
+  primary_contact_phone: "9000000320",
+  competition_formats: "Kyorugi, Individual Poomsae",
+  eligibility_summary: "Age proof required, Medical fitness declaration",
+  category_generation_method: "Default categories",
+  registration_capacity: 420,
+  registration_fee: 1500,
+  currency: "INR",
+  required_documents: "Age proof, Government identity proof, Association ID",
+  refund_policy: "No refund after final schedules are published",
+  payment_account_name: "Delhi Taekwondo Council",
+  payment_bank_name: "Capital Sports Bank",
+  payment_account_number: "772200110099",
+  payment_ifsc: "CSBK0007722",
+  payment_instructions: "Closed event. Payment records are retained for audit history.",
+  courts_count: 6,
+  website_url: "https://delhiwintertkd.in"
+)
+
+[open_tournament, closed_tournament, upcoming_tournament, completed_tournament].each do |tournament|
   TournamentOrganizer.find_or_create_by!(tournament: tournament, user: assistant_organizer) do |membership|
     membership.role = :collaborator
     membership.added_by = organizer
@@ -304,68 +539,12 @@ closed_categories = %w[cadet-female-u37 junior-male-u55 senior-male-u68].map do 
   seed_category(closed_tournament, key)
 end
 
-mumbai_draw_ready_athlete_specs = [
-  ["Aditi", "Naik", "female", Date.new(2012, 1, 15), "blue", 36.2, "Coastal Warriors Taekwondo", closed_categories.first],
-  ["Kiara", "Patel", "female", Date.new(2012, 5, 22), "red", 35.8, "Eastern Edge Dojang", closed_categories.first],
-  ["Myra", "Iyer", "female", Date.new(2011, 9, 7), "green", 36.7, "Western Strikers Academy", closed_categories.first],
-  ["Riya", "Shah", "female", Date.new(2013, 3, 11), "blue", 34.9, "Harbour Kick Club", closed_categories.first],
-  ["Sara", "Menon", "female", Date.new(2012, 12, 2), "red", 35.4, "Skyline Martial Arts", closed_categories.first],
-  ["Tara", "Pillai", "female", Date.new(2011, 6, 19), "black", 36.9, "North Star Taekwondo", closed_categories.first],
-  ["Aarav", "Rane", "male", Date.new(2009, 4, 3), "red", 54.0, "Metro Tigers Dojang", closed_categories.second],
-  ["Dev", "Shetty", "male", Date.new(2008, 8, 14), "black", 53.2, "Phoenix Kicks Academy", closed_categories.second],
-  ["Kabir", "Kapoor", "male", Date.new(2009, 10, 25), "blue", 52.7, "Seaside Combat Club", closed_categories.second],
-  ["Neil", "Bhat", "male", Date.new(2010, 2, 17), "green", 54.6, "Summit Taekwondo Center", closed_categories.second],
-  ["Om", "Chavan", "male", Date.new(2008, 11, 29), "red", 53.9, "Central Ring Academy", closed_categories.second],
-  ["Vivaan", "Ghosh", "male", Date.new(2009, 7, 8), "black", 52.4, "Velocity Martial Arts", closed_categories.second],
-  ["Yash", "Mehra", "male", Date.new(2010, 1, 31), "blue", 54.8, "Iron Stance Dojang", closed_categories.second],
-  ["Arjun", "Saxena", "male", Date.new(2004, 9, 5), "black", 66.5, "Prime Kickboxing And TKD", closed_categories.third],
-  ["Dhruv", "Mishra", "male", Date.new(2003, 12, 12), "red", 64.8, "Urban Warriors Club", closed_categories.third],
-  ["Ishaan", "Roy", "male", Date.new(2005, 5, 21), "blue", 62.9, "Bayline Taekwondo", closed_categories.third],
-  ["Kunal", "Sethi", "male", Date.new(2002, 7, 16), "black", 67.2, "Champion's Lane Dojang", closed_categories.third],
-  ["Manav", "Nair", "male", Date.new(2004, 3, 4), "red", 65.1, "Spartan Kicks Academy", closed_categories.third],
-  ["Pranav", "Kulkarni", "male", Date.new(2003, 6, 27), "blue", 63.7, "Ace Taekwondo Collective", closed_categories.third],
-  ["Rohan", "Malhotra", "male", Date.new(2005, 2, 10), "black", 66.0, "Victory Path Martial Arts", closed_categories.third]
-]
+upcoming_categories = %w[sub-junior-female-u24 cadet-female-u37 cadet-male-u41 junior-male-u55 senior-female-u57 individual-poomsae-male-junior].map do |key|
+  seed_category(upcoming_tournament, key)
+end
 
-mumbai_draw_ready_athlete_specs.each_with_index do |(first_name, last_name, gender, dob, belt, weight, external_academy_name, category), index|
-  user = seed_user(
-    email: "mumbai.draw.athlete#{index + 1}@sportshub.test",
-    name: "#{first_name} #{last_name}",
-    role: :athlete,
-    phone: "90000007#{format('%02d', index + 1)}"
-  )
-
-  athlete = seed_athlete(
-    user: user,
-    academy: nil,
-    first_name: first_name,
-    last_name: last_name,
-    date_of_birth: dob,
-    gender: gender,
-    belt: belt,
-    weight: weight,
-    blood_group: Athlete::BLOOD_GROUPS[index % Athlete::BLOOD_GROUPS.size],
-    association_id: "MITC-DR-#{format('%03d', index + 1)}",
-    contact_number: "90000007#{format('%02d', index + 1)}",
-    emergency_contact_name: "Emergency Contact #{index + 1}",
-    emergency_contact_phone: "90000008#{format('%02d', index + 1)}",
-    address: "Mumbai training address #{index + 1}",
-    city: "Mumbai",
-    state: "Maharashtra",
-    country: "India",
-    government_id_document_type: "Aadhaar",
-    external_academy_name: external_academy_name
-  )
-
-  registration = seed_registration(
-    tournament: closed_tournament,
-    athlete: athlete,
-    category: category,
-    status: :approved,
-    actor: organizer
-  )
-
-  seed_weight_checks(registration: registration, actor: assistant_organizer, weights: [weight])
+completed_categories = %w[cadet-female-u37 cadet-male-u41 junior-female-u49 junior-male-u55 senior-female-u57 senior-male-u68].map do |key|
+  seed_category(completed_tournament, key)
 end
 
 [
@@ -373,7 +552,7 @@ end
     tournament: open_tournament,
     name: "Meera Rao",
     phone: "9000000401",
-    email: "meera.rao@sportshub.test",
+    email: "meera.rao@podiumcircle.test",
     role: "Center referee",
     qualification: "National referee",
     certification_id: "NR-102",
@@ -384,7 +563,7 @@ end
     tournament: open_tournament,
     name: "Arjun Nair",
     phone: "9000000402",
-    email: "arjun.nair@sportshub.test",
+    email: "arjun.nair@podiumcircle.test",
     role: "Judge",
     qualification: "State referee",
     certification_id: "SR-211",
@@ -395,12 +574,12 @@ end
     tournament: closed_tournament,
     name: "Farah Khan",
     phone: "9000000403",
-    email: "farah.khan@sportshub.test",
+    email: "farah.khan@podiumcircle.test",
     role: "Technical official",
     qualification: "WT certified referee",
     certification_id: "WT-IND-778",
     affiliation: "Mumbai Taekwondo Committee",
-    notes: "Lead official for weight check and draw desk."
+    notes: "Lead official for weight check desk."
   }
 ].each do |attributes|
   referee = attributes.delete(:tournament).tournament_referees.find_or_initialize_by(name: attributes[:name])
@@ -427,7 +606,7 @@ vihaan_pune_registration = seed_registration(
 
 weight_check_athlete_specs = [
   {
-    email: "anaya.kulkarni@sportshub.test",
+    email: "anaya.kulkarni@podiumcircle.test",
     first_name: "Anaya",
     last_name: "Kulkarni",
     date_of_birth: Date.new(2012, 2, 18),
@@ -445,7 +624,7 @@ weight_check_athlete_specs = [
     weights: [38.5, 38.3]
   },
   {
-    email: "saanvi.joshi@sportshub.test",
+    email: "saanvi.joshi@podiumcircle.test",
     first_name: "Saanvi",
     last_name: "Joshi",
     date_of_birth: Date.new(2012, 8, 9),
@@ -463,7 +642,7 @@ weight_check_athlete_specs = [
     weights: [37.0]
   },
   {
-    email: "ishaan.deshmukh@sportshub.test",
+    email: "ishaan.deshmukh@podiumcircle.test",
     first_name: "Ishaan",
     last_name: "Deshmukh",
     date_of_birth: Date.new(2011, 11, 25),
@@ -481,7 +660,7 @@ weight_check_athlete_specs = [
     weights: [42.2, 41.8, 41.4]
   },
   {
-    email: "rehan.shaikh@sportshub.test",
+    email: "rehan.shaikh@podiumcircle.test",
     first_name: "Rehan",
     last_name: "Shaikh",
     date_of_birth: Date.new(2009, 3, 14),
@@ -551,8 +730,104 @@ seed_registration(
   actor: assistant_organizer
 )
 
-puts "Seeded Sports Hub demo data."
-puts "Super admin: admin@sportshub.test / #{PASSWORD}"
-puts "Organizer: organizer@sportshub.test / #{PASSWORD}"
-puts "Academy owner: academy@sportshub.test / #{PASSWORD}"
-puts "Athlete: athlete@sportshub.test / #{PASSWORD}"
+upcoming_registration_pairs = [
+  [athletes[0], upcoming_categories.second, :pending],
+  [athletes[3], upcoming_categories.first, :approved],
+  [athletes[5], upcoming_categories.second, :approved],
+  [athletes[7], upcoming_categories.third, :pending],
+  [athletes[10], upcoming_categories.third, :rejected],
+  [athletes[13], upcoming_categories.fifth, :pending]
+]
+
+upcoming_registration_pairs.each do |student, category, status|
+  seed_registration(
+    tournament: upcoming_tournament,
+    athlete: student,
+    category: category,
+    status: status,
+    actor: bengaluru_organizer
+  )
+end
+
+completed_registration_pairs = [
+  [athletes[0], completed_categories.first, :weight_verified],
+  [athletes[4], completed_categories.first, :weight_verified],
+  [athletes[6], completed_categories.third, :weight_verified],
+  [athletes[8], completed_categories.fourth, :weight_verified],
+  [athletes[11], completed_categories.fifth, :disqualified],
+  [athletes[14], completed_categories.fifth, :weight_verified]
+]
+
+completed_registration_pairs.each_with_index do |(student, category, status), index|
+  registration = seed_registration(
+    tournament: completed_tournament,
+    athlete: student,
+    category: category,
+    status: :approved,
+    actor: assistant_organizer
+  )
+  if status == :disqualified
+    seed_weight_checks(registration: registration, actor: assistant_organizer, weights: [student.weight + 2, student.weight + 1.5, student.weight + 1])
+  else
+    seed_weight_checks(registration: registration, actor: assistant_organizer, weights: [student.weight])
+  end
+  registration.update!(status: status)
+  registration.update!(registration_number: "DWTF-#{format('%03d', index + 1)}") if registration.registration_number.blank?
+end
+
+independent_user = seed_user(
+  email: "independent.athlete@podiumcircle.test",
+  name: "Samar Vaidya",
+  role: :athlete,
+  phone: "9000000115"
+)
+
+independent_athlete = seed_athlete(
+  user: independent_user,
+  academy: nil,
+  first_name: "Samar",
+  last_name: "Vaidya",
+  date_of_birth: Date.new(2013, 12, 3),
+  gender: "male",
+  belt: "green",
+  weight: 36.9,
+  blood_group: "B+",
+  association_id: "IND-ATH-5101",
+  contact_number: "9000000115",
+  emergency_contact_name: "Vaidya family contact",
+  emergency_contact_phone: "9000001115",
+  address: "Model Colony, Pune",
+  city: "Pune",
+  state: "Maharashtra",
+  country: "India",
+  government_id_document_type: "Aadhaar",
+  external_academy_name: "Model Colony Taekwondo Circle"
+)
+
+SuperAdminNotification.notify!(
+  kind: :unregistered_academy_athlete,
+  notifiable: independent_athlete,
+  actor: independent_user,
+  message: "Samar Vaidya listed Model Colony Taekwondo Circle, which is not registered yet."
+)
+
+seed_membership_request(
+  academy: shivneri_academy,
+  athlete: athletes[10],
+  requested_by: athletes[10].user
+)
+
+[open_tournament, closed_tournament, upcoming_tournament].each do |tournament|
+  SuperAdminNotification.notify!(
+    kind: :tournament_submission,
+    notifiable: tournament,
+    actor: tournament.organizer,
+    message: "#{tournament.name} is available for super-admin review."
+  )
+end
+
+puts "Seeded PodiumCircle local data."
+puts "Super admin: admin@podiumcircle.test / #{PASSWORD}"
+puts "Organizer: organizer@podiumcircle.test / #{PASSWORD}"
+puts "Academy owner: academy@podiumcircle.test / #{PASSWORD}"
+puts "Athlete: athlete@podiumcircle.test / #{PASSWORD}"

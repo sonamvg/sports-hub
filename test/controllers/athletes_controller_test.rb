@@ -26,7 +26,7 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
           government_id_document_type: "Aadhaar",
           profile_photo: tournament_image_upload,
           identity_document: identity_image_upload
-        }
+        }.merge(consent_params)
       }
     end
 
@@ -38,6 +38,8 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Aadhaar", athlete.government_id_document_type
     assert_predicate athlete.profile_photo, :attached?
     assert_predicate athlete.identity_document, :attached?
+    assert_not_nil athlete.terms_accepted_at
+    assert_not_nil athlete.data_sharing_consent_accepted_at
     assert_redirected_to athlete_path(athlete)
     assert_equal "Athlete profile created.", flash[:notice]
   end
@@ -47,7 +49,26 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, "Your profile will be reused across future tournament registrations."
+    assert_includes response.body, "PodiumCircle terms and conditions"
+    assert_includes response.body, "I consent to sharing my athlete profile"
     assert_not_includes response.body, "This profile will be reused across future tournament registrations."
+  end
+
+  test "athlete creation requires terms and data sharing consent" do
+    assert_no_difference("Athlete.count") do
+      post athletes_path, params: {
+        athlete: {
+          first_name: "Vihaan",
+          last_name: "Mehta",
+          date_of_birth: Date.new(2012, 3, 3),
+          gender: "male"
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Terms accepted must be accepted"
+    assert_includes response.body, "Data sharing consent must be accepted"
   end
 
   test "invalid athlete create highlights every field with validation errors" do
@@ -104,27 +125,6 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     upcoming.registrations.create!(athlete: athlete, tournament_category: declined_category, status: :rejected, payment_receipt: payment_receipt_upload)
     verified_registration = upcoming.registrations.create!(athlete: athlete, tournament_category: verified_category, status: :approved, payment_receipt: payment_receipt_upload)
     verified_registration.registration_weight_checks.create!(checked_by: organizer, weight: 32.8)
-    opponent_user = User.create!(name: "Opponent User", email: "athlete-status-opponent@example.test", password: "password123", role: :athlete)
-    opponent = opponent_user.athletes.create!(first_name: "Meera", last_name: "Rao", date_of_birth: Date.new(2014, 5, 12), gender: "female", external_academy_name: "Opponent Dojang")
-    opponent_registration = upcoming.registrations.create!(athlete: opponent, tournament_category: verified_category, status: :weight_verified, payment_receipt: payment_receipt_upload)
-    draw = upcoming.tournament_draws.create!(tournament_category: verified_category, generated_by: organizer, bracket_size: 2, round_count: 1, entry_count: 2, generated_at: Time.current)
-    draw.tournament_draw_matches.create!(
-      round_number: 1,
-      position: 1,
-      red_registration: verified_registration,
-      blue_registration: opponent_registration,
-      red_round_1_points: 9,
-      blue_round_1_points: 4,
-      red_round_2_points: 7,
-      blue_round_2_points: 5,
-      red_round_3_points: 6,
-      blue_round_3_points: 3,
-      red_head_guard_color: "red",
-      blue_head_guard_color: "blue",
-      winner_registration: verified_registration,
-      completed_by: organizer,
-      completed_at: Time.current
-    )
     disqualified_registration = upcoming.registrations.create!(athlete: athlete, tournament_category: disqualified_category, status: :approved, payment_receipt: payment_receipt_upload)
     disqualified_registration.registration_weight_checks.create!(checked_by: organizer, weight: 38.5)
     disqualified_registration.registration_weight_checks.create!(checked_by: organizer, weight: 38.1)
@@ -150,8 +150,6 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Declined"
     assert_includes response.body, "Weight verified"
     assert_includes response.body, "Attempt 1: 32.8 kg passed"
-    assert_not_includes response.body, "registration-draw-card"
-    assert_not_includes response.body, "Draw set"
     assert_includes response.body, "Disqualified"
     assert_includes response.body, "Attempt 3: 38 kg failed"
     assert_includes response.body, "Previous competitions"
@@ -340,7 +338,7 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
         last_name: "Mehta",
         date_of_birth: Date.new(2012, 3, 3),
         gender: "male"
-      }
+      }.merge(consent_params)
     }
 
     assert_redirected_to return_path
@@ -354,7 +352,7 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
         last_name: "Mehta",
         date_of_birth: Date.new(2012, 3, 3),
         gender: "male"
-      }
+      }.merge(consent_params)
     }
 
     assert_redirected_to athlete_path(Athlete.order(:created_at).last)

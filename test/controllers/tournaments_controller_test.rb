@@ -38,6 +38,8 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       "Enter competition format",
       "Enter eligibility rule",
       "Enter required document",
+      "PodiumCircle terms and conditions",
+      "I consent to sharing tournament details",
       "Save as Draft",
       "Publish"
     ].each do |label|
@@ -49,6 +51,22 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Organiser does not have an account"
     assert_includes response.body, "data-organizer-missing-account"
     assert_includes response.body, "data-selected-invites"
+  end
+
+  test "tournament creation requires terms and data sharing consent" do
+    assert_no_difference("Tournament.count") do
+      post tournaments_path, params: {
+        tournament: {
+          name: "Consent Missing Open",
+          start_date: "2026-12-05",
+          end_date: "2026-12-06"
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Terms accepted must be accepted"
+    assert_includes response.body, "Data sharing consent must be accepted"
   end
 
   test "creates tournament" do
@@ -80,13 +98,13 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
           currency: "inr",
           required_document_options: ["Age proof", "Association ID"],
           required_document_other: ["Coach approval"],
-          refund_policy_options: ["Full refund before registration closes", "No refund after draws are published"],
+          refund_policy_options: ["Full refund before registration closes", "No refund after final schedules are published"],
           status: "registration_open",
           website_url: "https://example.com/pune-invitational",
           logo_image: tournament_image_upload,
           banner_image: tournament_image_upload,
           organizer_user_ids: [collaborator.id]
-        }
+        }.merge(consent_params)
       }
     end
 
@@ -97,6 +115,8 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "https://example.com/pune-invitational", tournament.website_url
     assert_predicate tournament.logo_image, :attached?
     assert_predicate tournament.banner_image, :attached?
+    assert_not_nil tournament.terms_accepted_at
+    assert_not_nil tournament.data_sharing_consent_accepted_at
     assert_equal "State", tournament.tournament_level
     assert_equal "Maharashtra Taekwondo Association", tournament.organizing_organization
     assert_equal "Mumbai", tournament.time_zone
@@ -108,7 +128,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal BigDecimal("1500.0"), tournament.registration_fee
     assert_equal "INR", tournament.currency
     assert_equal "Age proof, Association ID, Coach approval", tournament.required_documents
-    assert_equal "Full refund before registration closes, No refund after draws are published", tournament.refund_policy
+    assert_equal "Full refund before registration closes, No refund after final schedules are published", tournament.refund_policy
     assert_equal @organizer, tournament.tournament_organizers.super_organizer.sole.user
     assert_includes tournament.organizer_users, collaborator
     assert_equal TournamentCategory::DEFAULT_CATEGORY_TEMPLATES.size, tournament.tournament_categories.count
@@ -122,7 +142,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
           name: "Auto Category Open",
           start_date: "2026-12-05",
           end_date: "2026-12-06"
-        }
+        }.merge(consent_params)
       }
     end
 
@@ -152,7 +172,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
           start_date: "2026-12-05",
           end_date: "2026-12-06",
           status: "draft"
-        }
+        }.merge(consent_params)
       }
     end
 
@@ -168,7 +188,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
           start_date: "2026-12-05",
           end_date: "2026-12-06",
           status: "registration_open"
-        }
+        }.merge(consent_params)
       }
     end
 
@@ -509,7 +529,6 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, tournament_tournament_referees_path(tournament)
     assert_includes response.body, venue_setup_tournament_path(tournament)
     assert_includes response.body, organizer_tournament_weight_checks_path(tournament)
-    assert_includes response.body, "Set draw"
   end
 
   test "show uses placeholder dashes for missing optional tournament data" do
@@ -850,206 +869,6 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Venue setup opens after registration closes.", flash[:alert]
   end
 
-  test "set draw locks tournament after registration closes" do
-    academy = Academy.create!(name: "Lock Draw Academy", city: "Pune", status: :approved)
-    tournament = Tournament.create!(
-      name: "Closed Draw Open",
-      organizer: @organizer,
-      status: :registration_open,
-      registration_opens_at: 10.days.ago,
-      registration_closes_at: 1.day.ago,
-      start_date: 2.days.from_now.to_date,
-      end_date: 3.days.from_now.to_date
-    )
-    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 37)
-    first_user = User.create!(name: "Aarohi Shah", email: "lock-draw-aarohi@example.test", password: "password123", role: :athlete)
-    second_user = User.create!(name: "Meera Rao", email: "lock-draw-meera@example.test", password: "password123", role: :athlete)
-    first_athlete = first_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
-    second_athlete = second_user.athletes.create!(academy: academy, first_name: "Meera", last_name: "Rao", date_of_birth: Date.new(2014, 5, 12), gender: "female")
-    tournament.registrations.create!(athlete: first_athlete, tournament_category: category, status: :weight_verified, payment_receipt: payment_receipt_upload)
-    tournament.registrations.create!(athlete: second_athlete, tournament_category: category, status: :weight_verified, payment_receipt: payment_receipt_upload)
-
-    patch set_draw_tournament_path(tournament)
-
-    assert_redirected_to draw_tournament_path(tournament)
-    assert_predicate tournament.reload, :draw_scheduling?
-    assert_not tournament.late_registration_allowed_for?(@organizer)
-  end
-
-  test "set draw generates graphical brackets for weight verified athletes" do
-    academy = Academy.create!(name: "Draw Academy", city: "Pune", status: :approved)
-    other_academy = Academy.create!(name: "Other Draw Academy", city: "Mumbai", status: :approved)
-    tournament = Tournament.create!(
-      name: "Graphical Draw Open",
-      organizer: @organizer,
-      status: :registration_open,
-      registration_opens_at: 10.days.ago,
-      registration_closes_at: 1.day.ago,
-      start_date: 2.days.from_now.to_date,
-      end_date: 3.days.from_now.to_date,
-      venue: "Balewadi"
-    )
-    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
-    first_user = User.create!(name: "Aarohi Shah", email: "draw-aarohi@example.test", password: "password123", role: :athlete)
-    second_user = User.create!(name: "Meera Rao", email: "draw-meera@example.test", password: "password123", role: :athlete)
-    first_athlete = first_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
-    second_athlete = second_user.athletes.create!(academy: other_academy, first_name: "Meera", last_name: "Rao", date_of_birth: Date.new(2014, 5, 12), gender: "female")
-    tournament.registrations.create!(athlete: first_athlete, tournament_category: category, status: :weight_verified, payment_receipt: payment_receipt_upload)
-    tournament.registrations.create!(athlete: second_athlete, tournament_category: category, status: :weight_verified, payment_receipt: payment_receipt_upload)
-
-    assert_difference("TournamentDraw.count", 1) do
-      assert_difference("TournamentDrawMatch.count", 1) do
-        patch set_draw_tournament_path(tournament)
-      end
-    end
-
-    assert_redirected_to draw_tournament_path(tournament)
-    assert_predicate tournament.reload, :draw_scheduling?
-
-    get draw_tournament_path(tournament)
-    assert_response :success
-    assert_includes response.body, "draw-bracket"
-    assert_includes response.body, "--bracket-size:"
-    assert_includes response.body, "--match-row-start:"
-    assert_includes response.body, "--match-row-span:"
-    assert_includes response.body, "--connector-height:"
-    assert_includes response.body, "--connector-height: 174px;"
-    assert_includes response.body, "Graphical Draw Open"
-    assert_includes response.body, "Kyorugi Female Age 12-14 33-37kg".upcase
-    assert_includes response.body, "Aarohi Shah"
-    assert_includes response.body, "Meera Rao"
-    assert_includes response.body, "Save result"
-    assert_no_match(/<details class="draw-scoreboard" open/, response.body)
-    assert_not_includes response.body, "Round tied"
-    assert_not_includes response.body, "data-draw-round-tie"
-    assert_no_match(/Waiting\s*<\/span>\s*<strong>Previous winner/, response.body)
-    assert_includes response.body, "draw-score-box-blue"
-    assert_includes response.body, "draw-score-box-red"
-  end
-
-  test "draw page does not show scoreboard for bye matches" do
-    tournament = Tournament.create!(
-      name: "Bye Draw Open",
-      organizer: @organizer,
-      status: :registration_open,
-      registration_opens_at: 10.days.ago,
-      registration_closes_at: 1.day.ago,
-      start_date: 2.days.from_now.to_date,
-      end_date: 3.days.from_now.to_date
-    )
-    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
-    user = User.create!(name: "Solo Athlete", email: "bye-draw-solo@example.test", password: "password123", role: :athlete)
-    athlete = user.athletes.create!(first_name: "Solo", last_name: "Athlete", date_of_birth: Date.new(2014, 5, 12), gender: "female", external_academy_name: "Independent")
-    tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :weight_verified, payment_receipt: payment_receipt_upload)
-
-    patch set_draw_tournament_path(tournament)
-    get draw_tournament_path(tournament)
-
-    assert_response :success
-    assert_includes response.body, "Solo Athlete"
-    assert_includes response.body, "draw-bye-match"
-    assert_includes response.body, "draw-entrant-empty"
-    assert_no_match(/<span>Scoreboard<\/span>/, response.body)
-    assert_no_match(/Save result|Freeze result/, response.body)
-  end
-
-  test "draw page uses simple sequential match numbers across rounds" do
-    tournament = Tournament.create!(
-      name: "Sequential Draw Open",
-      organizer: @organizer,
-      status: :draw_scheduling,
-      start_date: 2.days.from_now.to_date,
-      end_date: 3.days.from_now.to_date
-    )
-    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
-    draw = tournament.tournament_draws.create!(tournament_category: category, generated_by: @organizer, bracket_size: 8, round_count: 3, entry_count: 4, generated_at: Time.current)
-    4.times { |index| draw.tournament_draw_matches.create!(round_number: 1, position: index + 1) }
-    2.times { |index| draw.tournament_draw_matches.create!(round_number: 2, position: index + 1, red_source_match_position: (index * 2) + 1, blue_source_match_position: (index * 2) + 2) }
-    draw.tournament_draw_matches.create!(round_number: 3, position: 1, red_source_match_position: 1, blue_source_match_position: 2)
-
-    get draw_tournament_path(tournament)
-
-    assert_response :success
-    (1..7).each do |number|
-      assert_includes response.body, %(<div class="draw-match-number">#{number}</div>)
-    end
-    assert_not_includes response.body, "2.2"
-    assert_not_includes response.body, "3.1"
-  end
-
-  test "set draw is blocked without draw ready category" do
-    tournament = Tournament.create!(
-      name: "Empty Draw Open",
-      organizer: @organizer,
-      status: :registration_open,
-      registration_opens_at: 10.days.ago,
-      registration_closes_at: 1.day.ago,
-      start_date: 2.days.from_now.to_date,
-      end_date: 3.days.from_now.to_date
-    )
-
-    assert_no_difference("TournamentDraw.count") do
-      patch set_draw_tournament_path(tournament)
-    end
-
-    assert_redirected_to tournament_path(tournament)
-    assert_equal "No draw-ready categories yet. Complete weight check for at least one athlete in a category.", flash[:alert]
-    assert_not_predicate tournament.reload, :draw_scheduling?
-  end
-
-  test "set draw creates active draws for every category with draw ready athletes" do
-    tournament = Tournament.create!(
-      name: "Multi Category Draw Open",
-      organizer: @organizer,
-      status: :registration_open,
-      registration_opens_at: 10.days.ago,
-      registration_closes_at: 1.day.ago,
-      start_date: 2.days.from_now.to_date,
-      end_date: 3.days.from_now.to_date
-    )
-    first_category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
-    second_category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "male", age_min: 15, age_max: 17, weight_min: 51, weight_max: 55)
-
-    first_user = User.create!(name: "Aditi Naik", email: "multi-draw-aditi@example.test", password: "password123", role: :athlete)
-    second_user = User.create!(name: "Dev Shetty", email: "multi-draw-dev@example.test", password: "password123", role: :athlete)
-    first_athlete = first_user.athletes.create!(first_name: "Aditi", last_name: "Naik", date_of_birth: Date.new(2014, 5, 12), gender: "female", external_academy_name: "Coastal Warriors")
-    second_athlete = second_user.athletes.create!(first_name: "Dev", last_name: "Shetty", date_of_birth: Date.new(2009, 8, 14), gender: "male", external_academy_name: "Phoenix Kicks")
-
-    tournament.registrations.create!(athlete: first_athlete, tournament_category: first_category, status: :weight_verified, payment_receipt: payment_receipt_upload)
-    tournament.registrations.create!(athlete: second_athlete, tournament_category: second_category, status: :weight_verified, payment_receipt: payment_receipt_upload)
-
-    assert_difference("TournamentDraw.count", 2) do
-      patch set_draw_tournament_path(tournament)
-    end
-
-    assert_redirected_to draw_tournament_path(tournament)
-    assert_equal [first_category.id, second_category.id].sort, tournament.tournament_draws.active.pluck(:tournament_category_id).sort
-
-    get draw_tournament_path(tournament)
-    assert_response :success
-    assert_includes response.body, first_category.name.upcase
-    assert_includes response.body, second_category.name.upcase
-    assert_includes response.body, "Aditi Naik"
-    assert_includes response.body, "Dev Shetty"
-  end
-
-  test "set draw is blocked before registration closes" do
-    tournament = Tournament.create!(
-      name: "Open Draw Open",
-      organizer: @organizer,
-      status: :registration_open,
-      registration_opens_at: 1.day.ago,
-      registration_closes_at: 1.day.from_now,
-      start_date: 2.days.from_now.to_date,
-      end_date: 3.days.from_now.to_date
-    )
-
-    patch set_draw_tournament_path(tournament)
-
-    assert_redirected_to tournament_path(tournament)
-    assert_not_predicate tournament.reload, :draw_scheduling?
-  end
-
   test "super admin can delete tournament" do
     super_admin = User.create!(name: "Super Admin", email: "delete-tournament-admin@example.test", password: "password123", role: :super_admin)
     tournament = Tournament.create!(
@@ -1063,6 +882,15 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     get tournament_path(tournament)
     assert_response :success
     assert_includes response.body, "Delete tournament"
+    assert_includes response.body, "page-actions"
+    assert_includes response.body, "delete-action-button"
+    assert_includes response.body, "Are you sure you want to delete Delete Me Open?"
+
+    get tournaments_path
+    assert_response :success
+    assert_includes response.body, "Delete"
+    assert_includes response.body, "delete-action-button"
+    assert_includes response.body, "Are you sure you want to delete Delete Me Open?"
 
     assert_difference("Tournament.count", -1) do
       delete tournament_path(tournament)

@@ -10,11 +10,6 @@ module Organizer
         return
       end
 
-      if @tournament.draw_scheduling?
-        redirect_to draw_tournament_path(@tournament), alert: "Weight check is locked after draw setup starts."
-        return
-      end
-
       @query = params[:q].to_s.squish
       @registrations = weight_check_registrations
     end
@@ -68,7 +63,7 @@ module Organizer
 
     def weight_check_notice(weight_check)
       if weight_check.passed?
-        "Weight check passed. Athlete moved to draw list."
+        "Weight check passed."
       elsif weight_check.attempt_number == 3
         "Third weight check failed. Athlete disqualified."
       else

@@ -9,7 +9,7 @@
 
     <p class="eyebrow">VENUE SETUP</p>
     <h1 class="page-title">Match-day venue details</h1>
-    <p class="page-copy">Add the court count after athlete entry closes. This will feed the draw and match scheduling work.</p>
+    <p class="page-copy">Add the court count after athlete entry closes.</p>
 
     <%= form_with model: @tournament, url: venue_setup_tournament_path(@tournament), method: :patch, class: "form-card" do |form| %>
       <%= render "shared/errors", record: @tournament %>

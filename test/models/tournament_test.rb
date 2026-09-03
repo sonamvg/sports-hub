@@ -49,4 +49,33 @@ class TournamentTest < ActiveSupport::TestCase
     tournament.status = :registration_paused
     assert_not tournament.accepting_registrations?(at: Time.zone.local(2026, 9, 10, 12, 0))
   end
+
+  test "rejects unsupported tournament logo upload type" do
+    organizer = User.create!(name: "Organizer", email: "logo-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.new(name: "Logo Upload Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    tournament.logo_image.attach(invalid_text_upload)
+
+    assert_not tournament.valid?
+    assert_includes tournament.errors[:logo_image], "must be a JPG, PNG, or WebP file"
+  end
+
+  test "rejects unsupported tournament banner upload type" do
+    organizer = User.create!(name: "Organizer", email: "banner-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.new(name: "Banner Upload Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    tournament.banner_image.attach(invalid_text_upload)
+
+    assert_not tournament.valid?
+    assert_includes tournament.errors[:banner_image], "must be a JPG, PNG, or WebP file"
+  end
+
+  test "rejects tournament branding uploads over five megabytes" do
+    organizer = User.create!(name: "Organizer", email: "large-branding-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.new(name: "Large Branding Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    tournament.logo_image.attach(oversized_upload)
+    tournament.banner_image.attach(oversized_upload(filename: "oversized-banner.png"))
+
+    assert_not tournament.valid?
+    assert_includes tournament.errors[:logo_image], "must be 5 MB or smaller"
+    assert_includes tournament.errors[:banner_image], "must be 5 MB or smaller"
+  end
 end

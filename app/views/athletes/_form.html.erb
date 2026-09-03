@@ -9,7 +9,7 @@
         <%= form.label :account_email, "Athlete email" %>
         <%= form.email_field :account_email, required: true, autocomplete: "email" %>
         <%= field_error(athlete, :account_email) %>
-        <p class="field-hint">This creates the athlete's own sign-in account. The email must not already be used in Sports Hub.</p>
+        <p class="field-hint">This creates the athlete's own sign-in account. The email must not already be used in PodiumCircle.</p>
       </div>
     <% end %>
     <div><%= form.label :first_name %><%= form.text_field :first_name, required: true %><%= field_error(athlete, :first_name) %></div>
@@ -49,7 +49,7 @@
         <%= field_error(athlete, :academy) %>
       </div>
       <div class="full">
-        <%= form.label :external_academy_name, "Academy not in Sports Hub" %>
+        <%= form.label :external_academy_name, "Academy not in PodiumCircle" %>
         <%= form.text_field :external_academy_name, placeholder: "Enter academy name if it is not registered here" %>
         <%= field_error(athlete, :external_academy_name) %>
         <p class="field-hint">Use this only when the academy is not listed above. It will be shown as plain text without an academy link.</p>
@@ -92,6 +92,21 @@
       <%= field_error(athlete, :identity_document) %>
       <p class="field-hint">Accepted: JPG or PNG, up to 5 MB.</p>
     </div>
+    <% if athlete.new_record? %>
+      <div class="full consent-panel">
+        <label class="checkbox-option">
+          <%= form.check_box :terms_accepted, required: true %>
+          <span>I accept the <%= link_to "PodiumCircle terms and conditions", terms_path, class: "text-link", target: "_blank", rel: "noopener" %>.</span>
+        </label>
+        <%= field_error(athlete, :terms_accepted) %>
+
+        <label class="checkbox-option">
+          <%= form.check_box :data_sharing_consent, required: true %>
+          <span>I consent to sharing my athlete profile, academy details, documents, tournament registrations, payment receipt, weigh-in status, and results with my academy, tournament organisers, and authorised PodiumCircle admins for event operations.</span>
+        </label>
+        <%= field_error(athlete, :data_sharing_consent) %>
+      </div>
+    <% end %>
   </div>
   <div class="form-actions"><%= form.submit class: "primary-button button-reset" %><%= link_to "Cancel", @return_to.presence || athletes_path, class: "secondary-button" %></div>
 <% end %>

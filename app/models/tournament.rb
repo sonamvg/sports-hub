@@ -1,10 +1,14 @@
 class Tournament < ApplicationRecord
+  include ConsentRecordable
+
+  MAX_IMAGE_SIZE = 5.megabytes
+  ACCEPTED_IMAGE_TYPES = %w[image/jpeg image/png image/webp].freeze
+
   before_validation :normalize_fields
 
   belongs_to :organizer, class_name: "User"
   has_many :tournament_categories, dependent: :destroy
   has_many :registrations, dependent: :destroy
-  has_many :tournament_draws, dependent: :destroy
   has_many :tournament_organizers, dependent: :destroy
   has_many :organizer_users, through: :tournament_organizers, source: :user
   has_many :tournament_organizer_invitations, dependent: :destroy
@@ -37,7 +41,7 @@ class Tournament < ApplicationRecord
   DEFAULT_REFUND_POLICIES = [
     "Full refund before registration closes",
     "Partial refund after registration closes",
-    "No refund after draws are published",
+    "No refund after final schedules are published",
     "Refund only if event is cancelled",
     "Transfer registration to another athlete is not allowed"
   ].freeze
@@ -52,7 +56,6 @@ class Tournament < ApplicationRecord
     ready_for_review: 6,
     scheduled: 7,
     registration_paused: 8,
-    draw_scheduling: 9,
     archived: 10
   }, default: :draft
 
@@ -66,6 +69,8 @@ class Tournament < ApplicationRecord
   validates :courts_count, numericality: { only_integer: true, greater_than: 0 }, allow_blank: true
   validate :end_date_not_before_start_date
   validate :registration_window_chronology
+  validate :logo_image_size
+  validate :banner_image_size
 
   after_create :add_creator_as_super_organizer
 
@@ -81,8 +86,6 @@ class Tournament < ApplicationRecord
 
   def late_registration_allowed_for?(user)
     return false unless user
-    return false if draw_scheduling?
-
     user.super_admin? || tournament_organizers.super_organizer.exists?(user_id: user.id)
   end
 
@@ -148,5 +151,20 @@ class Tournament < ApplicationRecord
       membership.role = :super_organizer
       membership.added_by = organizer
     end
+  end
+
+  def logo_image_size
+    validate_image_upload(logo_image, :logo_image)
+  end
+
+  def banner_image_size
+    validate_image_upload(banner_image, :banner_image)
+  end
+
+  def validate_image_upload(attachment, attribute)
+    return unless attachment.attached?
+
+    errors.add(attribute, "must be 5 MB or smaller") if attachment.blob.byte_size > MAX_IMAGE_SIZE
+    errors.add(attribute, "must be a JPG, PNG, or WebP file") unless attachment.blob.content_type.in?(ACCEPTED_IMAGE_TYPES)
   end
 end

@@ -42,7 +42,8 @@
     <div>
       <%= form.label :logo_image, "Logo or image upload" %>
       <%= form.file_field :logo_image, accept: "image/png,image/jpeg,image/webp" %>
-      <p class="field-hint">Upload a logo or square image. PNG, JPG, or WebP is accepted.</p>
+      <%= field_error(tournament, :logo_image) %>
+      <p class="field-hint">Upload a logo or square image. PNG, JPG, or WebP up to 5 MB is accepted.</p>
       <% if tournament.logo_image.attached? %>
         <p class="field-hint">Current upload: <%= tournament.logo_image.filename %></p>
       <% end %>
@@ -51,7 +52,8 @@
     <div class="full">
       <%= form.label :banner_image, "Banner or hero image upload" %>
       <%= form.file_field :banner_image, accept: "image/png,image/jpeg,image/webp" %>
-      <p class="field-hint">Upload a wide banner image for tournament promotion pages and listing artwork.</p>
+      <%= field_error(tournament, :banner_image) %>
+      <p class="field-hint">Upload a wide banner image for tournament promotion pages and listing artwork. PNG, JPG, or WebP up to 5 MB is accepted.</p>
       <% if tournament.banner_image.attached? %>
         <p class="field-hint">Current upload: <%= tournament.banner_image.filename %></p>
       <% end %>
@@ -107,7 +109,7 @@
 
     <div class="full inline-notice">
       <strong>Default categories</strong>
-      <span>Sports Hub attaches the standard tournament category set automatically when this tournament is saved.</span>
+      <span>PodiumCircle attaches the standard tournament category set automatically when this tournament is saved.</span>
     </div>
 
     <div>
@@ -312,6 +314,22 @@
       </div>
       <p class="field-hint">Only verified organisers can be selected. The creator remains the super organiser for this tournament.</p>
     </div>
+
+    <% if tournament.new_record? %>
+      <div class="full consent-panel">
+        <label class="checkbox-option">
+          <%= form.check_box :terms_accepted, required: true %>
+          <span>I accept the <%= link_to "PodiumCircle terms and conditions", terms_path, class: "text-link", target: "_blank", rel: "noopener" %>.</span>
+        </label>
+        <%= field_error(tournament, :terms_accepted) %>
+
+        <label class="checkbox-option">
+          <%= form.check_box :data_sharing_consent, required: true %>
+          <span>I consent to sharing tournament details, organiser contacts, registration rules, payment instructions, venue setup, referee details, athlete registration status, weigh-in updates, scores, and results with participating athletes, academies, organisers, referees, and authorised PodiumCircle admins.</span>
+        </label>
+        <%= field_error(tournament, :data_sharing_consent) %>
+      </div>
+    <% end %>
   </div>
 
   <div class="form-actions">

@@ -1,18 +1,19 @@
 class Registration < ApplicationRecord
+  MAX_PAYMENT_RECEIPT_SIZE = 5.megabytes
+  ACCEPTED_PAYMENT_RECEIPT_TYPES = %w[image/jpeg image/png image/webp application/pdf].freeze
+
   belongs_to :tournament
   belongs_to :athlete
   belongs_to :tournament_category
   has_many :registration_action_logs, dependent: :destroy
   has_many :registration_weight_checks, dependent: :destroy
-  has_many :red_draw_matches, class_name: "TournamentDrawMatch", foreign_key: :red_registration_id, dependent: :nullify
-  has_many :blue_draw_matches, class_name: "TournamentDrawMatch", foreign_key: :blue_registration_id, dependent: :nullify
-  has_many :won_draw_matches, class_name: "TournamentDrawMatch", foreign_key: :winner_registration_id, dependent: :nullify
   has_one_attached :payment_receipt
 
   enum :status, { pending: 0, approved: 1, rejected: 2, withdrawn: 3, weight_verified: 4, disqualified: 5, draft: 6 }, default: :pending
 
   validates :athlete_id, uniqueness: { scope: [:tournament_id, :tournament_category_id] }
   validate :payment_receipt_required
+  validate :payment_receipt_size
   validate :category_belongs_to_tournament
   before_validation :assign_fee_snapshot
 
@@ -79,7 +80,7 @@ class Registration < ApplicationRecord
     if rejected?
       "Your registration was not approved by the tournament organiser."
     elsif weight_verified?
-      "Weight check is complete. You are cleared for the draw."
+      "Weight check is complete."
     elsif disqualified?
       "Weight check is complete. This entry was disqualified."
     elsif approved?
@@ -98,81 +99,6 @@ class Registration < ApplicationRecord
     end
   end
 
-  def active_tournament_draw
-    tournament.tournament_draws.active.find_by(tournament_category: tournament_category)
-  end
-
-  def active_draw_matches
-    draw = active_tournament_draw
-    return TournamentDrawMatch.none if draw.blank?
-
-    draw.tournament_draw_matches.where(
-      "red_registration_id = :id OR blue_registration_id = :id OR winner_registration_id = :id",
-      id: id
-    ).order(:round_number, :position)
-  end
-
-  def current_draw_match
-    active_draw_matches.where(winner_registration_id: nil).where(
-      "red_registration_id = :id OR blue_registration_id = :id",
-      id: id
-    ).first
-  end
-
-  def completed_draw_matches
-    active_draw_matches.where.not(winner_registration_id: nil).order(:round_number, :position)
-  end
-
-  def latest_completed_draw_match
-    completed_draw_matches.to_a.max_by(&:round_number)
-  end
-
-  def draw_head_guard_color(match = current_draw_match)
-    return if match.blank?
-    return match.top_chest_guard_color if match.red_registration_id == id
-    return match.bottom_chest_guard_color if match.blue_registration_id == id
-  end
-
-  def draw_status_label
-    draw = active_tournament_draw
-    return "Draw not set" if draw.blank?
-
-    match = current_draw_match
-    return "Next match ready" if match&.ready_for_result?
-    return "Waiting for opponent" if match.present?
-
-    completed_match = latest_completed_draw_match
-    return "Draw set" if completed_match.blank?
-    return medal_label(completed_match) if medal_label(completed_match).present?
-    return "Advanced" if completed_match.winner_registration_id == id
-
-    "Eliminated"
-  end
-
-  def draw_status_detail
-    match = current_draw_match
-    if match&.ready_for_result?
-      "Your next match is #{match.round_label}, match #{match.position}. Chest guard: #{draw_head_guard_color(match).to_s.titleize}."
-    elsif match.present?
-      "You have advanced to #{match.round_label}. Your opponent will appear when the previous match is complete."
-    elsif latest_completed_draw_match&.winner_registration_id == id
-      "You won your latest match."
-    elsif latest_completed_draw_match.present?
-      "Your latest match is complete."
-    end
-  end
-
-  def medal_label(match = latest_completed_draw_match)
-    return if match.blank?
-    return unless match.round_number == match.tournament_draw.round_count || match.round_number == match.tournament_draw.round_count - 1
-
-    if match.round_number == match.tournament_draw.round_count
-      match.winner_registration_id == id ? "Gold" : "Silver"
-    elsif match.winner_registration_id != id
-      "Bronze"
-    end
-  end
-
   private
 
   def category_belongs_to_tournament
@@ -184,6 +110,13 @@ class Registration < ApplicationRecord
     return if draft?
 
     errors.add(:payment_receipt, "must be uploaded") unless payment_receipt.attached?
+  end
+
+  def payment_receipt_size
+    return unless payment_receipt.attached?
+
+    errors.add(:payment_receipt, "must be 5 MB or smaller") if payment_receipt.blob.byte_size > MAX_PAYMENT_RECEIPT_SIZE
+    errors.add(:payment_receipt, "must be a JPG, PNG, WebP, or PDF file") unless payment_receipt.blob.content_type.in?(ACCEPTED_PAYMENT_RECEIPT_TYPES)
   end
 
   def formatted_weight(weight)

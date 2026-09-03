@@ -1,8 +1,8 @@
 class TournamentsController < ApplicationController
   before_action :require_user, except: %i[index show]
   before_action :require_verified_organizer, only: %i[new create]
-  before_action :set_tournament, only: %i[show edit update destroy venue_setup update_venue_setup draw set_draw]
-  before_action :require_tournament_manager, only: %i[edit update venue_setup update_venue_setup draw set_draw]
+  before_action :set_tournament, only: %i[show edit update destroy venue_setup update_venue_setup]
+  before_action :require_tournament_manager, only: %i[edit update venue_setup update_venue_setup]
   before_action :require_super_admin, only: :destroy
   before_action :set_available_organizers, only: %i[new create edit update]
 
@@ -18,12 +18,14 @@ class TournamentsController < ApplicationController
 
   def create
     @tournament = Tournament.new(tournament_params)
+    @tournament.require_consent = true
     @tournament.organizer = current_user
     apply_submit_intent(@tournament)
 
     if @tournament.save
       sync_tournament_organizers
       ensure_default_categories
+      notify_super_admin_of_tournament_submission
       invite_notice, invite_alert = send_organizer_invitation
       redirect_to @tournament, notice: ["Tournament created.", invite_notice].compact.join(" "), alert: invite_alert
     else
@@ -52,34 +54,6 @@ class TournamentsController < ApplicationController
       redirect_to @tournament, notice: "Venue setup updated."
     else
       render :venue_setup, status: :unprocessable_entity
-    end
-  end
-
-  def draw
-    @draws = @tournament.tournament_draws
-      .active
-      .includes(:tournament_category, tournament_draw_matches: [
-        red_registration: { athlete: :academy },
-        blue_registration: { athlete: :academy },
-        winner_registration: :athlete
-      ])
-      .order("tournament_categories.name")
-      .references(:tournament_categories)
-  end
-
-  def set_draw
-    unless @tournament.registration_closed_for_weight_check?
-      redirect_to @tournament, alert: "Draw setup can start after registration closes."
-      return
-    end
-
-    result = TournamentDrawGenerator.new(tournament: @tournament, generated_by: current_user).call
-
-    if result.draws.any?
-      @tournament.update!(status: :draw_scheduling)
-      redirect_to draw_tournament_path(@tournament), notice: draw_notice(result)
-    else
-      redirect_to @tournament, alert: "No draw-ready categories yet. Complete weight check for at least one athlete in a category."
     end
   end
 
@@ -171,6 +145,17 @@ class TournamentsController < ApplicationController
     end
   end
 
+  def notify_super_admin_of_tournament_submission
+    return if super_admin?
+
+    SuperAdminNotification.notify!(
+      kind: :tournament_submission,
+      notifiable: @tournament,
+      actor: current_user,
+      message: "#{@tournament.name} was created by #{current_user.name}."
+    )
+  end
+
   def organizer_invitation_emails
     tournament_params = params[:tournament] || {}
     emails = Array(tournament_params[:invite_organizer_emails])
@@ -186,14 +171,6 @@ class TournamentsController < ApplicationController
     end
   end
 
-  def draw_notice(result)
-    parts = []
-    parts << "#{result.draws.size} #{'draw'.pluralize(result.draws.size)} generated" if result.draws.any?
-    parts << "#{result.superseded_draws_count} previous #{'draw'.pluralize(result.superseded_draws_count)} archived" if result.superseded_draws_count.positive?
-    parts << "#{result.skipped_categories.size} #{'category'.pluralize(result.skipped_categories.size)} skipped" if result.skipped_categories.any?
-    "#{parts.to_sentence}. Late athlete registrations are now locked."
-  end
-
   def tournament_params
     permitted = params.require(:tournament).permit(
       :name, :slug, :description, :venue, :city, :state, :country, :start_date, :end_date,
@@ -204,7 +181,7 @@ class TournamentsController < ApplicationController
       :registration_fee, :currency, :required_documents, :refund_policy,
       :payment_account_name, :payment_bank_name, :payment_account_number,
       :payment_ifsc, :payment_instructions,
-      :logo_image, :banner_image,
+      :logo_image, :banner_image, :terms_accepted, :data_sharing_consent,
       competition_format_options: [], competition_format_other: [],
       eligibility_options: [], eligibility_other: [],
       required_document_options: [], required_document_other: [],

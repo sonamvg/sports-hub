@@ -63,9 +63,6 @@
     <div class="athlete-event-table">
       <% if @upcoming_registrations.any? %>
         <% @upcoming_registrations.each do |registration| %>
-          <% current_match = registration.current_draw_match %>
-          <% completed_matches = registration.completed_draw_matches %>
-          <% medal = registration.medal_label %>
           <article class="athlete-event-row">
             <div class="athlete-event-main">
               <strong><%= registration.tournament.name %></strong>
@@ -81,25 +78,6 @@
               <% end %>
               <% registration.weight_check_summary.each do |attempt| %>
                 <span><%= attempt %></span>
-              <% end %>
-              <% if registration.active_tournament_draw.present? && registration.draw_status_label != "Draw set" %>
-                <span><%= medal ? "#{medal} medal" : registration.draw_status_label %></span>
-              <% end %>
-              <% if registration.draw_status_detail.present? %>
-                <span><%= registration.draw_status_detail %></span>
-              <% end %>
-              <% if current_match.present? %>
-                <% color = registration.draw_head_guard_color(current_match) %>
-                <span><%= current_match.round_label %> · Match <%= current_match.position %> · <%= color.to_s.titleize %></span>
-              <% end %>
-              <% completed_matches.each do |match| %>
-                <% athlete_is_red = match.red_registration_id == registration.id %>
-                <% athlete_points = athlete_is_red ? match.red_total_points : match.blue_total_points %>
-                <% opponent_points = athlete_is_red ? match.blue_total_points : match.red_total_points %>
-                <% athlete_sets = athlete_is_red ? match.red_round_wins : match.blue_round_wins %>
-                <% opponent_sets = athlete_is_red ? match.blue_round_wins : match.red_round_wins %>
-                <% athlete_color = athlete_is_red ? match.top_chest_guard_color : match.bottom_chest_guard_color %>
-                <span><%= match.round_label %> · Match <%= match.position %> · <%= match.bye? ? "Bye" : "Sets #{athlete_sets} - #{opponent_sets}, #{athlete_points} - #{opponent_points}" %> · <%= athlete_color.titleize %> · <%= match.result_label_for(registration) %></span>
               <% end %>
             </div>
             <% unless registration.approved? %>
@@ -119,9 +97,6 @@
     <div class="athlete-event-table">
       <% if @previous_registrations.any? %>
         <% @previous_registrations.each do |registration| %>
-          <% current_match = registration.current_draw_match %>
-          <% completed_matches = registration.completed_draw_matches %>
-          <% medal = registration.medal_label %>
           <article class="athlete-event-row">
             <div class="athlete-event-main">
               <strong><%= registration.tournament.name %></strong>
@@ -134,25 +109,6 @@
             <div class="athlete-event-notes">
               <% if registration.athlete_status_detail.present? %>
                 <span><%= registration.athlete_status_detail %></span>
-              <% end %>
-              <% if registration.active_tournament_draw.present? && registration.draw_status_label != "Draw set" %>
-                <span><%= medal ? "#{medal} medal" : registration.draw_status_label %></span>
-              <% end %>
-              <% if registration.draw_status_detail.present? %>
-                <span><%= registration.draw_status_detail %></span>
-              <% end %>
-              <% if current_match.present? %>
-                <% color = registration.draw_head_guard_color(current_match) %>
-                <span><%= current_match.round_label %> · Match <%= current_match.position %> · <%= color.to_s.titleize %></span>
-              <% end %>
-              <% completed_matches.each do |match| %>
-                <% athlete_is_red = match.red_registration_id == registration.id %>
-                <% athlete_points = athlete_is_red ? match.red_total_points : match.blue_total_points %>
-                <% opponent_points = athlete_is_red ? match.blue_total_points : match.red_total_points %>
-                <% athlete_sets = athlete_is_red ? match.red_round_wins : match.blue_round_wins %>
-                <% opponent_sets = athlete_is_red ? match.blue_round_wins : match.red_round_wins %>
-                <% athlete_color = athlete_is_red ? match.top_chest_guard_color : match.bottom_chest_guard_color %>
-                <span><%= match.round_label %> · Match <%= match.position %> · <%= match.bye? ? "Bye" : "Sets #{athlete_sets} - #{opponent_sets}, #{athlete_points} - #{opponent_points}" %> · <%= athlete_color.titleize %> · <%= match.result_label_for(registration) %></span>
               <% end %>
             </div>
             <% unless registration.approved? %>

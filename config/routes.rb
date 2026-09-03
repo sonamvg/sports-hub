@@ -1,5 +1,7 @@
 Rails.application.routes.draw do
   root "home#index"
+  get "favicon.ico", to: redirect("/favicon.svg")
+  get "terms", to: "home#terms"
 
   get "login", to: "sessions#new"
   post "login", to: "sessions#create"
@@ -37,8 +39,6 @@ Rails.application.routes.draw do
     member do
       get :venue_setup
       patch :venue_setup, action: :update_venue_setup
-      get :draw
-      patch :set_draw
     end
     resources :tournament_categories, path: "categories", only: %i[index show]
     resources :tournament_organizer_invitations, path: "organizer-invitations", only: %i[create]
@@ -46,9 +46,14 @@ Rails.application.routes.draw do
     resources :registrations, only: %i[index new create]
   end
 
-  resources :tournament_draw_matches, only: [] do
-    member do
-      patch :result
+  namespace :super_admin do
+    resources :athletes, only: %i[index destroy]
+    resources :notifications, only: %i[index] do
+      member do
+        patch :approve
+        patch :reject
+        patch :dismiss
+      end
     end
   end
 

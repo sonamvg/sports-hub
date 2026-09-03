@@ -1,6 +1,6 @@
-# Sports Hub Progress Log
+# PodiumCircle Progress Log
 
-This file is the long-lived implementation journal for Sports Hub. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
+This file is the long-lived implementation journal for PodiumCircle. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
 ## 2026-08-27 - Organizer Profile Landing Page
 
@@ -2849,3 +2849,221 @@ This file is the long-lived implementation journal for Sports Hub. Keep it curre
 
 ### Verification Log
 - Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb test/controllers/academy_layout_contract_test.rb test/controllers/athletes_controller_test.rb`; result: 56 runs, 685 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-01 - Super Admin Tournament Delete and Kebab Dismissal
+
+### Reference
+- User requested aligning super-admin delete buttons on tournament detail/list pages, showing a confirmation popup for tournament deletion, and closing the academy page kebab menu when clicking outside it.
+
+### Product Decisions
+- Tournament destructive actions should sit in a consistent action toolbar or card action row and use a clear confirmation question.
+- Generic kebab menus should close when the user clicks outside the open menu.
+
+### Change Log
+- Wrapped tournament detail edit/delete actions in a `page-actions` toolbar.
+- Added `delete-action-button` styling and card action alignment for tournament list delete buttons.
+- Updated tournament delete confirmations to ask `Are you sure you want to delete ...?`.
+- Added JavaScript to close open `details.kebab-menu` menus on outside clicks.
+- Added controller/layout assertions for delete alignment, confirmation copy, and outside-click menu behavior.
+
+### Verification Log
+- Ran `git diff --check`; result: no whitespace or patch formatting errors.
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/academy_layout_contract_test.rb`; result: 53 runs, 594 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-01 - Super Admin Notification Inbox
+
+### Reference
+- User requested a super-admin notifications page in the left menu.
+- Required notification routing:
+  - Athlete selecting a registered academy should notify that academy owner for approval.
+  - Athlete listing an unregistered academy should notify the super admin for review.
+  - New academy submissions should notify the super admin for approval.
+  - New tournament creation should notify the super admin.
+
+### Product Decisions
+- Added a dedicated `SuperAdminNotification` inbox model with polymorphic links to the record that needs review.
+- Super admin notifications stay in the active inbox while pending and leave the inbox after accept, reject, mark reviewed, or dismiss.
+- Registered-academy athlete join requests continue to use the existing academy-owner notification queue.
+- Unregistered academy rejection clears the athlete's external academy name so the profile does not keep an unapproved academy link.
+- Tournament creation notifications are review alerts; marking them reviewed does not change tournament status.
+
+### Change Log
+- Added the `super_admin_notifications` table and model.
+- Added `/super_admin/notifications` with accept, reject, mark reviewed, and dismiss actions.
+- Added a super-admin `Notifications` item to the left navigation.
+- Created super-admin notifications when academies are submitted, athletes list an unregistered academy, and organisers create tournaments.
+- Kept registered academy athlete requests routed to academy owners through `AcademyMembershipRequest`.
+- Added UI copy and action buttons for academy, athlete, and tournament notification types.
+- Added controller coverage for access control, menu visibility, notification creation, routing, approval/rejection, and inbox cleanup.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: migrated `20260901093000_create_super_admin_notifications`.
+- Ran `git diff --check`; result: no whitespace or patch formatting errors.
+- Ran `mise exec -- bin/rails test test/controllers/super_admin_notifications_controller_test.rb`; result: 6 runs, 77 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 213 runs, 2076 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-01 - Terms and Data Sharing Consent Timestamps
+
+### Reference
+- User requested mandatory terms-and-conditions acceptance and mandatory data-sharing consent when creating athletes, academies, and tournaments.
+- User specified that submitted consent time must be recorded in the database because this is critical.
+
+### Product Decisions
+- Consent is enforced server-side on create flows, not just with browser `required` fields.
+- Consent timestamps are stored directly on the created athlete, academy, or tournament record.
+- Existing edit flows do not require fresh consent, so routine profile/event edits are not blocked.
+- The Terms and conditions page is public and remains reachable to signed-in athletes even when athlete home normally redirects to their profile.
+- Each flow has domain-specific data-sharing wording:
+  - Athletes consent to sharing profile, academy, document, registration, payment receipt, weigh-in, draw, and result data with academies, organisers, and authorised admins.
+  - Academies consent to sharing academy profile, contact, logo, roster, join request, and approval status data for operations.
+  - Tournaments consent to sharing event, organiser, payment, venue, referee, registration, weigh-in, draw, score, and result data with relevant participants and authorised admins.
+
+### Change Log
+- Added `terms_accepted_at` and `data_sharing_consent_accepted_at` to athletes, academies, and tournaments.
+- Added virtual consent attributes and server-side consent validation hooks to `Athlete`, `Academy`, and `Tournament`.
+- Set consent validation only on create controller paths for athlete, academy, and tournament submissions.
+- Added consent checkboxes with links to the Terms and conditions page on athlete, academy, and tournament create forms.
+- Added `/terms` and a Terms and conditions page covering information sharing, uploads, approvals, audit trail, and data accuracy.
+- Added styling for consent panels and the terms page.
+- Updated create-path tests to submit consent and assert timestamps are recorded.
+- Added negative tests proving athlete, academy, and tournament creation are rejected when consent is missing.
+- Added Terms page coverage for signed-in athletes.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:migrate`; result: migrated `20260901103000_add_consent_timestamps_to_core_records`.
+- Ran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb test/controllers/academies_controller_test.rb test/controllers/tournaments_controller_test.rb test/controllers/super_admin_notifications_controller_test.rb`; result: 105 runs, 1215 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 217 runs, 2122 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `git diff --check`; result: no whitespace or patch formatting errors.
+
+## 2026-09-01 - Super Admin Athlete Page
+
+### Reference
+- User requested one more super-admin page with a left-menu item named `Athlete`, showing all athletes and allowing athlete deletion.
+
+### Product Decisions
+- Added a dedicated super-admin athlete page instead of relying only on the shared athletes index.
+- Used a tabular admin view so athlete identity, academy, contact, profile summary, and destructive actions line up cleanly.
+- Kept deletion behind the existing athlete destroy behavior and added a confirmation prompt on the super-admin row action.
+
+### Change Log
+- Added `SuperAdmin::AthletesController` with index and destroy actions.
+- Added `/super_admin/athletes` route.
+- Added `Athlete` to the super-admin section of the left menu.
+- Added a super-admin athlete table with view profile and delete athlete actions.
+- Added controller coverage for menu visibility, access control, listing all athletes, delete confirmation copy, and deletion redirect.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/super_admin_athletes_controller_test.rb test/controllers/athletes_controller_test.rb`; result: 28 runs, 261 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `git diff --check`; result: no whitespace or patch formatting errors.
+- Ran `mise exec -- bin/rails test`; result: 220 runs, 2157 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-01 - Security Hardening and Upload Validation Review
+
+### Reference
+- User requested code compression where useful, no data leaks, tighter security, browser UI checks, and test cases for the important scenarios.
+
+### Product Decisions
+- Kept payment bank details available only inside the signed-in tournament registration flow where an athlete or academy owner is actively registering.
+- Consolidated repeated consent timestamp behavior into one model concern so future terms/data-sharing changes are audited in one place.
+- Added server-side upload type and size validation for tournament logo/banner images, registration payment receipts, and organiser identity documents.
+- Kept accepted upload formats intentionally narrow so unexpected executable or text uploads are rejected before persistence.
+
+### Change Log
+- Added `ConsentRecordable` and reused it from `Athlete`, `Academy`, and `Tournament`.
+- Added upload validation constants and validation methods for tournament branding images, payment receipts, and organiser identity documents.
+- Updated form hints and field-level error rendering for tournament image uploads, payment receipt uploads, and organiser identity document uploads.
+- Added an invalid upload fixture and model tests for rejected upload types.
+
+### Verification Log
+- Ran `git diff --check`; result: no whitespace or patch formatting errors.
+- Ran `mise exec -- bin/rails test test/models/tournament_test.rb test/models/registration_test.rb test/models/user_test.rb test/controllers/tournaments_controller_test.rb test/controllers/users_controller_test.rb`; result: 69 runs, 649 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 224 runs, 2169 assertions, 0 failures, 0 errors, 0 skips.
+- Restarted the development Rails server after it was still running from before `ConsentRecordable` was added; fresh boot resolved `NameError (uninitialized constant ... ConsentRecordable)` on `/tournaments`, `/academies`, and `/users/new`.
+- Ran public and signed-out HTTP smoke checks on `/`, `/terms`, `/tournaments`, `/academies`, `/login`, `/users/new`, `/users/new?account_type=organizer`, `/users/new?account_type=academy_owner`, `/super_admin/notifications`, and `/super_admin/athletes`; result: public pages returned 200 and protected super-admin pages redirected with 302 when signed out.
+- Ran authenticated HTTP smoke checks as seeded super admin, athlete, academy owner, and organiser; result: valid role pages returned 200, protected invalid cross-role resources returned the expected 302 or 404.
+- Ran narrowed secret/data-leak scan for common secret names, storage/database credentials, payment account fields, and identity documents; result: production secrets are environment-driven, bank details are rendered only in the signed-in registration page, and demo seed/test credentials remain clearly local/demo data.
+- Ran `git diff --check`; result: no whitespace or patch formatting errors.
+- Ran `mise exec -- bin/rails test test/models/tournament_test.rb test/models/registration_test.rb test/models/user_test.rb`; result: 16 runs, 59 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 227 runs, 2180 assertions, 0 failures, 0 errors, 0 skips.
+- Stopped the Rails server session that was started for QA.
+
+## 2026-09-01 - Clean Seed Data Expansion
+
+### Reference
+- User requested more seed data and removal of incomplete, low-quality, or test-style seed data.
+
+### Product Decisions
+- Kept the four predictable local login accounts so manual testing remains quick.
+- Removed rough filler language from seed records and replaced it with realistic academy, organiser, tournament, contact, payment, roster, and notification data.
+- Added safe cleanup only for obvious obsolete generated tournament names; user/account cleanup was intentionally avoided after a foreign-key violation showed older records may be linked to academy membership requests.
+- Added pending approval and notification scenarios so super-admin and academy-owner dashboards can be tested without manual setup.
+
+### Change Log
+- Added additional approved academies: Shivneri Martial Arts, Deccan Elite Taekwondo, and Mumbai Falcons Taekwondo.
+- Added Riverfront Combat Academy as a pending academy with a super-admin approval notification.
+- Added more academy owners, one additional verified organiser, and a broader athlete roster across Pune and Mumbai academies.
+- Replaced demo-style event descriptions, bank names, placeholder addresses, and generic emergency contact names with cleaner staging-quality content.
+- Added Bengaluru Classic Taekwondo League as an open-registration tournament.
+- Added Delhi Winter Taekwondo Festival as a completed tournament with registration and weight-check history.
+- Added realistic pending, approved, rejected, weight-verified, and disqualified registration scenarios.
+- Added an independent athlete with an unregistered academy notification and a registered-academy membership request.
+
+### Verification Log
+- Initial `mise exec -- bin/rails db:seed` run failed because deleting old demo users violated a foreign-key constraint from `academy_membership_requests`; cleanup was changed to avoid user deletion.
+- Ran `mise exec -- bin/rails db:seed`; result: seed completed successfully.
+- Ran `mise exec -- bin/rails db:seed` again; result: seed remained idempotent.
+- Ran local data count check; result: 53 users, 8 academies, 61 athletes, 10 tournaments, 83 categories, 90 registrations, 5 super-admin notifications, and 2 academy membership requests.
+- Ran `git diff --check`; result: no whitespace or patch formatting errors.
+- Ran `mise exec -- bin/rails test`; result: 227 runs, 2180 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-02 - PodiumCircle Domain and Brand Update
+
+### Reference
+- User purchased the `podiumcircle` domain name and requested all relevant changes.
+
+### Product Decisions
+- Renamed customer-facing app branding from Sports Hub to PodiumCircle.
+- Changed the Rails application module from `SportsHub` to `PodiumCircle` so source-level app identity matches the new brand.
+- Updated local seed emails from `@sportshub.test` to `@podiumcircle.test`.
+- Kept local folder name, database names, Fly app name, and GitHub remote unchanged for now because those are runtime/deployment identifiers and changing them would require a separate deployment migration.
+- Set production defaults around `podiumcircle.com`, while keeping them environment-variable driven for Fly and future hosting changes.
+
+### Change Log
+- Updated layout title and left-nav brand to PodiumCircle.
+- Updated terms, consent text, mailer copy, setup message, README, tests, and seed fixture text to use PodiumCircle.
+- Updated `ApplicationMailer` to default from `no-reply@podiumcircle.com`, overridable by `MAILER_FROM`.
+- Added production `APP_HOST` defaults for host authorization and mailer URLs, defaulting to `podiumcircle.com`.
+- Updated seed output and README local credentials to `admin@podiumcircle.test`, `organizer@podiumcircle.test`, `academy@podiumcircle.test`, and `athlete@podiumcircle.test`.
+- Made `seed_user` migrate old `@sportshub.test` seed users to `@podiumcircle.test` instead of creating duplicates.
+
+### Verification Log
+- Ran old-brand scan across `app`, `config`, `db/seeds.rb`, `test`, `README.md`, `AGENTS.md`, and `bin/setup`; result: no remaining `Sports Hub`, `SportsHub`, or `sports-hub` references in active source/docs/tests. The only `sportshub` string left is the intentional `db/seeds.rb` legacy email migration fallback.
+- Ran `mise exec -- bin/rails runner 'puts Rails.application.class.module_parent_name'`; result: `PodiumCircle`.
+- Ran `mise exec -- bin/rails db:seed`; result: seed completed and printed the new PodiumCircle local credentials.
+- Ran local seed-domain count check; result: 46 `@podiumcircle.test` seed users, 0 `@sportshub.test` seed users, 53 users total, 8 academies, 10 tournaments.
+- Ran `git diff --check`; result: no whitespace or patch formatting errors.
+- Ran `mise exec -- bin/rails test`; result: 227 runs, 2180 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-03 - Remove Set Draw Feature
+
+### Reference
+- User requested removing all code written for the Set draw feature, including HTML and CSS.
+
+### Change Log
+- Removed Set draw routes, tournament controller actions, the draw match result controller, draw models, draw generator service, draw migrations, draw schema tables, draw page, draw status partial, draw JavaScript, draw CSS, draw tests, athlete/academy draw status rendering, and draw-specific seed data.
+- Kept the weight-check flow and `weight_verified` registration status because they are part of weigh-in rather than the draw feature.
+- Removed user-facing draw setup copy from registration, venue setup, terms, consent, navigation, and weight-check screens.
+- Added a cleanup migration that converts stale removed draw-status tournament rows to `registration_closed`, fixing local pages that crashed when Rails read the removed enum value as `nil`.
+- Added a static SVG favicon and `/favicon.ico` redirect to remove the browser favicon 404.
+
+### Verification Log
+- Ran `rtk mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb test/controllers/athletes_controller_test.rb test/controllers/academies_controller_test.rb test/models/registration_test.rb test/controllers/organizer_weight_checks_controller_test.rb test/models/tournament_test.rb`; result: 108 runs, 1079 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `rtk mise exec -- bin/rails test`; result: 199 runs, 1859 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `rtk mise exec -- bin/rails db:migrate`; result: `20260903000100_normalize_removed_draw_status` migrated successfully.
+- Verified `http://127.0.0.1:3000/tournaments`; result: 200 OK.
+- Verified stale removed draw-status rows with Rails runner; result: 0.
+- Verified `http://127.0.0.1:3000/favicon.svg`; result: 200 OK.
+- Verified `http://127.0.0.1:3000/favicon.ico`; result: 301 redirect to `/favicon.svg`.
+- Re-ran `rtk mise exec -- bin/rails test`; result: 199 runs, 1859 assertions, 0 failures, 0 errors, 0 skips.
+- Rebuilt stale `debug` and `rbs` native extensions with `rtk mise exec -- gem pristine ...`; result: Rails commands no longer print extension warnings.
+- Final `rtk mise exec -- bin/rails test`; result: 199 runs, 1859 assertions, 0 failures, 0 errors, 0 skips.

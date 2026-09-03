@@ -1,22 +1,27 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Sports Hub</title>
+    <title>PodiumCircle</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_include_tag "application", "data-turbo-track": "reload", defer: true %>
   </head>
   <body>
     <div class="app-frame">
       <aside class="side-menu" aria-label="Primary navigation">
-        <%= link_to root_path, class: "brand" do %>SPORTS <span>HUB</span><% end %>
+        <%= link_to root_path, class: "brand" do %>PODIUM<span>CIRCLE</span><% end %>
         <nav class="side-nav">
           <%= link_to tournaments_path, class: "side-nav-link" do %><%= ui_icon("trophy") %><span>Tournaments</span><% end %>
           <%= link_to current_user&.athlete? ? athlete_home_path : athletes_path, class: "side-nav-link" do %><%= ui_icon("medal") %><span>Athletes</span><% end %>
           <%= link_to academies_path, class: "side-nav-link" do %><%= ui_icon("academy") %><span>Academies</span><% end %>
           <%= link_to current_user&.can_organize_tournaments? ? profile_organizers_path : organizers_path, class: "side-nav-link" do %><%= ui_icon("shield") %><span>Organizer</span><% end %>
+          <% if super_admin? %>
+            <%= link_to super_admin_athletes_path, class: "side-nav-link" do %><%= ui_icon("medal") %><span>Athlete</span><% end %>
+            <%= link_to super_admin_notifications_path, class: "side-nav-link" do %><%= ui_icon("bell") %><span>Notifications</span><% end %>
+          <% end %>
           <% if current_user&.academy_owner? %>
             <% owned_academies = current_user.owned_academies.order(:created_at) %>
             <% if owned_academies.any? %>
@@ -48,13 +53,6 @@
                       <%= link_to tournament_tournament_referees_path(tournament) do %><%= ui_icon("user") %><span>Add referees</span><% end %>
                       <%= link_to venue_setup_tournament_path(tournament) do %><%= ui_icon("home") %><span>Venue setup</span><% end %>
                       <%= link_to organizer_tournament_weight_checks_path(tournament) do %><%= ui_icon("search") %><span>Weight check</span><% end %>
-                      <% if tournament.draw_scheduling? %>
-                        <%= link_to draw_tournament_path(tournament) do %><%= ui_icon("calendar") %><span>Set draw</span><% end %>
-                      <% elsif tournament.registration_closed_for_weight_check? %>
-                        <%= button_to set_draw_tournament_path(tournament), method: :patch, class: "link-button side-action-button" do %><%= ui_icon("calendar") %><span>Set draw</span><% end %>
-                      <% else %>
-                        <span class="side-disabled"><%= ui_icon("calendar") %><span>Set draw</span></span>
-                      <% end %>
                     </div>
                   </details>
                 <% end %>
