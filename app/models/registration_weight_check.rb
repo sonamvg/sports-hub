@@ -10,6 +10,7 @@ class RegistrationWeightCheck < ApplicationRecord
   validates :weight, numericality: { greater_than: 0 }
   validate :registration_can_be_weighed
   validate :attempt_is_next_attempt
+  validate :draw_not_yet_generated
 
   private
 
@@ -32,6 +33,14 @@ class RegistrationWeightCheck < ApplicationRecord
 
     unless registration.approved?
       errors.add(:registration, "must be accepted before weight check")
+    end
+  end
+
+  def draw_not_yet_generated
+    return if registration.blank?
+
+    if registration.tournament_category.draw_generated?
+      errors.add(:base, "Weight check is locked because the draw has already been set")
     end
   end
 

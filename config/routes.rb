@@ -60,6 +60,9 @@ Rails.application.routes.draw do
   namespace :organizer do
     resources :tournaments, only: [] do
       resources :weight_checks, only: %i[index]
+      resources :tournament_categories, only: [] do
+        resource :draw, only: %i[show create]
+      end
     end
     resources :registrations, only: %i[index show] do
       member do
@@ -68,5 +71,6 @@ Rails.application.routes.draw do
       end
       resources :weight_checks, only: %i[create]
     end
+    resources :matches, only: %i[update]
   end
 end

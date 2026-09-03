@@ -1128,3 +1128,21 @@ body { background:#f4f4f1; }
   .side-nav-link span,.side-account .nav-button,.side-nav-group > span,.side-tournament summary,.side-tournament-links span,.side-disabled span,.account-action span { display:none; }
   .side-nav-link,.side-tournament-links a,.side-action-button,.side-disabled,.account-action { justify-content:center; padding:10px; }
 }
+
+/* Draw / bracket */
+.bracket-page { padding:24px; overflow-x:auto; }
+.bracket-page .brackets-viewer { min-width:max-content; }
+.match-score-list { display:grid; gap:14px; margin-top:24px; }
+.match-score-card { border:1px solid var(--line); background:white; padding:20px 22px; display:grid; gap:16px; }
+.match-score-heading h3 { margin:8px 0 0; font-size:18px; }
+.match-score-fields { display:grid; gap:16px; }
+.match-rounds { display:grid; gap:10px; }
+.match-round-row { display:grid; grid-template-columns:90px 1fr 1fr 1.4fr; gap:10px; align-items:center; }
+.match-round-label { font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:800; color:var(--muted); }
+.match-round-row input,.match-round-row select { border:1px solid var(--line); padding:10px; font:inherit; width:100%; }
+.form-field { display:grid; gap:8px; }
+.form-field label { font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:800; }
+.form-field select { border:1px solid var(--line); padding:10px; font:inherit; }
+.medal-standings { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+.medal-standings > div { display:flex; flex-direction:column; gap:6px; }
+.medal-standings strong { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }

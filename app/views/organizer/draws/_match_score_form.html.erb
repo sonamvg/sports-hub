@@ -1,0 +1,53 @@
+<% athlete_one = match.registration_one.athlete %>
+<% athlete_two = match.registration_two.athlete %>
+<% dom_id = "match_#{match.id}" %>
+
+<article class="match-score-card" data-match-form>
+  <div class="match-score-heading">
+    <span class="status-pill">Round <%= match.round_number %> &middot; Match <%= match.slot_position %></span>
+    <h3><%= athlete_one.full_name %> vs <%= athlete_two.full_name %></h3>
+  </div>
+
+  <%= form_with url: organizer_match_path(match), method: :patch, class: "match-score-fields" do %>
+    <div class="form-field">
+      <%= label_tag "#{dom_id}_decision", "Decision" %>
+      <%= select_tag "match[decision]", options_for_select([
+            [ "By points", "points" ],
+            [ "Referee stops contest (RSC)", "rsc" ],
+            [ "Disqualification", "disqualification" ],
+            [ "Withdrawal", "withdrawal" ],
+            [ "No-show", "no_show" ]
+          ]), id: "#{dom_id}_decision", data: { match_decision_select: true } %>
+    </div>
+
+    <div class="match-rounds" data-match-rounds-field>
+      <% (1..3).each do |round_number| %>
+        <div class="match-round-row">
+          <span class="match-round-label">Round <%= round_number %></span>
+          <%= number_field_tag "match[rounds][#{round_number - 1}][points_one]", nil,
+                min: 0, placeholder: athlete_one.full_name, id: "#{dom_id}_round_#{round_number}_points_one" %>
+          <%= number_field_tag "match[rounds][#{round_number - 1}][points_two]", nil,
+                min: 0, placeholder: athlete_two.full_name, id: "#{dom_id}_round_#{round_number}_points_two" %>
+          <%= select_tag "match[rounds][#{round_number - 1}][superiority_winner]", options_for_select([
+                [ "Superiority if tied", "" ],
+                [ athlete_one.full_name, "one" ],
+                [ athlete_two.full_name, "two" ]
+              ]), id: "#{dom_id}_round_#{round_number}_superiority" %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="form-field" data-match-winner-field hidden>
+      <%= label_tag "#{dom_id}_winner_side", "Winner" %>
+      <%= select_tag "match[winner_side]", options_for_select([
+            [ "Select winner", "" ],
+            [ athlete_one.full_name, "one" ],
+            [ athlete_two.full_name, "two" ]
+          ]), id: "#{dom_id}_winner_side" %>
+    </div>
+
+    <div class="form-actions">
+      <%= submit_tag "Save result", class: "primary-button button-reset" %>
+    </div>
+  <% end %>
+</article>

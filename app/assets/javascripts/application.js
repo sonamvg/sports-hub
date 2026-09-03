@@ -4,6 +4,12 @@ document.addEventListener("change", (event) => {
   updateAcademyOtherField(event.target)
 })
 
+document.addEventListener("change", (event) => {
+  if (!event.target.matches("[data-match-decision-select]")) return
+
+  updateMatchDecisionFields(event.target)
+})
+
 document.addEventListener("input", clearResolvedFieldError)
 document.addEventListener("change", clearResolvedFieldError)
 
@@ -17,8 +23,12 @@ document.addEventListener("click", (event) => {
 
 document.addEventListener("turbo:load", updateAcademyOtherFields)
 document.addEventListener("turbo:load", scheduleAutoDismiss)
+document.addEventListener("turbo:load", initMatchDecisionFields)
+document.addEventListener("turbo:load", initBracketViewer)
 document.addEventListener("DOMContentLoaded", updateAcademyOtherFields)
 document.addEventListener("DOMContentLoaded", scheduleAutoDismiss)
+document.addEventListener("DOMContentLoaded", initMatchDecisionFields)
+document.addEventListener("DOMContentLoaded", initBracketViewer)
 
 function updateAcademyOtherFields() {
   document.querySelectorAll("[data-academy-choice-select]").forEach(updateAcademyOtherField)
@@ -34,6 +44,31 @@ function updateAcademyOtherField(select) {
 
   if (otherField) otherField.hidden = !showOther
   if (otherInput) otherInput.disabled = !showOther
+}
+
+function initMatchDecisionFields() {
+  document.querySelectorAll("[data-match-decision-select]").forEach(updateMatchDecisionFields)
+}
+
+function updateMatchDecisionFields(select) {
+  const card = select.closest("[data-match-form]")
+  if (!card) return
+
+  const isPoints = select.value === "points"
+  const roundsField = card.querySelector("[data-match-rounds-field]")
+  const winnerField = card.querySelector("[data-match-winner-field]")
+
+  if (roundsField) roundsField.hidden = !isPoints
+  if (winnerField) winnerField.hidden = isPoints
+}
+
+function initBracketViewer() {
+  const container = document.querySelector(".brackets-viewer[data-bracket]")
+  if (!container || typeof window.bracketsViewer === "undefined") return
+  if (container.dataset.rendered === "true") return
+
+  container.dataset.rendered = "true"
+  window.bracketsViewer.render(JSON.parse(container.dataset.bracket), { clear: true })
 }
 
 function scheduleAutoDismiss() {

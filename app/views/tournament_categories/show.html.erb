@@ -20,6 +20,9 @@
 
       <div class="form-actions">
         <%= link_to "Back to categories", tournament_tournament_categories_path(@tournament), class: "secondary-button" %>
+        <% if can_manage_tournament?(@tournament) %>
+          <%= link_to "Draw", organizer_tournament_tournament_category_draw_path(@tournament, @category), class: "primary-button" %>
+        <% end %>
       </div>
     </div>
   </div>

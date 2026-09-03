@@ -1,0 +1,88 @@
+<% content_for :head do %>
+  <%= stylesheet_link_tag "vendor/brackets-viewer.min" %>
+  <%= javascript_include_tag "vendor/brackets-viewer.min", defer: true %>
+<% end %>
+
+<section class="page-shell organizer-page"><div class="container">
+  <%= render "shared/breadcrumbs", items: [
+    { label: "Home", path: root_path },
+    { label: "Tournaments", path: tournaments_path },
+    { label: @tournament.name, path: tournament_path(@tournament) },
+    { label: "Categories", path: tournament_tournament_categories_path(@tournament) },
+    { label: @category.name, path: tournament_tournament_category_path(@tournament, @category) },
+    { label: "Draw" }
+  ] %>
+
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">DRAW</p>
+      <h1 class="page-title"><%= @category.name %></h1>
+      <p class="page-copy">Single-elimination draw, blind random seeding, WT double-bronze medals.</p>
+    </div>
+    <% if @category.draw_generated? && !@category.draw_locked? %>
+      <div class="page-actions">
+        <%= button_to "Regenerate draw", organizer_tournament_tournament_category_draw_path(@tournament, @category),
+              method: :post, class: "secondary-button",
+              form: { data: { turbo_confirm: "This will discard the current draw and re-shuffle. Continue?" } } %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if @category.draw_generated? %>
+    <div class="detail-card bracket-page">
+      <div class="brackets-viewer" data-bracket="<%= @bracket_data.to_json %>"></div>
+    </div>
+
+    <div class="section-compact">
+      <div class="page-heading compact-heading">
+        <h2 class="section-title">Matches ready for scoring</h2>
+        <span class="status-pill"><%= @ready_matches.size %> pending</span>
+      </div>
+
+      <% if @ready_matches.any? %>
+        <div class="match-score-list">
+          <% @ready_matches.each do |match| %>
+            <%= render "organizer/draws/match_score_form", match: match %>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="inline-empty-state">
+          <strong>Nothing to score right now</strong>
+          <p>Matches appear here once both athletes in a slot are known.</p>
+        </div>
+      <% end %>
+    </div>
+
+    <% if @medal_standings.present? %>
+      <div class="section-compact">
+        <div class="page-heading compact-heading">
+          <h2 class="section-title">Medals</h2>
+        </div>
+        <div class="detail-card medal-standings">
+          <div><strong>Gold</strong><span><%= @medal_standings[:gold]&.athlete&.full_name || "--" %></span></div>
+          <div><strong>Silver</strong><span><%= @medal_standings[:silver]&.athlete&.full_name || "--" %></span></div>
+          <div>
+            <strong>Bronze</strong>
+            <span>
+              <% if @medal_standings[:bronze].blank? %>
+                --
+              <% else %>
+                <%= @medal_standings[:bronze].map { |registration| registration.athlete.full_name }.join(" & ") %>
+              <% end %>
+            </span>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="inline-empty-state">
+      <strong><%= pluralize(@eligible_count, "athlete") %> weight-verified and ready</strong>
+      <p>Weight checks lock automatically once the draw is generated. This can't be undone after the first result is recorded.</p>
+      <% if @eligible_count >= 2 %>
+        <%= button_to "Generate draw", organizer_tournament_tournament_category_draw_path(@tournament, @category), method: :post, class: "primary-button" %>
+      <% else %>
+        <p><em>At least 2 weight-verified athletes are required.</em></p>
+      <% end %>
+    </div>
+  <% end %>
+</div></section>

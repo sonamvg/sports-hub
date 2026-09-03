@@ -34,6 +34,24 @@ module AuthenticationTestHelper
   def consent_params
     { terms_accepted: "1", data_sharing_consent: "1" }
   end
+
+  def create_weight_verified_registration(tournament:, category:, email:)
+    parent = User.create!(name: "Parent #{email}", email: email, password: "password123", role: :parent)
+    athlete = parent.athletes.create!(
+      first_name: "Athlete",
+      last_name: email.split("@").first,
+      date_of_birth: Date.new(2010, 1, 1),
+      gender: "male"
+    )
+
+    Registration.create!(
+      tournament: tournament,
+      athlete: athlete,
+      tournament_category: category,
+      status: :weight_verified,
+      payment_receipt: Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/payment-receipt.png"), "image/png")
+    )
+  end
 end
 
 class ActionDispatch::IntegrationTest

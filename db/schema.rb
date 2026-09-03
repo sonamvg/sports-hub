@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_03_000100) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_03_183829) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -108,6 +108,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_000100) do
     t.index ["user_id"], name: "index_athletes_on_user_id"
   end
 
+  create_table "matches", force: :cascade do |t|
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.integer "decision"
+    t.integer "medal", default: 0, null: false
+    t.bigint "next_match_id"
+    t.integer "next_match_slot"
+    t.bigint "registration_one_id"
+    t.bigint "registration_two_id"
+    t.integer "round_number", null: false
+    t.jsonb "score_data", default: {}, null: false
+    t.integer "slot_position", null: false
+    t.integer "status", default: 0, null: false
+    t.bigint "tournament_category_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "winner_registration_id"
+    t.index ["next_match_id"], name: "index_matches_on_next_match_id"
+    t.index ["registration_one_id"], name: "index_matches_on_registration_one_id"
+    t.index ["registration_two_id"], name: "index_matches_on_registration_two_id"
+    t.index ["tournament_category_id", "round_number", "slot_position"], name: "index_matches_on_category_round_slot", unique: true
+    t.index ["tournament_category_id"], name: "index_matches_on_tournament_category_id"
+    t.index ["winner_registration_id"], name: "index_matches_on_winner_registration_id"
+  end
+
   create_table "registration_action_logs", force: :cascade do |t|
     t.string "action", null: false
     t.bigint "actor_id", null: false
@@ -180,6 +204,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_000100) do
     t.string "belt_min"
     t.string "category_key", null: false
     t.datetime "created_at", null: false
+    t.datetime "draw_generated_at"
     t.string "event_type", null: false
     t.string "gender"
     t.string "name", null: false
@@ -190,6 +215,73 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_000100) do
     t.decimal "weight_min", precision: 5, scale: 2
     t.index ["tournament_id", "category_key"], name: "index_categories_unique_identity", unique: true
     t.index ["tournament_id"], name: "index_tournament_categories_on_tournament_id"
+  end
+
+  create_table "tournament_draw_matches", force: :cascade do |t|
+    t.string "blue_head_guard_color", default: "blue", null: false
+    t.bigint "blue_registration_id"
+    t.integer "blue_round_1_points"
+    t.integer "blue_round_2_points"
+    t.integer "blue_round_3_points"
+    t.integer "blue_source_match_position"
+    t.boolean "bye", default: false, null: false
+    t.datetime "completed_at"
+    t.bigint "completed_by_id"
+    t.datetime "created_at", null: false
+    t.integer "position", null: false
+    t.string "red_head_guard_color", default: "red", null: false
+    t.bigint "red_registration_id"
+    t.integer "red_round_1_points"
+    t.integer "red_round_2_points"
+    t.integer "red_round_3_points"
+    t.integer "red_source_match_position"
+    t.string "round_1_winner_side"
+    t.string "round_2_winner_side"
+    t.string "round_3_winner_side"
+    t.integer "round_number", null: false
+    t.bigint "tournament_draw_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "winner_registration_id"
+    t.index ["blue_registration_id"], name: "index_tournament_draw_matches_on_blue_registration_id"
+    t.index ["completed_by_id"], name: "index_tournament_draw_matches_on_completed_by_id"
+    t.index ["red_registration_id"], name: "index_tournament_draw_matches_on_red_registration_id"
+    t.index ["tournament_draw_id", "round_number", "position"], name: "index_draw_matches_unique_round_position", unique: true
+    t.index ["tournament_draw_id"], name: "index_tournament_draw_matches_on_tournament_draw_id"
+    t.index ["winner_registration_id"], name: "index_tournament_draw_matches_on_winner_registration_id"
+    t.check_constraint "\"position\" >= 1", name: "draw_matches_position_positive"
+    t.check_constraint "blue_head_guard_color::text = ANY (ARRAY['red'::character varying, 'blue'::character varying]::text[])", name: "draw_matches_blue_head_guard_color_valid"
+    t.check_constraint "blue_round_1_points IS NULL OR blue_round_1_points >= 0", name: "draw_matches_blue_round_1_points_nonnegative"
+    t.check_constraint "blue_round_2_points IS NULL OR blue_round_2_points >= 0", name: "draw_matches_blue_round_2_points_nonnegative"
+    t.check_constraint "blue_round_3_points IS NULL OR blue_round_3_points >= 0", name: "draw_matches_blue_round_3_points_nonnegative"
+    t.check_constraint "red_head_guard_color::text <> blue_head_guard_color::text", name: "draw_matches_head_guard_colors_distinct"
+    t.check_constraint "red_head_guard_color::text = ANY (ARRAY['red'::character varying, 'blue'::character varying]::text[])", name: "draw_matches_red_head_guard_color_valid"
+    t.check_constraint "red_round_1_points IS NULL OR red_round_1_points >= 0", name: "draw_matches_red_round_1_points_nonnegative"
+    t.check_constraint "red_round_2_points IS NULL OR red_round_2_points >= 0", name: "draw_matches_red_round_2_points_nonnegative"
+    t.check_constraint "red_round_3_points IS NULL OR red_round_3_points >= 0", name: "draw_matches_red_round_3_points_nonnegative"
+    t.check_constraint "round_1_winner_side IS NULL OR (round_1_winner_side::text = ANY (ARRAY['red'::character varying, 'blue'::character varying]::text[]))", name: "draw_matches_round_1_winner_side_valid"
+    t.check_constraint "round_2_winner_side IS NULL OR (round_2_winner_side::text = ANY (ARRAY['red'::character varying, 'blue'::character varying]::text[]))", name: "draw_matches_round_2_winner_side_valid"
+    t.check_constraint "round_3_winner_side IS NULL OR (round_3_winner_side::text = ANY (ARRAY['red'::character varying, 'blue'::character varying]::text[]))", name: "draw_matches_round_3_winner_side_valid"
+    t.check_constraint "round_number >= 1", name: "draw_matches_round_number_positive"
+  end
+
+  create_table "tournament_draws", force: :cascade do |t|
+    t.integer "bracket_size", null: false
+    t.datetime "created_at", null: false
+    t.integer "entry_count", null: false
+    t.datetime "generated_at", null: false
+    t.bigint "generated_by_id", null: false
+    t.integer "round_count", null: false
+    t.datetime "superseded_at"
+    t.bigint "tournament_category_id", null: false
+    t.bigint "tournament_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["generated_by_id"], name: "index_tournament_draws_on_generated_by_id"
+    t.index ["tournament_category_id"], name: "index_tournament_draws_on_tournament_category_id"
+    t.index ["tournament_id", "tournament_category_id"], name: "index_active_tournament_draws_unique_category", unique: true, where: "(superseded_at IS NULL)"
+    t.index ["tournament_id"], name: "index_tournament_draws_on_tournament_id"
+    t.check_constraint "bracket_size >= 2", name: "tournament_draws_bracket_size_minimum"
+    t.check_constraint "entry_count >= 1", name: "tournament_draws_entry_count_minimum"
+    t.check_constraint "round_count >= 1", name: "tournament_draws_round_count_minimum"
   end
 
   create_table "tournament_organizer_invitations", force: :cascade do |t|
@@ -308,6 +400,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_000100) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "athletes", "academies"
   add_foreign_key "athletes", "users"
+  add_foreign_key "matches", "matches", column: "next_match_id"
+  add_foreign_key "matches", "registrations", column: "registration_one_id"
+  add_foreign_key "matches", "registrations", column: "registration_two_id"
+  add_foreign_key "matches", "registrations", column: "winner_registration_id"
+  add_foreign_key "matches", "tournament_categories"
   add_foreign_key "registration_action_logs", "registrations"
   add_foreign_key "registration_action_logs", "users", column: "actor_id"
   add_foreign_key "registration_weight_checks", "registrations"
@@ -318,6 +415,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_000100) do
   add_foreign_key "super_admin_notifications", "users", column: "actor_id"
   add_foreign_key "super_admin_notifications", "users", column: "reviewed_by_id"
   add_foreign_key "tournament_categories", "tournaments"
+  add_foreign_key "tournament_draw_matches", "registrations", column: "blue_registration_id"
+  add_foreign_key "tournament_draw_matches", "registrations", column: "red_registration_id"
+  add_foreign_key "tournament_draw_matches", "registrations", column: "winner_registration_id"
+  add_foreign_key "tournament_draw_matches", "tournament_draws"
+  add_foreign_key "tournament_draw_matches", "users", column: "completed_by_id"
+  add_foreign_key "tournament_draws", "tournament_categories"
+  add_foreign_key "tournament_draws", "tournaments"
+  add_foreign_key "tournament_draws", "users", column: "generated_by_id"
   add_foreign_key "tournament_organizer_invitations", "tournaments"
   add_foreign_key "tournament_organizer_invitations", "users", column: "invited_by_id"
   add_foreign_key "tournament_organizers", "tournaments"

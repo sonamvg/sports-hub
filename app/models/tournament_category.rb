@@ -4,6 +4,7 @@ class TournamentCategory < ApplicationRecord
 
   belongs_to :tournament
   has_many :registrations, dependent: :restrict_with_error
+  has_many :matches, dependent: :destroy
 
   DEFAULT_CATEGORY_TEMPLATES = [
     { key: "sub-junior-female-u18", event_type: "kyorugi", gender: "female", age_min: 8, age_max: 11, weight_max: 18 },
@@ -67,7 +68,47 @@ class TournamentCategory < ApplicationRecord
     DEFAULT_CATEGORY_TEMPLATES.find { |template| template[:key] == key.to_s }
   end
 
+  def draw_generated?
+    draw_generated_at.present?
+  end
+
+  def draw_locked?
+    draw_generated? && matches.completed.exists?
+  end
+
+  def draw_eligible_registrations
+    registrations.weight_verified.includes(athlete: :academy)
+  end
+
+  def reset_draw!
+    raise "Draw is locked and cannot be regenerated" if draw_locked?
+
+    transaction do
+      # Delete earlier rounds first: a round-r match's next_match_id points
+      # forward to round r+1, so the referencing row must go before its target.
+      matches.order(round_number: :asc).destroy_all
+      update!(draw_generated_at: nil)
+    end
+  end
+
+  def medal_standings
+    final = matches.find_by(medal: :gold)
+    return {} unless final
+
+    {
+      gold: final.winner_registration,
+      silver: registration_for(final.loser_registration_id),
+      bronze: matches.where(medal: :bronze).filter_map { |match| registration_for(match.loser_registration_id) }
+    }
+  end
+
   private
+
+  def registration_for(registration_id)
+    return if registration_id.blank?
+
+    Registration.find_by(id: registration_id)
+  end
 
   def assign_generated_name
     self.name = generated_name
