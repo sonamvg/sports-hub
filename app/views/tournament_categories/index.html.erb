@@ -34,7 +34,12 @@
             <span><strong>Age</strong><%= [category.age_min, category.age_max].compact.any? ? [category.age_min, category.age_max].compact.join("-") : "Open" %></span>
             <span><strong>Weight</strong><%= category.weight_min.present? && category.weight_max.present? ? "#{category.weight_min}-#{category.weight_max} kg" : (category.weight_max ? "Up to #{category.weight_max} kg" : "Open") %></span>
           </div>
-          <%= link_to "View ->", tournament_tournament_category_path(@tournament, category), class: "text-link" %>
+          <div class="category-actions">
+            <%= link_to "View ->", tournament_tournament_category_path(@tournament, category), class: "text-link" %>
+            <% if can_manage_tournament?(@tournament) %>
+              <%= link_to "Draw", organizer_tournament_tournament_category_draw_path(@tournament, category), class: "secondary-button" %>
+            <% end %>
+          </div>
         </article>
       <% end %>
     </div>

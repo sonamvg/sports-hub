@@ -12,6 +12,9 @@
     <h1 class="page-title"><%= @tournament.name %></h1>
     <p class="page-copy">Find accepted athletes and record up to three locked weight attempts.</p>
   </div>
+  <div class="page-actions">
+    <%= link_to "Set draws ->", tournament_tournament_categories_path(@tournament), class: "secondary-button" %>
+  </div>
 </div>
 
 <%= form_with url: organizer_tournament_weight_checks_path(@tournament), method: :get, class: "search-bar" do |form| %>

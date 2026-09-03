@@ -10,6 +10,12 @@ document.addEventListener("change", (event) => {
   updateMatchDecisionFields(event.target)
 })
 
+document.addEventListener("input", (event) => {
+  if (!event.target.matches("[data-round-points]")) return
+
+  updateRoundRow(event.target.closest("[data-match-round-row]"))
+})
+
 document.addEventListener("input", clearResolvedFieldError)
 document.addEventListener("change", clearResolvedFieldError)
 
@@ -25,10 +31,12 @@ document.addEventListener("turbo:load", updateAcademyOtherFields)
 document.addEventListener("turbo:load", scheduleAutoDismiss)
 document.addEventListener("turbo:load", initMatchDecisionFields)
 document.addEventListener("turbo:load", initBracketViewer)
+document.addEventListener("turbo:load", initRoundRows)
 document.addEventListener("DOMContentLoaded", updateAcademyOtherFields)
 document.addEventListener("DOMContentLoaded", scheduleAutoDismiss)
 document.addEventListener("DOMContentLoaded", initMatchDecisionFields)
 document.addEventListener("DOMContentLoaded", initBracketViewer)
+document.addEventListener("DOMContentLoaded", initRoundRows)
 
 function updateAcademyOtherFields() {
   document.querySelectorAll("[data-academy-choice-select]").forEach(updateAcademyOtherField)
@@ -60,6 +68,48 @@ function updateMatchDecisionFields(select) {
 
   if (roundsField) roundsField.hidden = !isPoints
   if (winnerField) winnerField.hidden = isPoints
+}
+
+function initRoundRows() {
+  document.querySelectorAll("[data-match-round-row]").forEach(updateRoundRow)
+}
+
+function updateRoundRow(row) {
+  if (!row) return
+
+  const oneInput = row.querySelector('[data-round-points="one"]')
+  const twoInput = row.querySelector('[data-round-points="two"]')
+  const resultEl = row.querySelector("[data-round-result]")
+  const superiorityField = row.querySelector("[data-round-superiority-field]")
+  const superioritySelect = row.querySelector("[data-round-superiority-select]")
+  if (!oneInput || !twoInput || !resultEl || !superiorityField) return
+
+  const oneValue = oneInput.value.trim()
+  const twoValue = twoInput.value.trim()
+
+  resultEl.classList.remove("is-decided", "is-tied")
+
+  if (oneValue === "" || twoValue === "") {
+    resultEl.textContent = ""
+    superiorityField.hidden = true
+    if (superioritySelect) superioritySelect.value = ""
+    return
+  }
+
+  const one = Number(oneValue)
+  const two = Number(twoValue)
+
+  if (one === two) {
+    resultEl.textContent = "Tied — pick who showed superiority"
+    resultEl.classList.add("is-tied")
+    superiorityField.hidden = false
+  } else {
+    const winnerName = one > two ? oneInput.placeholder : twoInput.placeholder
+    resultEl.textContent = `${winnerName} wins this round`
+    resultEl.classList.add("is-decided")
+    superiorityField.hidden = true
+    if (superioritySelect) superioritySelect.value = ""
+  }
 }
 
 function initBracketViewer() {

@@ -62,17 +62,19 @@ class BracketPresenter
 
   def opponent_json(match, side)
     registration_id = match.public_send("registration_#{side}_id")
-    position = registration_id ? seed_numbers[registration_id] : (side == "one" ? 1 : 2)
 
     if registration_id.nil?
       # A round 1 slot with no registration is a genuine bye (no opponent will ever fill it).
       # Any later round with a nil slot is just TBD, still awaiting an earlier match's winner.
       return nil if match.round_number == 1
 
-      return { id: nil, position: position }
+      return { id: nil }
     end
 
-    opponent = { id: registration_id, position: position }
+    # brackets-viewer only expects `position` (the seed badge) on round 1 opponents.
+    # Setting it on round 2+ opponents makes the library reinterpret it as a
+    # "Toornament import" hint, which rebuilds — and corrupts — round 1's display.
+    opponent = match.round_number == 1 ? { id: registration_id, position: seed_numbers[registration_id] } : { id: registration_id }
 
     if match.bye?
       opponent[:result] = "win"

@@ -18,21 +18,27 @@
             [ "Withdrawal", "withdrawal" ],
             [ "No-show", "no_show" ]
           ]), id: "#{dom_id}_decision", data: { match_decision_select: true } %>
+      <p class="field-hint">By points auto-picks the winner from rounds won &mdash; switch this only if you need to set the winner directly.</p>
     </div>
 
     <div class="match-rounds" data-match-rounds-field>
       <% (1..3).each do |round_number| %>
-        <div class="match-round-row">
+        <div class="match-round-row" data-match-round-row>
           <span class="match-round-label">Round <%= round_number %></span>
           <%= number_field_tag "match[rounds][#{round_number - 1}][points_one]", nil,
-                min: 0, placeholder: athlete_one.full_name, id: "#{dom_id}_round_#{round_number}_points_one" %>
+                min: 0, placeholder: athlete_one.full_name, id: "#{dom_id}_round_#{round_number}_points_one",
+                data: { round_points: "one" } %>
           <%= number_field_tag "match[rounds][#{round_number - 1}][points_two]", nil,
-                min: 0, placeholder: athlete_two.full_name, id: "#{dom_id}_round_#{round_number}_points_two" %>
-          <%= select_tag "match[rounds][#{round_number - 1}][superiority_winner]", options_for_select([
-                [ "Superiority if tied", "" ],
-                [ athlete_one.full_name, "one" ],
-                [ athlete_two.full_name, "two" ]
-              ]), id: "#{dom_id}_round_#{round_number}_superiority" %>
+                min: 0, placeholder: athlete_two.full_name, id: "#{dom_id}_round_#{round_number}_points_two",
+                data: { round_points: "two" } %>
+          <span class="match-round-result" data-round-result>&nbsp;</span>
+          <div class="match-round-superiority" data-round-superiority-field hidden>
+            <%= select_tag "match[rounds][#{round_number - 1}][superiority_winner]", options_for_select([
+                  [ "Who showed superiority?", "" ],
+                  [ athlete_one.full_name, "one" ],
+                  [ athlete_two.full_name, "two" ]
+                ]), id: "#{dom_id}_round_#{round_number}_superiority", data: { round_superiority_select: true } %>
+          </div>
         </div>
       <% end %>
     </div>
