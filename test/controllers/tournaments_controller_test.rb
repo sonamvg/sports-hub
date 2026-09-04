@@ -96,6 +96,10 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
           registration_capacity: 400,
           registration_fee: "1500.00",
           currency: "inr",
+          payment_account_name: "Pune Taekwondo Association",
+          payment_bank_name: "Demo Bank",
+          payment_account_number: "1234567890",
+          payment_ifsc: "DEMO0001234",
           required_document_options: ["Age proof", "Association ID"],
           required_document_other: ["Coach approval"],
           refund_policy_options: ["Full refund before registration closes", "No refund after final schedules are published"],
@@ -382,9 +386,9 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       first_name: "Hidden",
       last_name: "Athlete",
       date_of_birth: Date.new(2013, 4, 10),
-      gender: "male",
+      gender: "female",
       belt: "blue",
-      weight: 45
+      weight: 40
     )
     tournament = Tournament.create!(
       name: "Pune Invitational",
@@ -393,9 +397,9 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6)
     )
-    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
     tournament.registrations.create!(athlete: athlete, tournament_category: category, registered_weight: 39.5, status: :approved, payment_receipt: payment_receipt_upload)
-    tournament.registrations.create!(athlete: other_athlete, tournament_category: category, registered_weight: 45, status: :pending, payment_receipt: payment_receipt_upload)
+    tournament.registrations.create!(athlete: other_athlete, tournament_category: category, registered_weight: 40, status: :pending, payment_receipt: payment_receipt_upload)
     sign_in_as parent
 
     get tournament_path(tournament)
@@ -427,7 +431,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6)
     )
-    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
     tournament.registrations.create!(athlete: athlete, tournament_category: category, registered_weight: 39.5, status: :approved, payment_receipt: payment_receipt_upload)
 
     get tournament_path(tournament)
@@ -449,7 +453,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       primary_contact_email: "private-contact@example.com",
       primary_contact_phone: "9876543210"
     )
-    tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
     delete logout_path
 
     get tournament_path(tournament)
@@ -479,7 +483,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6)
     )
-    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
     tournament.registrations.create!(athlete: athlete, tournament_category: category, registered_weight: 39.5, status: :approved, payment_receipt: payment_receipt_upload)
     sign_in_as athlete_user
 
@@ -501,7 +505,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6)
     )
-    tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
 
     get tournament_path(tournament)
 
@@ -636,7 +640,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       registration_opens_at: 1.day.ago,
       registration_closes_at: 1.day.from_now
     )
-    tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
 
     get tournament_path(tournament)
 

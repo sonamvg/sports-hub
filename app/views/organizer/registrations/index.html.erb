@@ -12,6 +12,7 @@
             <th>Tournament</th>
             <th>Category</th>
             <th>Status</th>
+            <th>Expected amount</th>
             <th>Receipt</th>
             <th class="table-actions-heading">Actions</th>
           </tr>
@@ -28,10 +29,19 @@
                 <span class="status-pill status-<%= registration.status %>"><%= registration.status.humanize %></span>
               </td>
               <td>
-                <% if registration.payment_receipt.attached? %>
-                  <%= link_to "View receipt", url_for(registration.payment_receipt), class: "receipt-action-link", target: "_blank", rel: "noopener" %>
+                <% batch_count = @batch_counts[registration.submission_batch_id].to_i %>
+                <% if registration.submission_batch_id.present? && batch_count > 1 %>
+                  <strong><%= registration.fee_currency.presence || registration.tournament.currency.presence || "INR" %> <%= number_with_precision(@batch_totals[registration.submission_batch_id], precision: 2, strip_insignificant_zeros: true) %></strong>
+                  <p class="field-hint">Total for <%= batch_count %> categories submitted together</p>
                 <% else %>
-                  <span class="muted-value">--</span>
+                  <%= registration.fee_label %>
+                <% end %>
+              </td>
+              <td>
+                <% if registration.payment_receipt.attached? %>
+                  <%= link_to "View receipt", receipt_organizer_registration_path(registration), class: "receipt-action-link", target: "_blank", rel: "noopener" %>
+                <% else %>
+                  <span class="muted-value">No receipt uploaded</span>
                 <% end %>
               </td>
               <td class="table-actions-cell">

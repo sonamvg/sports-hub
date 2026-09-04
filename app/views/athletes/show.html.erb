@@ -43,7 +43,19 @@
         </dd>
       </div>
       <div><dt>Address</dt><dd><%= [@athlete.address, @athlete.city, @athlete.state, @athlete.country].compact_blank.join(", ").presence || "Not set" %></dd></div>
-      <div><dt>Government ID</dt><dd><%= @athlete.government_id_document_type || "Not set" %><%= @athlete.identity_document.attached? ? " · Uploaded" : "" %></dd></div>
+      <div>
+        <dt>Government ID</dt>
+        <dd>
+          <%= @athlete.government_id_document_type || "Not set" %>
+          <% if @athlete.identity_document.attached? %>
+            <% if super_admin? || @athlete.user_id == current_user.id %>
+              · <%= link_to "View document", identity_document_athlete_path(@athlete), class: "text-link", target: "_blank", rel: "noopener" %>
+            <% else %>
+              · Uploaded
+            <% end %>
+          <% end %>
+        </dd>
+      </div>
     </dl>
     <div class="form-actions">
       <% if @return_to.present? %>

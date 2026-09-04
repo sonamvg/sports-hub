@@ -7,7 +7,7 @@ class RegistrationTest < ActiveSupport::TestCase
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     tournament = Tournament.create!(name: "Local Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
     other_tournament = Tournament.create!(name: "Other Open", organizer: organizer, start_date: Date.new(2026, 11, 18), end_date: Date.new(2026, 11, 19))
-    category = other_tournament.tournament_categories.create!(name: "Cadet Female U41", event_type: "kyorugi")
+    category = other_tournament.tournament_categories.find_or_create_by!(name: "Cadet Female U41", event_type: "kyorugi")
 
     registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category)
 
@@ -15,13 +15,51 @@ class RegistrationTest < ActiveSupport::TestCase
     assert_includes registration.errors[:tournament_category], "must belong to the selected tournament"
   end
 
+  test "allows registration without a payment receipt when tournament is free" do
+    organizer = User.create!(name: "Organizer", email: "free-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Parent", email: "free-parent@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Free Open", organizer: organizer, registration_fee: 0, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14)
+
+    registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category)
+
+    assert registration.valid?
+  end
+
+  test "still requires a payment receipt when tournament fee is unset" do
+    organizer = User.create!(name: "Organizer", email: "unset-fee-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Parent", email: "unset-fee-parent@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Unset Fee Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14)
+
+    registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category)
+
+    assert_not registration.valid?
+    assert_includes registration.errors[:payment_receipt], "must be uploaded"
+  end
+
   test "rejects unsupported payment receipt upload type" do
     organizer = User.create!(name: "Organizer", email: "receipt-organizer@example.test", password: "password123", role: :organizer)
     athlete_user = User.create!(name: "Parent", email: "receipt-parent@example.test", password: "password123", role: :parent)
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     tournament = Tournament.create!(name: "Receipt Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
-    category = tournament.tournament_categories.create!(name: "Cadet Female U41", event_type: "kyorugi")
+    category = tournament.tournament_categories.find_or_create_by!(name: "Cadet Female U41", event_type: "kyorugi")
     registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, payment_receipt: invalid_text_upload)
+
+    assert_not registration.valid?
+    assert_includes registration.errors[:payment_receipt], "must be a JPG, PNG, WebP, or PDF file"
+  end
+
+  test "rejects a payment receipt whose content does not match its declared image type" do
+    organizer = User.create!(name: "Organizer", email: "spoofed-receipt-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Parent", email: "spoofed-receipt-parent@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Receipt Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    category = tournament.tournament_categories.find_or_create_by!(name: "Cadet Female U41", event_type: "kyorugi")
+    spoofed_upload = Rack::Test::UploadedFile.new(StringIO.new("#!/bin/bash\necho pwned\n"), "image/png", original_filename: "receipt.png")
+    registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, payment_receipt: spoofed_upload)
 
     assert_not registration.valid?
     assert_includes registration.errors[:payment_receipt], "must be a JPG, PNG, WebP, or PDF file"
@@ -32,11 +70,70 @@ class RegistrationTest < ActiveSupport::TestCase
     athlete_user = User.create!(name: "Parent", email: "large-receipt-parent@example.test", password: "password123", role: :parent)
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     tournament = Tournament.create!(name: "Large Receipt Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
-    category = tournament.tournament_categories.create!(name: "Cadet Female U41", event_type: "kyorugi")
+    category = tournament.tournament_categories.find_or_create_by!(name: "Cadet Female U41", event_type: "kyorugi")
     registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, payment_receipt: oversized_upload)
 
     assert_not registration.valid?
     assert_includes registration.errors[:payment_receipt], "must be 5 MB or smaller"
+  end
+
+  test "rejects registration when athlete gender does not match category" do
+    organizer = User.create!(name: "Organizer", email: "gender-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Parent", email: "gender-parent@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Gender Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "male", age_min: 12, age_max: 14)
+    registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, payment_receipt: payment_receipt_upload)
+
+    assert_not registration.valid?
+    assert_includes registration.errors[:base], "athlete's gender does not match this category"
+  end
+
+  test "rejects registration when athlete age does not match category" do
+    organizer = User.create!(name: "Organizer", email: "age-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Parent", email: "age-parent@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2010, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Age Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14)
+    registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, payment_receipt: payment_receipt_upload)
+
+    assert_not registration.valid?
+    assert_includes registration.errors[:base], "athlete's age does not match this category"
+  end
+
+  test "rejects registration when athlete belt does not match category" do
+    organizer = User.create!(name: "Organizer", email: "belt-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Parent", email: "belt-parent@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", belt: "white")
+    tournament = Tournament.create!(name: "Belt Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, belt_min: "blue")
+    registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, payment_receipt: payment_receipt_upload)
+
+    assert_not registration.valid?
+    assert_includes registration.errors[:base], "athlete's belt rank does not match this category"
+  end
+
+  test "rejects registration when declared weight does not match category" do
+    organizer = User.create!(name: "Organizer", email: "declared-weight-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Parent", email: "declared-weight-parent@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Declared Weight Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, registered_weight: 50, payment_receipt: payment_receipt_upload)
+
+    assert_not registration.valid?
+    assert_includes registration.errors[:base], "athlete's weight does not match this category"
+  end
+
+  test "allows registration without a declared weight even when category has a weight range" do
+    organizer = User.create!(name: "Organizer", email: "no-weight-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Parent", email: "no-weight-parent@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "No Weight Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, payment_receipt: payment_receipt_upload)
+
+    assert registration.valid?
   end
 
   test "passing weight check moves accepted registration to weight verified and logs actor" do
@@ -44,7 +141,7 @@ class RegistrationTest < ActiveSupport::TestCase
     athlete_user = User.create!(name: "Parent", email: "weight-pass-parent@example.test", password: "password123", role: :parent)
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     tournament = Tournament.create!(name: "Local Open", organizer: organizer, start_date: 2.days.from_now.to_date, end_date: 3.days.from_now.to_date)
-    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 35, weight_max: 37)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 35, weight_max: 37)
     registration = tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :approved, payment_receipt: payment_receipt_upload)
 
     assert_difference("RegistrationActionLog.count", 1) do
@@ -61,7 +158,7 @@ class RegistrationTest < ActiveSupport::TestCase
     athlete_user = User.create!(name: "Parent", email: "weight-fail-parent@example.test", password: "password123", role: :parent)
     athlete = athlete_user.athletes.create!(first_name: "Reyansh", last_name: "Mehta", date_of_birth: Date.new(2014, 5, 12), gender: "male")
     tournament = Tournament.create!(name: "Local Invitational", organizer: organizer, start_date: 2.days.from_now.to_date, end_date: 3.days.from_now.to_date)
-    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "male", age_min: 12, age_max: 14, weight_min: 35, weight_max: 37)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "male", age_min: 12, age_max: 14, weight_min: 35, weight_max: 37)
     registration = tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :approved, payment_receipt: payment_receipt_upload)
 
     assert_no_difference("RegistrationActionLog.count") do
@@ -83,7 +180,7 @@ class RegistrationTest < ActiveSupport::TestCase
     athlete_user = User.create!(name: "Parent", email: "weight-pending-parent@example.test", password: "password123", role: :parent)
     athlete = athlete_user.athletes.create!(first_name: "Nina", last_name: "Kapoor", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     tournament = Tournament.create!(name: "Local Trials", organizer: organizer, start_date: 2.days.from_now.to_date, end_date: 3.days.from_now.to_date)
-    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 35, weight_max: 37)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 35, weight_max: 37)
     registration = tournament.registrations.create!(athlete: athlete, tournament_category: category, payment_receipt: payment_receipt_upload)
 
     weight_check = registration.registration_weight_checks.build(checked_by: organizer, weight: 36)

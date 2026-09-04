@@ -91,6 +91,41 @@ class TournamentCategory < ApplicationRecord
     end
   end
 
+  def eligibility_errors_for(athlete, as_of: Date.current, weight: nil)
+    errors = []
+
+    if gender.present? && athlete.gender.present? && athlete.gender != gender
+      errors << "athlete's gender does not match this category"
+    end
+
+    if age_min.present? || age_max.present?
+      if athlete.date_of_birth.blank?
+        errors << "athlete's date of birth is required for this category"
+      else
+        athlete_age = age_on(athlete.date_of_birth, as_of || Date.current)
+        errors << "athlete's age does not match this category" if (age_min.present? && athlete_age < age_min) || (age_max.present? && athlete_age > age_max)
+      end
+    end
+
+    if belt_min.present? || belt_max.present?
+      if athlete.belt.blank?
+        errors << "athlete's belt rank is required for this category"
+      else
+        belt_index = Athlete::BELTS.index(athlete.belt)
+        min_index = belt_min.present? ? Athlete::BELTS.index(belt_min) : nil
+        max_index = belt_max.present? ? Athlete::BELTS.index(belt_max) : nil
+        errors << "athlete's belt rank does not match this category" if belt_index.nil? || (min_index && belt_index < min_index) || (max_index && belt_index > max_index)
+      end
+    end
+
+    if weight.present? && (weight_min.present? || weight_max.present?)
+      measured_weight = weight.to_d
+      errors << "athlete's weight does not match this category" if (weight_min.present? && measured_weight < weight_min) || (weight_max.present? && measured_weight > weight_max)
+    end
+
+    errors
+  end
+
   def medal_standings
     final = matches.find_by(medal: :gold)
     return {} unless final
@@ -167,6 +202,12 @@ class TournamentCategory < ApplicationRecord
   def format_currency(amount)
     decimal = amount.to_d
     decimal.frac.zero? ? decimal.to_i.to_s : format("%.2f", decimal)
+  end
+
+  def age_on(date_of_birth, as_of_date)
+    age = as_of_date.year - date_of_birth.year
+    age -= 1 if as_of_date < date_of_birth + age.years
+    age
   end
 
   def age_max_not_below_min

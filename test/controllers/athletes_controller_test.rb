@@ -115,11 +115,11 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", association_id: "TKD-123", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     organizer = User.create!(name: "Organizer", email: "athlete-status-organizer@example.test", password: "password123", role: :organizer)
     upcoming = Tournament.create!(name: "Future Open", organizer: organizer, start_date: 20.days.from_now.to_date, end_date: 21.days.from_now.to_date)
-    pending_category = upcoming.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
-    approved_category = upcoming.tournament_categories.create!(event_type: "poomsae", gender: "female", age_min: 12, age_max: 14)
-    declined_category = upcoming.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 37, weight_max: 41)
-    verified_category = upcoming.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 33)
-    disqualified_category = upcoming.tournament_categories.create!(event_type: "kyorugi", gender: "male", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    pending_category = upcoming.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    approved_category = upcoming.tournament_categories.find_or_create_by!(event_type: "poomsae", gender: "female", age_min: 12, age_max: 14)
+    declined_category = upcoming.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 37, weight_max: 41)
+    verified_category = upcoming.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 33)
+    disqualified_category = upcoming.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 30, weight_max: 34)
     upcoming.registrations.create!(athlete: athlete, tournament_category: pending_category, status: :pending, payment_receipt: payment_receipt_upload)
     upcoming.registrations.create!(athlete: athlete, tournament_category: approved_category, status: :approved, payment_receipt: payment_receipt_upload)
     upcoming.registrations.create!(athlete: athlete, tournament_category: declined_category, status: :rejected, payment_receipt: payment_receipt_upload)
@@ -130,7 +130,7 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     disqualified_registration.registration_weight_checks.create!(checked_by: organizer, weight: 38.1)
     disqualified_registration.registration_weight_checks.create!(checked_by: organizer, weight: 38.0)
     past = Tournament.create!(name: "Past Open", organizer: organizer, start_date: 20.days.ago.to_date, end_date: 19.days.ago.to_date)
-    past_category = past.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 37)
+    past_category = past.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 37)
     past.registrations.create!(athlete: athlete, tournament_category: past_category, status: :approved, payment_receipt: payment_receipt_upload)
     sign_in_as athlete_user
 
@@ -430,7 +430,7 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     athlete_user = User.create!(name: "Athlete User", email: "registered-athlete-user@example.test", password: "password123", role: :athlete)
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     tournament = Tournament.create!(name: "Managed Open", organizer: organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
-    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
     tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :pending, payment_receipt: payment_receipt_upload)
     sign_in_as organizer
 
@@ -513,6 +513,36 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Vihaan Mehta"
     assert_includes response.body, "Min age"
     assert_includes response.body, "Max weight"
+  end
+
+  test "owner can view the uploaded identity document and the link appears on their profile" do
+    athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", identity_document: identity_image_upload)
+
+    get athlete_path(athlete)
+    assert_response :success
+    assert_includes response.body, "View document"
+    assert_includes response.body, identity_document_athlete_path(athlete)
+
+    get identity_document_athlete_path(athlete)
+    assert_response :success
+    assert_equal "image/png", response.media_type
+  end
+
+  test "a user who cannot manage the athlete sees no document link and cannot fetch it" do
+    other_parent = User.create!(name: "Other Parent", email: "other-parent-doc@example.test", password: "password123", role: :parent)
+    athlete = other_parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", identity_document: identity_image_upload)
+    organizer = User.create!(name: "Organizer", email: "doc-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(name: "Doc Open", organizer: organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    tournament.registrations.create!(athlete: athlete, tournament_category: category, payment_receipt: payment_receipt_upload)
+    sign_in_as organizer
+
+    get athlete_path(athlete)
+    assert_response :success
+    assert_not_includes response.body, "View document"
+
+    get identity_document_athlete_path(athlete)
+    assert_response :not_found
   end
 
   test "index paginates athletes" do

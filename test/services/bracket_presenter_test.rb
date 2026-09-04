@@ -4,7 +4,7 @@ class BracketPresenterTest < ActiveSupport::TestCase
   setup do
     @organizer = User.create!(name: "Organizer", email: "presenter-organizer@example.test", password: "password123", role: :organizer)
     @tournament = Tournament.create!(name: "Presenter Open", organizer: @organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
-    @category = @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "male", age_min: 18)
+    @category = @tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "male", age_min: 18)
   end
 
   # Regression test: brackets-viewer.js treats a non-nil `position` on a round 2+

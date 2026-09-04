@@ -17,7 +17,11 @@ Rails.application.routes.draw do
     end
   end
 
-  resources :athletes
+  resources :athletes do
+    member do
+      get :identity_document
+    end
+  end
   resources :academies do
     resources :academy_membership_requests, only: [] do
       member do
@@ -68,6 +72,7 @@ Rails.application.routes.draw do
       member do
         patch :approve
         patch :reject
+        get :receipt
       end
       resources :weight_checks, only: %i[create]
     end

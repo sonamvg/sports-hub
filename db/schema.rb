@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_03_183829) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_04_130125) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -132,6 +132,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_183829) do
     t.index ["winner_registration_id"], name: "index_matches_on_winner_registration_id"
   end
 
+  create_table "payment_detail_audit_logs", force: :cascade do |t|
+    t.bigint "actor_id"
+    t.string "changed_fields", null: false
+    t.datetime "created_at", null: false
+    t.bigint "tournament_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["actor_id"], name: "index_payment_detail_audit_logs_on_actor_id"
+    t.index ["tournament_id"], name: "index_payment_detail_audit_logs_on_tournament_id"
+  end
+
   create_table "registration_action_logs", force: :cascade do |t|
     t.string "action", null: false
     t.bigint "actor_id", null: false
@@ -168,11 +178,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_183829) do
     t.decimal "registered_weight", precision: 5, scale: 2
     t.string "registration_number"
     t.integer "status", default: 0, null: false
+    t.string "submission_batch_id"
     t.bigint "tournament_category_id", null: false
     t.bigint "tournament_id", null: false
     t.datetime "updated_at", null: false
     t.datetime "verified_at"
     t.index ["athlete_id"], name: "index_registrations_on_athlete_id"
+    t.index ["submission_batch_id"], name: "index_registrations_on_submission_batch_id"
     t.index ["tournament_category_id"], name: "index_registrations_on_tournament_category_id"
     t.index ["tournament_id", "athlete_id", "tournament_category_id"], name: "index_registrations_unique_entry", unique: true
     t.index ["tournament_id"], name: "index_registrations_on_tournament_id"
@@ -405,6 +417,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_03_183829) do
   add_foreign_key "matches", "registrations", column: "registration_two_id"
   add_foreign_key "matches", "registrations", column: "winner_registration_id"
   add_foreign_key "matches", "tournament_categories"
+  add_foreign_key "payment_detail_audit_logs", "tournaments"
+  add_foreign_key "payment_detail_audit_logs", "users", column: "actor_id"
   add_foreign_key "registration_action_logs", "registrations"
   add_foreign_key "registration_action_logs", "users", column: "actor_id"
   add_foreign_key "registration_weight_checks", "registrations"

@@ -6,7 +6,7 @@ class OrganizerWeightChecksControllerTest < ActionDispatch::IntegrationTest
     athlete_user = User.create!(name: "Athlete User", email: "weigh-search-athlete@example.test", password: "password123", role: :parent)
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", association_id: "TKD-100", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     tournament = Tournament.create!(name: "Closed Open", organizer: organizer, status: :registration_open, registration_opens_at: 10.days.ago, registration_closes_at: 1.day.ago, start_date: 2.days.from_now.to_date, end_date: 3.days.from_now.to_date)
-    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 35, weight_max: 37)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 35, weight_max: 37)
     tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :approved, payment_receipt: payment_receipt_upload)
     sign_in_as organizer
 
@@ -25,7 +25,7 @@ class OrganizerWeightChecksControllerTest < ActionDispatch::IntegrationTest
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     tournament = Tournament.create!(name: "Closed Open", organizer: owner, status: :registration_open, registration_opens_at: 10.days.ago, registration_closes_at: 1.day.ago, start_date: 2.days.from_now.to_date, end_date: 3.days.from_now.to_date)
     tournament.tournament_organizers.create!(user: collaborator, added_by: owner)
-    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 35, weight_max: 37)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 35, weight_max: 37)
     registration = tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :approved, payment_receipt: payment_receipt_upload)
     sign_in_as collaborator
 

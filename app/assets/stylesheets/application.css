@@ -652,6 +652,8 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 .fallback-placeholder { align-items:center; justify-content:center; background:linear-gradient(135deg,#111318 0%,#3b3f47 100%); color:white; font-weight:900; text-align:center; padding:14px; letter-spacing:.02em; }
 .fallback-placeholder[hidden] { display:none!important; }
 .category-picker { border:1px solid #cfd0d4; padding:16px; display:grid; gap:12px; }
+.category-picker-invalid { border-color:var(--critical); background:#fdf5f4; box-shadow:0 0 0 3px rgba(166,54,44,.12); }
+.category-picker-invalid .category-picker-select { border-color:var(--critical); }
 .category-picker-row { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; }
 .category-picker-select { width:100%; border:1px solid #cfd0d4; background:white; padding:13px 14px; font:inherit; min-height:48px; }
 .category-remove-button[hidden],.add-more-category-option[hidden] { display:none!important; }

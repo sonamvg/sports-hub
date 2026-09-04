@@ -1,13 +1,18 @@
 module Organizer
   class RegistrationsController < ApplicationController
     before_action :require_user
-    before_action :set_registration, only: %i[show approve reject]
+    before_action :set_registration, only: %i[show approve reject receipt]
 
     def index
       @registrations = visible_registrations
         .includes(:athlete, :tournament, :tournament_category, :registration_weight_checks)
         .with_attached_payment_receipt
         .order(status_sort_sql, created_at: :desc)
+
+      batch_ids = @registrations.filter_map(&:submission_batch_id).uniq
+      grouped = Registration.where(submission_batch_id: batch_ids).group(:submission_batch_id)
+      @batch_totals = grouped.sum(:fee_amount)
+      @batch_counts = grouped.count
     end
 
     def show
@@ -15,13 +20,28 @@ module Organizer
     end
 
     def approve
-      @registration.review!(actor: current_user, status: :approved)
-      redirect_to organizer_registrations_path, notice: "Registration accepted."
+      if @registration.review!(actor: current_user, status: :approved)
+        redirect_to organizer_registrations_path, notice: "Registration accepted."
+      else
+        redirect_to organizer_registrations_path, alert: "Registration has already been reviewed."
+      end
     end
 
     def reject
-      @registration.review!(actor: current_user, status: :rejected)
-      redirect_to organizer_registrations_path, notice: "Registration denied."
+      if @registration.review!(actor: current_user, status: :rejected)
+        redirect_to organizer_registrations_path, notice: "Registration denied."
+      else
+        redirect_to organizer_registrations_path, alert: "Registration has already been reviewed."
+      end
+    end
+
+    def receipt
+      raise ActiveRecord::RecordNotFound unless @registration.payment_receipt.attached?
+
+      send_data @registration.payment_receipt.download,
+        filename: @registration.payment_receipt.filename.to_s,
+        type: @registration.payment_receipt.content_type,
+        disposition: "inline"
     end
 
     private

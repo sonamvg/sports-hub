@@ -4,7 +4,7 @@ class BracketGeneratorTest < ActiveSupport::TestCase
   setup do
     @organizer = User.create!(name: "Organizer", email: "bracket-organizer@example.test", password: "password123", role: :organizer)
     @tournament = Tournament.create!(name: "Bracket Open", organizer: @organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
-    @category = @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "male", age_min: 18)
+    @category = @tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "male", age_min: 18)
   end
 
   test "requires at least 2 weight-verified registrations" do

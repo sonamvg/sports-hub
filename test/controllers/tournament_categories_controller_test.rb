@@ -9,7 +9,7 @@ class TournamentCategoriesControllerTest < ActionDispatch::IntegrationTest
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6)
     )
-    @category = @tournament.tournament_categories.create!(
+    @category = @tournament.tournament_categories.find_or_create_by!(
       event_type: "kyorugi",
       gender: "female",
       age_min: 12,

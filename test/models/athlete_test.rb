@@ -29,6 +29,17 @@ class AthleteTest < ActiveSupport::TestCase
     assert_equal "aarohi shah", athlete.full_name
   end
 
+  test "profile is not complete for registration until identity document and contact number are set" do
+    athlete = @user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    assert_not athlete.profile_complete_for_registration?
+
+    athlete.contact_number = "9123456789"
+    assert_not athlete.profile_complete_for_registration?
+
+    athlete.identity_document.attach(io: StringIO.new("png-data"), filename: "id.png", content_type: "image/png")
+    assert athlete.profile_complete_for_registration?
+  end
+
   test "rejects future date of birth" do
     athlete = @user.athletes.build(
       first_name: "Aarohi",
@@ -91,8 +102,10 @@ class AthleteTest < ActiveSupport::TestCase
       date_of_birth: Date.new(2014, 5, 12),
       gender: "female"
     )
-    athlete.profile_photo.attach(io: StringIO.new("jpg-data"), filename: "profile.jpg", content_type: "image/jpeg")
-    athlete.identity_document.attach(io: StringIO.new("png-data"), filename: "id.png", content_type: "image/png")
+    minimal_jpeg = Base64.decode64("/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAj/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=")
+    minimal_png = Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
+    athlete.profile_photo.attach(io: StringIO.new(minimal_jpeg), filename: "profile.jpg", content_type: "image/jpeg")
+    athlete.identity_document.attach(io: StringIO.new(minimal_png), filename: "id.png", content_type: "image/png")
 
     assert_predicate athlete, :valid?
   end

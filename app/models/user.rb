@@ -1,4 +1,6 @@
 class User < ApplicationRecord
+  include AttachmentContentTypeValidatable
+
   MAX_IDENTITY_DOCUMENT_SIZE = 5.megabytes
   ACCEPTED_IDENTITY_DOCUMENT_TYPES = %w[image/jpeg image/png application/pdf].freeze
 
@@ -84,6 +86,6 @@ class User < ApplicationRecord
     return unless identity_document.attached?
 
     errors.add(:identity_document, "must be 5 MB or smaller") if identity_document.blob.byte_size > MAX_IDENTITY_DOCUMENT_SIZE
-    errors.add(:identity_document, "must be a JPG, PNG, or PDF file") unless identity_document.blob.content_type.in?(ACCEPTED_IDENTITY_DOCUMENT_TYPES)
+    errors.add(:identity_document, "must be a JPG, PNG, or PDF file") unless attachment_content_type_allowed?(identity_document, ACCEPTED_IDENTITY_DOCUMENT_TYPES)
   end
 end

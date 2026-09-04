@@ -4,7 +4,7 @@ class OrganizerMatchesControllerTest < ActionDispatch::IntegrationTest
   setup do
     @organizer = User.create!(name: "Organizer", email: "matches-organizer@example.test", password: "password123", role: :organizer)
     @tournament = Tournament.create!(name: "Matches Open", organizer: @organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
-    @category = @tournament.tournament_categories.create!(event_type: "kyorugi", gender: "male", age_min: 18)
+    @category = @tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "male", age_min: 18)
     3.times { |i| create_weight_verified_registration(tournament: @tournament, category: @category, email: "matches-#{i}@example.test") }
     BracketGenerator.new(@category).call
     @category.reload

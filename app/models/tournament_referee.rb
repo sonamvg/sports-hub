@@ -1,6 +1,9 @@
 class TournamentReferee < ApplicationRecord
+  include AttachmentContentTypeValidatable
+
   MIN_UPLOAD_SIZE = 1.byte
   MAX_UPLOAD_SIZE = 5.megabytes
+  ACCEPTED_PHOTO_TYPES = %w[image/jpeg image/png image/webp].freeze
 
   belongs_to :tournament
   has_one_attached :photo
@@ -33,5 +36,7 @@ class TournamentReferee < ApplicationRecord
     elsif photo.blob.byte_size > MAX_UPLOAD_SIZE
       errors.add(:photo, "must be 5 MB or smaller")
     end
+
+    errors.add(:photo, "must be a JPG, PNG, or WebP file") unless attachment_content_type_allowed?(photo, ACCEPTED_PHOTO_TYPES)
   end
 end

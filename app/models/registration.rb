@@ -1,4 +1,6 @@
 class Registration < ApplicationRecord
+  include AttachmentContentTypeValidatable
+
   MAX_PAYMENT_RECEIPT_SIZE = 5.megabytes
   ACCEPTED_PAYMENT_RECEIPT_TYPES = %w[image/jpeg image/png image/webp application/pdf].freeze
 
@@ -11,21 +13,35 @@ class Registration < ApplicationRecord
 
   enum :status, { pending: 0, approved: 1, rejected: 2, withdrawn: 3, weight_verified: 4, disqualified: 5, draft: 6 }, default: :pending
 
+  VALID_REVIEW_TRANSITIONS = {
+    "approved" => "pending",
+    "rejected" => "pending",
+    "weight_verified" => "approved",
+    "disqualified" => "approved"
+  }.freeze
+
   validates :athlete_id, uniqueness: { scope: [:tournament_id, :tournament_category_id] }
   validate :payment_receipt_required
   validate :payment_receipt_size
   validate :category_belongs_to_tournament
+  validate :athlete_matches_category_eligibility
   before_validation :assign_fee_snapshot
 
   def review!(actor:, status:)
-    from_status = self.status
-    update!(status: status, verified_at: Time.current)
-    registration_action_logs.create!(
-      actor: actor,
-      action: status.to_s,
-      from_status: from_status,
-      to_status: self.status
-    )
+    with_lock do
+      return false if VALID_REVIEW_TRANSITIONS[status.to_s] != self.status
+
+      from_status = self.status
+      update!(status: status, verified_at: Time.current)
+      registration_action_logs.create!(
+        actor: actor,
+        action: status.to_s,
+        from_status: from_status,
+        to_status: self.status
+      )
+    end
+
+    true
   end
 
   def next_weight_check_attempt_number
@@ -106,8 +122,17 @@ class Registration < ApplicationRecord
     errors.add(:tournament_category, "must belong to the selected tournament") if tournament_category.tournament_id != tournament_id
   end
 
+  def athlete_matches_category_eligibility
+    return if athlete.blank? || tournament_category.blank?
+
+    measured_weight = registered_weight.presence || athlete.weight
+    tournament_category.eligibility_errors_for(athlete, as_of: tournament&.start_date, weight: measured_weight).each do |message|
+      errors.add(:base, message)
+    end
+  end
+
   def payment_receipt_required
-    return if draft?
+    return if draft? || tournament&.free?
 
     errors.add(:payment_receipt, "must be uploaded") unless payment_receipt.attached?
   end
@@ -116,7 +141,7 @@ class Registration < ApplicationRecord
     return unless payment_receipt.attached?
 
     errors.add(:payment_receipt, "must be 5 MB or smaller") if payment_receipt.blob.byte_size > MAX_PAYMENT_RECEIPT_SIZE
-    errors.add(:payment_receipt, "must be a JPG, PNG, WebP, or PDF file") unless payment_receipt.blob.content_type.in?(ACCEPTED_PAYMENT_RECEIPT_TYPES)
+    errors.add(:payment_receipt, "must be a JPG, PNG, WebP, or PDF file") unless attachment_content_type_allowed?(payment_receipt, ACCEPTED_PAYMENT_RECEIPT_TYPES)
   end
 
   def formatted_weight(weight)

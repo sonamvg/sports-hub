@@ -4,7 +4,7 @@ class RegistrationWeightCheckTest < ActiveSupport::TestCase
   test "weight checks are locked once the draw has been generated" do
     organizer = User.create!(name: "Organizer", email: "lock-organizer@example.test", password: "password123", role: :organizer)
     tournament = Tournament.create!(name: "Lock Open", organizer: organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
-    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "male", age_min: 18, weight_max: 80)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "male", age_min: 18, weight_max: 80)
 
     parent = User.create!(name: "Parent", email: "lock-parent@example.test", password: "password123", role: :parent)
     athlete = parent.athletes.create!(first_name: "Lock", last_name: "Athlete", date_of_birth: Date.new(2005, 1, 1), gender: "male")

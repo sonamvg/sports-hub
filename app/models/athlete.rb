@@ -1,5 +1,6 @@
 class Athlete < ApplicationRecord
   include ConsentRecordable
+  include AttachmentContentTypeValidatable
 
   attr_accessor :account_email
 
@@ -51,6 +52,10 @@ class Athlete < ApplicationRecord
     academy_membership_requests.pending.includes(:academy).order(created_at: :desc).first
   end
 
+  def profile_complete_for_registration?
+    identity_document.attached? && contact_number.present?
+  end
+
   private
 
   def normalize_profile_fields
@@ -100,7 +105,7 @@ class Athlete < ApplicationRecord
       errors.add(attribute, "must be 5 MB or smaller")
     end
 
-    return if attachment.blob.content_type.in?(ACCEPTED_UPLOAD_TYPES)
+    return if attachment_content_type_allowed?(attachment, ACCEPTED_UPLOAD_TYPES)
 
     errors.add(attribute, "must be a JPG or PNG file")
   end

@@ -37,7 +37,7 @@
     </div>
     <div class="full">
       <%= form.label :tournament_category_ids, "Categories" %>
-      <div class="category-picker" data-category-picker>
+      <div class="category-picker <%= "category-picker-invalid" if @registration.errors[:tournament_category].present? %>" data-category-picker>
         <% category_choices = @categories.map { |category| ["#{category.name} - #{category.fee_label}", category.id, { data: { fee: category.effective_registration_fee.to_s } }] } %>
         <% selected_rows = @selected_category_ids.presence || [""] %>
         <% selected_rows.each_with_index do |category_id, index| %>
@@ -57,6 +57,7 @@
           <span>Do you want to add more categories?</span>
         </label>
       </div>
+      <%= field_error(@registration, :tournament_category) %>
       <p class="field-hint">Select every category this athlete wants to enter.</p>
     </div>
     <div class="registration-total full" data-registration-total data-currency="<%= @tournament.currency.presence || "INR" %>">
@@ -65,23 +66,28 @@
       <p class="field-hint">The total is the tournament fee per category multiplied by selected categories.</p>
     </div>
     <div><%= form.label :registered_weight, "Current weight (kg)" %><%= form.number_field :registered_weight, step: 0.1, min: 1 %></div>
-    <div class="full payment-instructions">
-      <h2>Secure payment details</h2>
-      <p class="field-hint">These bank details are shown only in this signed-in registration flow and are not displayed on public tournament pages.</p>
-      <dl>
-        <div><dt>Account holder</dt><dd><%= @tournament.payment_account_name || "--" %></dd></div>
-        <div><dt>Bank</dt><dd><%= @tournament.payment_bank_name || "--" %></dd></div>
-        <div><dt>Account number</dt><dd><%= @tournament.payment_account_number || "--" %></dd></div>
-        <div><dt>IFSC</dt><dd><%= @tournament.payment_ifsc || "--" %></dd></div>
-      </dl>
-      <p><%= @tournament.payment_instructions.presence || "Make the payment using the organizer's shared instructions, then upload the receipt before submitting." %></p>
-      <p class="field-hint">Use payment description: <strong><%= "#{@tournament.name} - #{@registration.athlete&.full_name || "Athlete name"}" %></strong></p>
-    </div>
-    <div>
-      <%= form.label :payment_receipt, "Payment receipt photo" %>
-      <%= form.file_field :payment_receipt, accept: "image/png,image/jpeg,image/webp,application/pdf" %>
-      <p class="field-hint">Upload a JPG, PNG, WebP, or PDF receipt up to 5 MB so organizers can verify payment before accepting the registration.</p>
-    </div>
+    <% unless @tournament.free? %>
+      <div class="full payment-instructions" data-payment-details>
+        <h2>Secure payment details</h2>
+        <p class="field-hint">These bank details are shown only in this signed-in registration flow and are not displayed on public tournament pages.</p>
+        <dl>
+          <div><dt>Account holder</dt><dd><%= @tournament.payment_account_name || "--" %></dd></div>
+          <div><dt>Bank</dt><dd><%= @tournament.payment_bank_name || "--" %></dd></div>
+          <div><dt>Account number</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_account_number || "--" %>" data-full="<%= @tournament.payment_account_number %>"><%= @tournament.masked_payment_account_number || "--" %></dd></div>
+          <div><dt>IFSC</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_ifsc || "--" %>" data-full="<%= @tournament.payment_ifsc %>"><%= @tournament.masked_payment_ifsc || "--" %></dd></div>
+        </dl>
+        <button type="button" class="secondary-button button-reset" data-toggle-payment-details>Show full account number and IFSC</button>
+        <p><%= @tournament.payment_instructions.presence || "Make the payment using the organizer's shared instructions, then upload the receipt before submitting." %></p>
+        <p class="field-hint">Use payment description: <strong><%= "#{@tournament.name} - #{@registration.athlete&.full_name || "Athlete name"}" %></strong></p>
+      </div>
+      <div>
+        <%= form.label :payment_receipt, "Payment receipt photo" %>
+        <%= form.file_field :payment_receipt, accept: "image/png,image/jpeg,image/webp,application/pdf" %>
+        <p class="field-hint">Upload a JPG, PNG, WebP, or PDF receipt up to 5 MB so organizers can verify payment before accepting the registration.</p>
+      </div>
+    <% else %>
+      <div class="full inline-notice">This tournament is free to enter. No payment or receipt is required.</div>
+    <% end %>
   </div>
   <div class="form-actions">
     <%= form.submit "Submit registration", class: "primary-button button-reset" %>
@@ -142,6 +148,19 @@
 
   document.addEventListener("DOMContentLoaded", function() {
     document.querySelectorAll("[data-category-picker]").forEach(updateRegistrationTotal);
+  });
+
+  document.addEventListener("click", function(event) {
+    const button = event.target.closest("[data-toggle-payment-details]");
+    if (!button) return;
+
+    const container = button.closest("[data-payment-details]");
+    const revealed = container.dataset.revealed === "true";
+    container.querySelectorAll("[data-masked-field]").forEach(function(field) {
+      field.textContent = revealed ? field.dataset.masked : field.dataset.full;
+    });
+    container.dataset.revealed = revealed ? "false" : "true";
+    button.textContent = revealed ? "Show full account number and IFSC" : "Hide full account number and IFSC";
   });
 
   function updateRegistrationTotal(picker) {

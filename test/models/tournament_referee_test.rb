@@ -39,4 +39,20 @@ class TournamentRefereeTest < ActiveSupport::TestCase
     assert_not referee.valid?
     assert_includes referee.errors[:email], "is invalid"
   end
+
+  test "rejects a referee photo whose content does not match its declared image type" do
+    referee = @tournament.tournament_referees.build(name: "Meera Rao")
+    spoofed_upload = Rack::Test::UploadedFile.new(StringIO.new("PK\x03\x04" + ("x" * 50)), "image/png", original_filename: "photo.png")
+    referee.photo.attach(spoofed_upload)
+
+    assert_not referee.valid?
+    assert_includes referee.errors[:photo], "must be a JPG, PNG, or WebP file"
+  end
+
+  test "accepts a genuine png referee photo" do
+    referee = @tournament.tournament_referees.build(name: "Meera Rao")
+    referee.photo.attach(tournament_image_upload)
+
+    assert referee.valid?
+  end
 end

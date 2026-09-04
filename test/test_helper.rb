@@ -40,7 +40,7 @@ module AuthenticationTestHelper
     athlete = parent.athletes.create!(
       first_name: "Athlete",
       last_name: email.split("@").first,
-      date_of_birth: Date.new(2010, 1, 1),
+      date_of_birth: Date.new(1995, 1, 1),
       gender: "male"
     )
 

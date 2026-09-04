@@ -65,7 +65,10 @@
     <div><%= form.label :city %><%= form.text_field :city %><%= field_error(athlete, :city) %></div>
     <div><%= form.label :state %><%= form.text_field :state %><%= field_error(athlete, :state) %></div>
     <div><%= form.label :country %><%= form.text_field :country, value: athlete.country.presence || "India" %><%= field_error(athlete, :country) %></div>
-    <div class="form-section-heading full"><h2>Emergency and documents</h2></div>
+    <div class="form-section-heading full">
+      <h2>Emergency and documents</h2>
+      <p class="field-hint">A contact number and a government ID upload are required before this athlete can register for a tournament.</p>
+    </div>
     <div><%= form.label :emergency_contact_name %><%= form.text_field :emergency_contact_name %><%= field_error(athlete, :emergency_contact_name) %></div>
     <div><%= form.label :emergency_contact_phone %><%= form.telephone_field :emergency_contact_phone %><%= field_error(athlete, :emergency_contact_phone) %></div>
     <div class="full">

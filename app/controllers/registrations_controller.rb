@@ -18,10 +18,10 @@ class RegistrationsController < ApplicationController
   def create
     @registration = @tournament.registrations.build
     @athlete = manageable_athletes.find_by(id: registration_params[:athlete_id])
-    @selected_category_ids = Array(registration_params[:tournament_category_ids]).reject(&:blank?)
+    @selected_category_ids = Array(registration_params[:tournament_category_ids]).reject(&:blank?).uniq
 
     if save_category_registrations
-      redirect_to tournament_registrations_path(@tournament), notice: "Registration submitted to tournament organizers for approval."
+      redirect_to tournament_registrations_path(@tournament), notice: registration_submitted_notice
     else
       set_registration_collections
       render :new, status: :unprocessable_entity
@@ -64,35 +64,86 @@ class RegistrationsController < ApplicationController
     validate_registration_selection
     return false if @registration.errors.any?
 
+    @skipped_categories = []
+    submission_batch_id = SecureRandom.uuid
+    payment_receipt_blob = build_payment_receipt_blob
+
     Registration.transaction do
-      @selected_category_ids.each do |category_id|
-        category = @tournament.tournament_categories.find(category_id)
+      @tournament.lock!
+
+      unless can_register_for_tournament?(@tournament) || @tournament.late_registration_allowed_for?(current_user)
+        @registration.errors.add(:base, "Registration is no longer open for this tournament")
+        raise ActiveRecord::Rollback
+      end
+
+      categories = @tournament.tournament_categories.where(id: @selected_category_ids).index_by { |category| category.id.to_s }
+      missing_category_ids = @selected_category_ids - categories.keys
+      if missing_category_ids.any?
+        @registration.errors.add(:tournament_category, "included a category that is no longer available; please reselect categories and resubmit")
+        raise ActiveRecord::Rollback
+      end
+
+      categories.each_value do |category|
         registration = @tournament.registrations.find_or_initialize_by(athlete: @athlete, tournament_category: category)
+
+        if registration.persisted? && !registration.pending? && !registration.draft?
+          @skipped_categories << category
+          next
+        end
+
         registration.registered_weight = registration_params[:registered_weight].presence || @athlete.weight
         registration.status = :pending
         registration.fee_amount = @tournament.registration_fee.presence || 0
         registration.fee_currency = @tournament.currency.presence || "INR"
-        attach_payment_receipt(registration)
+        registration.submission_batch_id = submission_batch_id
+        registration.payment_receipt.attach(payment_receipt_blob) if payment_receipt_blob
         registration.save!
       end
+
+      if @selected_category_ids.present? && @skipped_categories.size == @selected_category_ids.size
+        @registration.errors.add(:tournament_category, "already has a decision recorded for every category selected")
+        raise ActiveRecord::Rollback
+      end
     end
-    true
+
+    @registration.errors.empty?
   rescue ActiveRecord::RecordInvalid => error
     @registration.errors.merge!(error.record.errors)
     false
+  end
+
+  def registration_submitted_notice
+    notice = "Registration submitted to tournament organizers for approval."
+    return notice if @skipped_categories.blank?
+
+    names = @skipped_categories.map(&:name).to_sentence
+    verb = @skipped_categories.one? ? "was" : "were"
+    pronoun = @skipped_categories.one? ? "it" : "them"
+    "#{notice} #{names} #{verb} skipped because you already have a decision for #{pronoun}."
   end
 
   def validate_registration_selection
     @registration.errors.add(:athlete, "must be selected") if @athlete.blank?
     @registration.errors.add(:tournament_category, "must include at least one category") if @selected_category_ids.blank?
 
-    @registration.errors.add(:payment_receipt, "must be uploaded") if registration_params[:payment_receipt].blank?
+    if @athlete.present? && !@athlete.profile_complete_for_registration?
+      @registration.errors.add(:athlete, "profile must include a contact number and identity document before registering")
+    end
+
+    if !@tournament.free? && registration_params[:payment_receipt].blank?
+      @registration.errors.add(:payment_receipt, "must be uploaded")
+    end
   end
 
-  def attach_payment_receipt(registration)
+  def build_payment_receipt_blob
     receipt = registration_params[:payment_receipt]
-    receipt.tempfile.rewind if receipt.respond_to?(:tempfile)
-    registration.payment_receipt.attach(receipt)
+    return if receipt.blank?
+
+    ActiveStorage::Blob.create_and_upload!(
+      io: receipt,
+      filename: receipt.original_filename,
+      content_type: receipt.content_type
+    )
   end
 
   def status_sort_sql

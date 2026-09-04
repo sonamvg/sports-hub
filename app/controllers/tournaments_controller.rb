@@ -20,11 +20,11 @@ class TournamentsController < ApplicationController
     @tournament = Tournament.new(tournament_params)
     @tournament.require_consent = true
     @tournament.organizer = current_user
+    @tournament.updated_by = current_user
     apply_submit_intent(@tournament)
 
     if @tournament.save
       sync_tournament_organizers
-      ensure_default_categories
       notify_super_admin_of_tournament_submission
       invite_notice, invite_alert = send_organizer_invitation
       redirect_to @tournament, notice: ["Tournament created.", invite_notice].compact.join(" "), alert: invite_alert
@@ -59,10 +59,11 @@ class TournamentsController < ApplicationController
 
   def update
     @tournament.assign_attributes(tournament_params)
+    @tournament.updated_by = current_user
     apply_submit_intent(@tournament)
     if @tournament.save
       sync_tournament_organizers
-      ensure_default_categories
+      @tournament.assign_default_categories
       invite_notice, invite_alert = send_organizer_invitation
       redirect_to @tournament, notice: ["Tournament updated.", invite_notice].compact.join(" "), alert: invite_alert
     else
@@ -161,14 +162,6 @@ class TournamentsController < ApplicationController
     emails = Array(tournament_params[:invite_organizer_emails])
     emails << tournament_params[:invite_organizer_email]
     emails.map { |email| email.to_s.downcase.squish }.reject(&:blank?).uniq
-  end
-
-  def ensure_default_categories
-    @tournament.update_column(:category_generation_method, "Default categories") if @tournament.category_generation_method != "Default categories"
-
-    TournamentCategory::DEFAULT_CATEGORY_TEMPLATES.each do |template|
-      @tournament.tournament_categories.find_or_create_by!(template.except(:key))
-    end
   end
 
   def tournament_params

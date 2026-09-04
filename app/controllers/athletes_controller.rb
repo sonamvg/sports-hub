@@ -4,8 +4,8 @@ class AthletesController < ApplicationController
   before_action :require_user
   before_action :redirect_athlete_index_to_profile, only: %i[index]
   before_action :prevent_extra_athlete_profile, only: %i[new create]
-  before_action :set_athlete, only: %i[show edit update destroy]
-  before_action :require_athlete_editor, only: %i[edit update]
+  before_action :set_athlete, only: %i[show edit update destroy identity_document]
+  before_action :require_athlete_editor, only: %i[edit update identity_document]
   before_action :set_available_academies, only: %i[new create edit update]
 
   def index
@@ -20,6 +20,15 @@ class AthletesController < ApplicationController
     registrations = @athlete.registrations.includes(:tournament, :tournament_category, :registration_weight_checks)
     @upcoming_registrations = registrations.select { |registration| registration.tournament.end_date >= Date.current }.sort_by { |registration| [registration.tournament.start_date, registration.created_at] }
     @previous_registrations = registrations.select { |registration| registration.tournament.end_date < Date.current }.sort_by { |registration| [registration.tournament.start_date, registration.created_at] }.reverse
+  end
+
+  def identity_document
+    raise ActiveRecord::RecordNotFound unless @athlete.identity_document.attached?
+
+    send_data @athlete.identity_document.download,
+      filename: @athlete.identity_document.filename.to_s,
+      type: @athlete.identity_document.content_type,
+      disposition: "inline"
   end
 
   def new

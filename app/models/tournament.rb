@@ -1,8 +1,14 @@
 class Tournament < ApplicationRecord
   include ConsentRecordable
+  include AttachmentContentTypeValidatable
 
   MAX_IMAGE_SIZE = 5.megabytes
   ACCEPTED_IMAGE_TYPES = %w[image/jpeg image/png image/webp].freeze
+  PAYMENT_DETAIL_FIELDS = %w[payment_account_name payment_bank_name payment_account_number payment_ifsc].freeze
+
+  attr_accessor :updated_by
+
+  encrypts :payment_account_name, :payment_bank_name, :payment_account_number, :payment_ifsc
 
   before_validation :normalize_fields
 
@@ -13,6 +19,7 @@ class Tournament < ApplicationRecord
   has_many :organizer_users, through: :tournament_organizers, source: :user
   has_many :tournament_organizer_invitations, dependent: :destroy
   has_many :tournament_referees, dependent: :destroy
+  has_many :payment_detail_audit_logs, dependent: :destroy
   has_one_attached :logo_image
   has_one_attached :banner_image
 
@@ -71,8 +78,11 @@ class Tournament < ApplicationRecord
   validate :registration_window_chronology
   validate :logo_image_size
   validate :banner_image_size
+  validate :payment_details_present_when_charging_fee
 
   after_create :add_creator_as_super_organizer
+  after_create :assign_default_categories
+  after_save :log_payment_detail_changes
 
   def accepting_registrations?(at: Time.current)
     registration_open? &&
@@ -95,12 +105,32 @@ class Tournament < ApplicationRecord
     organizer_id == user.id || tournament_organizers.exists?(user_id: user.id)
   end
 
+  def free?
+    registration_fee.present? && registration_fee.to_d.zero?
+  end
+
+  def masked_payment_account_number
+    mask_trailing(payment_account_number)
+  end
+
+  def masked_payment_ifsc
+    mask_trailing(payment_ifsc)
+  end
+
   def logo_image_source
     logo_image if logo_image.attached?
   end
 
   def banner_image_source
     banner_image if banner_image.attached?
+  end
+
+  def assign_default_categories
+    update_column(:category_generation_method, "Default categories") if category_generation_method != "Default categories"
+
+    TournamentCategory::DEFAULT_CATEGORY_TEMPLATES.each do |template|
+      tournament_categories.find_or_create_by!(template.except(:key))
+    end
   end
 
   private
@@ -131,6 +161,17 @@ class Tournament < ApplicationRecord
     self.payment_instructions = payment_instructions.to_s.squish.presence
   end
 
+  def payment_details_present_when_charging_fee
+    return if draft?
+    return unless registration_fee.present? && registration_fee.to_d.positive?
+
+    missing_fields = PAYMENT_DETAIL_FIELDS.select { |field| send(field).blank? }
+    return if missing_fields.empty?
+
+    missing_labels = missing_fields.map { |field| field.delete_prefix("payment_").humanize.downcase }.to_sentence
+    errors.add(:base, "payment details (#{missing_labels}) must be provided before a tournament that charges a fee can be published")
+  end
+
   def end_date_not_before_start_date
     return if start_date.blank? || end_date.blank?
     errors.add(:end_date, "cannot be before start date") if end_date < start_date
@@ -153,6 +194,20 @@ class Tournament < ApplicationRecord
     end
   end
 
+  def log_payment_detail_changes
+    changed_fields = PAYMENT_DETAIL_FIELDS & saved_changes.keys
+    return if changed_fields.empty?
+
+    payment_detail_audit_logs.create!(actor: updated_by, changed_fields: changed_fields.join(", "))
+  end
+
+  def mask_trailing(value, visible: 4)
+    return if value.blank?
+    return value if value.length <= visible
+
+    ("•" * (value.length - visible)) + value.last(visible)
+  end
+
   def logo_image_size
     validate_image_upload(logo_image, :logo_image)
   end
@@ -165,6 +220,6 @@ class Tournament < ApplicationRecord
     return unless attachment.attached?
 
     errors.add(attribute, "must be 5 MB or smaller") if attachment.blob.byte_size > MAX_IMAGE_SIZE
-    errors.add(attribute, "must be a JPG, PNG, or WebP file") unless attachment.blob.content_type.in?(ACCEPTED_IMAGE_TYPES)
+    errors.add(attribute, "must be a JPG, PNG, or WebP file") unless attachment_content_type_allowed?(attachment, ACCEPTED_IMAGE_TYPES)
   end
 end
