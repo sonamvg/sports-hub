@@ -13,6 +13,7 @@ class Academy < ApplicationRecord
   enum :status, { pending: 0, approved: 1, rejected: 2 }, default: :pending
 
   validates :name, :city, presence: true
+  validates :name, uniqueness: { scope: :city, case_sensitive: false, message: "already exists in this city" }, allow_blank: true
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validate :logo_image_size
 

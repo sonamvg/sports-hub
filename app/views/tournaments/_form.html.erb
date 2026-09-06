@@ -17,16 +17,19 @@
     <div>
       <%= form.label :name, "Tournament name" %>
       <%= form.text_field :name, required: true %>
+      <%= field_error(tournament, :name) %>
     </div>
 
     <div>
       <%= form.label :tournament_level, "Tournament level" %>
       <%= form.select :tournament_level, ["Local", "District", "State", "Regional", "National", "International"], { include_blank: "Select level" }, required: true %>
+      <%= field_error(tournament, :tournament_level) %>
     </div>
 
     <div class="full">
       <%= form.label :organizing_organization, "Organising organisation" %>
       <%= form.text_field :organizing_organization, required: true, placeholder: "Academy, association, federation, or event company" %>
+      <%= field_error(tournament, :organizing_organization) %>
     </div>
 
     <div class="full">
@@ -37,6 +40,7 @@
     <div>
       <%= form.label :website_url, "Tournament website" %>
       <%= form.url_field :website_url, placeholder: "https://example.com/tournament" %>
+      <%= field_error(tournament, :website_url) %>
     </div>
 
     <div>
@@ -66,41 +70,49 @@
     <div>
       <%= form.label :venue %>
       <%= form.text_field :venue, required: true %>
+      <%= field_error(tournament, :venue) %>
     </div>
 
     <div>
       <%= form.label :city %>
       <%= form.text_field :city, required: true %>
+      <%= field_error(tournament, :city) %>
     </div>
 
     <div>
       <%= form.label :state %>
-      <%= form.text_field :state, required: true %>
+      <%= form.select :state, Tournament::INDIAN_STATES_AND_UNION_TERRITORIES, { include_blank: "Select state" }, required: true %>
+      <%= field_error(tournament, :state) %>
     </div>
 
     <div>
       <%= form.label :country %>
       <%= form.text_field :country, value: tournament.country.presence || "India", required: true %>
+      <%= field_error(tournament, :country) %>
     </div>
 
     <div>
       <%= form.label :start_date %>
       <%= form.date_field :start_date, required: true %>
+      <%= field_error(tournament, :start_date) %>
     </div>
 
     <div>
       <%= form.label :end_date %>
       <%= form.date_field :end_date, required: true %>
+      <%= field_error(tournament, :end_date) %>
     </div>
 
     <div>
       <%= form.label :registration_opens_at %>
       <%= form.datetime_local_field :registration_opens_at, required: true %>
+      <%= field_error(tournament, :registration_opens_at) %>
     </div>
 
     <div>
       <%= form.label :registration_closes_at %>
       <%= form.datetime_local_field :registration_closes_at, required: true %>
+      <%= field_error(tournament, :registration_closes_at) %>
     </div>
 
     <div class="full form-section-heading">
@@ -115,17 +127,20 @@
     <div>
       <%= form.label :registration_capacity, "Registration capacity" %>
       <%= form.number_field :registration_capacity, required: true, min: 1, step: 1, placeholder: "Maximum entries" %>
+      <%= field_error(tournament, :registration_capacity) %>
     </div>
 
     <div>
       <%= form.label :registration_fee, "Fee per category" %>
       <%= form.number_field :registration_fee, required: true, min: 0, step: "0.01", placeholder: "0.00" %>
+      <%= field_error(tournament, :registration_fee) %>
       <p class="field-hint">One fee applies to each selected category. Two categories at INR 1000 each means INR 2000 total.</p>
     </div>
 
     <div>
       <%= form.label :currency %>
       <%= form.text_field :currency, required: true, maxlength: 3, placeholder: "INR" %>
+      <%= field_error(tournament, :currency) %>
     </div>
 
     <div class="full form-section-heading">
@@ -135,21 +150,25 @@
     <div>
       <%= form.label :payment_account_name, "Account holder name" %>
       <%= form.text_field :payment_account_name, autocomplete: "off" %>
+      <%= field_error(tournament, :payment_account_name) %>
     </div>
 
     <div>
       <%= form.label :payment_bank_name, "Bank name" %>
       <%= form.text_field :payment_bank_name, autocomplete: "off" %>
+      <%= field_error(tournament, :payment_bank_name) %>
     </div>
 
     <div>
       <%= form.label :payment_account_number, "Account number" %>
       <%= form.text_field :payment_account_number, autocomplete: "off" %>
+      <%= field_error(tournament, :payment_account_number) %>
     </div>
 
     <div>
       <%= form.label :payment_ifsc, "IFSC" %>
       <%= form.text_field :payment_ifsc, autocomplete: "off" %>
+      <%= field_error(tournament, :payment_ifsc) %>
     </div>
 
     <div class="full">
@@ -250,26 +269,31 @@
     <div>
       <%= form.label :primary_contact_name, "Primary contact" %>
       <%= form.text_field :primary_contact_name, required: true, autocomplete: "name" %>
+      <%= field_error(tournament, :primary_contact_name) %>
     </div>
 
     <div>
       <%= form.label :primary_contact_email, "Primary contact email" %>
       <%= form.email_field :primary_contact_email, required: true, autocomplete: "email" %>
+      <%= field_error(tournament, :primary_contact_email) %>
     </div>
 
     <div>
       <%= form.label :primary_contact_phone, "Primary contact mobile" %>
       <%= form.telephone_field :primary_contact_phone, required: true, autocomplete: "tel" %>
+      <%= field_error(tournament, :primary_contact_phone) %>
     </div>
 
     <div>
       <%= form.label :slug %>
       <%= form.text_field :slug %>
+      <%= field_error(tournament, :slug) %>
     </div>
 
     <div class="full">
       <%= form.label :status %>
       <%= form.select :status, Tournament.statuses.keys.map { |status| [status.humanize, status] } %>
+      <%= field_error(tournament, :status) %>
       <p class="field-hint">Use the action buttons below for common draft or publish flows.</p>
     </div>
 
@@ -333,8 +357,12 @@
   </div>
 
   <div class="form-actions">
-    <%= form.submit "Save as Draft", class: "secondary-button button-reset", formnovalidate: true %>
-    <%= form.submit "Publish", class: "primary-button button-reset" %>
+    <% if tournament.persisted? %>
+      <%= form.submit "Save changes", class: "primary-button button-reset" %>
+    <% else %>
+      <%= form.submit "Save as Draft", class: "secondary-button button-reset", formnovalidate: true %>
+      <%= form.submit "Publish", class: "primary-button button-reset" %>
+    <% end %>
     <%= link_to "Cancel", tournament.persisted? ? tournament_path(tournament) : tournaments_path, class: "secondary-button" %>
   </div>
 <% end %>

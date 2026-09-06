@@ -30,6 +30,7 @@
       <% else %>
         <%= form.label :athlete_id, "Athlete" %>
         <%= form.collection_select :athlete_id, @athletes, :id, :full_name, { prompt: "Choose athlete" }, data: { athlete_select: true } %>
+        <%= field_error(@registration, :athlete) %>
         <% if @athletes.any? %>
           <p class="field-hint"><%= link_to "Add another athlete", new_athlete_path(return_to: request.fullpath), class: "text-link" %></p>
         <% end %>
@@ -65,7 +66,7 @@
       <span data-total-amount><%= @tournament.currency.presence || "INR" %> 0</span>
       <p class="field-hint">The total is the tournament fee per category multiplied by selected categories.</p>
     </div>
-    <div><%= form.label :registered_weight, "Current weight (kg)" %><%= form.number_field :registered_weight, step: 0.1, min: 1 %></div>
+    <div><%= form.label :registered_weight, "Current weight (kg)" %><%= form.number_field :registered_weight, step: 0.1, min: 1, max: 300 %><%= field_error(@registration, :registered_weight) %></div>
     <% unless @tournament.free? %>
       <div class="full payment-instructions" data-payment-details>
         <h2>Secure payment details</h2>
@@ -83,6 +84,7 @@
       <div>
         <%= form.label :payment_receipt, "Payment receipt photo" %>
         <%= form.file_field :payment_receipt, accept: "image/png,image/jpeg,image/webp,application/pdf" %>
+        <%= field_error(@registration, :payment_receipt) %>
         <p class="field-hint">Upload a JPG, PNG, WebP, or PDF receipt up to 5 MB so organizers can verify payment before accepting the registration.</p>
       </div>
     <% else %>

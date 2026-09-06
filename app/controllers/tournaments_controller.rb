@@ -189,7 +189,7 @@ class TournamentsController < ApplicationController
   end
 
   def apply_submit_intent(tournament)
-    tournament.status = :draft if params[:commit] == "Save as Draft"
+    tournament.status = :draft if params[:commit] == "Save as Draft" && tournament.new_record?
     tournament.status = :scheduled if params[:commit] == "Publish" && tournament.draft?
   end
 
@@ -231,7 +231,7 @@ class TournamentsController < ApplicationController
 
   def set_filter_options
     @filter_countries = Tournament.where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
-    @filter_states = Tournament.where.not(state: [nil, ""]).distinct.order(:state).pluck(:state)
+    @filter_states = Tournament::INDIAN_STATES_AND_UNION_TERRITORIES
   end
 
   def tournament_sort_sql

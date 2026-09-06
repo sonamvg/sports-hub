@@ -4,7 +4,7 @@ class Athlete < ApplicationRecord
 
   attr_accessor :account_email
 
-  GENDERS = %w[female male other].freeze
+  GENDERS = %w[female male].freeze
   BELTS = %w[white yellow green blue red black].freeze
   BLOOD_GROUPS = %w[A+ A- B+ B- AB+ AB- O+ O-].freeze
   GOVERNMENT_ID_DOCUMENT_TYPES = [
@@ -34,7 +34,11 @@ class Athlete < ApplicationRecord
   validates :belt, inclusion: { in: BELTS }, allow_blank: true
   validates :blood_group, inclusion: { in: BLOOD_GROUPS }, allow_blank: true
   validates :government_id_document_type, inclusion: { in: GOVERNMENT_ID_DOCUMENT_TYPES }, allow_blank: true
-  validates :weight, numericality: { greater_than: 0 }, allow_nil: true
+  validates :weight, numericality: { greater_than: 0, less_than_or_equal_to: 999.99 }, allow_nil: true
+  validates :city, format: { with: User::NAME_FORMAT, message: "can only contain letters, spaces, hyphens, and apostrophes" }, length: { maximum: 60 }, allow_blank: true
+  validates :state, inclusion: { in: Tournament::INDIAN_STATES_AND_UNION_TERRITORIES }, allow_blank: true
+  validates :address, length: { maximum: 255 }, allow_blank: true
+  validates :emergency_contact_name, format: { with: User::NAME_FORMAT, message: "can only contain letters, spaces, hyphens, and apostrophes" }, allow_blank: true
   validate :profile_photo_size
   validate :identity_document_size
   validate :academy_must_be_approved

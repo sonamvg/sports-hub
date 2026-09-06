@@ -6,6 +6,15 @@ class Tournament < ApplicationRecord
   ACCEPTED_IMAGE_TYPES = %w[image/jpeg image/png image/webp].freeze
   PAYMENT_DETAIL_FIELDS = %w[payment_account_name payment_bank_name payment_account_number payment_ifsc].freeze
 
+  INDIAN_STATES_AND_UNION_TERRITORIES = [
+    "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
+    "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa",
+    "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka",
+    "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya",
+    "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
+    "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
+  ].freeze
+
   attr_accessor :updated_by
 
   encrypts :payment_account_name, :payment_bank_name, :payment_account_number, :payment_ifsc
@@ -66,6 +75,18 @@ class Tournament < ApplicationRecord
     archived: 10
   }, default: :draft
 
+  # Cancelled/completed/archived are wind-down states: once a tournament
+  # reaches one of them it should not be reactivated into an active state by
+  # mistake. Every other status can still move freely between each other
+  # (organizers manage the day-to-day lifecycle from one status dropdown).
+  LOCKED_STATUS_TRANSITIONS = {
+    "cancelled" => %w[archived],
+    "completed" => %w[archived],
+    "archived" => []
+  }.freeze
+
+  CLOSED_OUT_STATUSES = %w[cancelled archived].freeze
+
   validates :name, :start_date, :end_date, presence: true
   validates :name, length: { minimum: 3, maximum: 120 }, allow_blank: true
   validates :slug, uniqueness: true, allow_blank: true
@@ -79,6 +100,7 @@ class Tournament < ApplicationRecord
   validate :logo_image_size
   validate :banner_image_size
   validate :payment_details_present_when_charging_fee
+  validate :status_transition_allowed
 
   after_create :add_creator_as_super_organizer
   after_create :assign_default_categories
@@ -107,6 +129,18 @@ class Tournament < ApplicationRecord
 
   def free?
     registration_fee.present? && registration_fee.to_d.zero?
+  end
+
+  def fee_label
+    return unless registration_fee.present?
+
+    decimal = registration_fee.to_d
+    formatted = decimal.frac.zero? ? decimal.to_i.to_s : format("%.2f", decimal)
+    "#{currency.presence || "INR"} #{formatted}"
+  end
+
+  def closed_out?
+    status.in?(CLOSED_OUT_STATUSES)
   end
 
   def masked_payment_account_number
@@ -170,6 +204,16 @@ class Tournament < ApplicationRecord
 
     missing_labels = missing_fields.map { |field| field.delete_prefix("payment_").humanize.downcase }.to_sentence
     errors.add(:base, "payment details (#{missing_labels}) must be provided before a tournament that charges a fee can be published")
+    missing_fields.each { |field| errors.add(field.to_sym, "is required for a tournament that charges a fee") }
+  end
+
+  def status_transition_allowed
+    return if new_record? || !status_changed?
+
+    allowed = LOCKED_STATUS_TRANSITIONS[status_was]
+    return if allowed.nil? || allowed.include?(status)
+
+    errors.add(:status, "cannot change from #{status_was.humanize.downcase} to #{status.humanize.downcase}")
   end
 
   def end_date_not_before_start_date

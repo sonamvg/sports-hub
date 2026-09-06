@@ -233,6 +233,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_includes response.body, "End date cannot be before start date"
+    assert_includes response.body, "field-error-message\" data-field-error-message=\"true\">can&#39;t be blank"
   end
 
   test "renders errors when tournament branding urls are invalid" do
@@ -280,6 +281,34 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal Date.new(2026, 12, 7), tournament.start_date
     assert_equal "registration_open", tournament.status
     assert_includes tournament.organizer_users, collaborator
+  end
+
+  test "edit form shows a single save button and does not force draft status" do
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+
+    get edit_tournament_path(tournament)
+    assert_response :success
+    assert_includes response.body, "Save changes"
+    assert_not_includes response.body, "Save as Draft"
+
+    patch tournament_path(tournament), params: {
+      commit: "Save as Draft",
+      tournament: {
+        name: tournament.name,
+        start_date: tournament.start_date,
+        end_date: tournament.end_date,
+        status: "registration_paused"
+      }
+    }
+
+    assert_redirected_to tournament_path(tournament)
+    assert_equal "registration_paused", tournament.reload.status
   end
 
   test "tournament form can invite new organizer by email" do
@@ -791,7 +820,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     get tournament_path(tournament)
 
     assert_response :success
-    assert_includes response.body, "P banner"
+    assert_includes response.body, "fallback-placeholder\">P<"
     assert_includes response.body, "fallback-placeholder"
   end
 

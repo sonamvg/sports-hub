@@ -21,6 +21,7 @@ class Registration < ApplicationRecord
   }.freeze
 
   validates :athlete_id, uniqueness: { scope: [:tournament_id, :tournament_category_id] }
+  validates :registered_weight, numericality: { greater_than: 0, less_than_or_equal_to: 999.99 }, allow_nil: true
   validate :payment_receipt_required
   validate :payment_receipt_size
   validate :category_belongs_to_tournament
@@ -29,10 +30,24 @@ class Registration < ApplicationRecord
 
   def review!(actor:, status:)
     with_lock do
-      return false if VALID_REVIEW_TRANSITIONS[status.to_s] != self.status
+      if VALID_REVIEW_TRANSITIONS[status.to_s] != self.status
+        errors.add(:base, "already reviewed")
+        return false
+      end
+
+      if tournament.closed_out?
+        errors.add(:base, "tournament has been #{tournament.status}")
+        return false
+      end
 
       from_status = self.status
-      update!(status: status, verified_at: Time.current)
+      # A pure status transition shouldn't be blocked by unrelated attributes
+      # (e.g. a payment receipt that fails today's stricter content-type
+      # check but was accepted under yesterday's rules) re-failing full-record
+      # validation on every save. Skip validations here; the transition
+      # itself is already guarded above.
+      assign_attributes(status: status, verified_at: Time.current)
+      save!(validate: false)
       registration_action_logs.create!(
         actor: actor,
         action: status.to_s,

@@ -39,6 +39,7 @@
             <div class="category-actions">
               <%= link_to "View", tournament_tournament_referee_path(@tournament, referee), class: "text-link" %>
               <%= link_to "Edit", edit_tournament_tournament_referee_path(@tournament, referee), class: "text-link" %>
+              <%= button_to "Remove", tournament_tournament_referee_path(@tournament, referee), method: :delete, class: "text-link button-reset", form: { data: { turbo_confirm: "Remove #{referee.name} from this tournament?" } } %>
             </div>
           </article>
         <% end %>

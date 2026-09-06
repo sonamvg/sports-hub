@@ -40,6 +40,22 @@ class RegistrationTest < ActiveSupport::TestCase
     assert_includes registration.errors[:payment_receipt], "must be uploaded"
   end
 
+  test "rejects a zero, negative, or out-of-range registered weight" do
+    organizer = User.create!(name: "Organizer", email: "weight-validation-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Parent", email: "weight-validation-parent@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Weight Validation Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14)
+
+    zero = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, registered_weight: 0)
+    assert_not zero.valid?
+    assert_includes zero.errors[:registered_weight], "must be greater than 0"
+
+    too_large = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, registered_weight: 1000)
+    assert_not too_large.valid?
+    assert_includes too_large.errors[:registered_weight], "must be less than or equal to 999.99"
+  end
+
   test "rejects unsupported payment receipt upload type" do
     organizer = User.create!(name: "Organizer", email: "receipt-organizer@example.test", password: "password123", role: :organizer)
     athlete_user = User.create!(name: "Parent", email: "receipt-parent@example.test", password: "password123", role: :parent)

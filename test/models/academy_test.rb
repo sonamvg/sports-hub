@@ -1,6 +1,21 @@
 require "test_helper"
 
 class AcademyTest < ActiveSupport::TestCase
+  test "rejects a duplicate academy name in the same city, case-insensitively" do
+    Academy.create!(name: "Deccan Taekwondo Academy", city: "Pune")
+    duplicate = Academy.new(name: "deccan taekwondo academy", city: "Pune")
+
+    assert_not duplicate.valid?
+    assert_includes duplicate.errors[:name], "already exists in this city"
+  end
+
+  test "allows the same academy name in a different city" do
+    Academy.create!(name: "Deccan Taekwondo Academy", city: "Pune")
+    other_city = Academy.new(name: "Deccan Taekwondo Academy", city: "Mumbai")
+
+    assert other_city.valid?
+  end
+
   test "approved academies are visible to public" do
     academy = Academy.new(name: "Deccan Taekwondo Academy", city: "Pune", status: :approved)
 

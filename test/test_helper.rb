@@ -36,7 +36,7 @@ module AuthenticationTestHelper
   end
 
   def create_weight_verified_registration(tournament:, category:, email:)
-    parent = User.create!(name: "Parent #{email}", email: email, password: "password123", role: :parent)
+    parent = User.create!(name: "Parent User", email: email, password: "password123", role: :parent)
     athlete = parent.athletes.create!(
       first_name: "Athlete",
       last_name: email.split("@").first,

@@ -103,7 +103,10 @@ class AthletesController < ApplicationController
       return
     end
 
-    password = SecureRandom.alphanumeric(12)
+    # Guarantee at least one letter and one digit (User's password format
+    # validation requires both) rather than leaving it to chance with a
+    # plain alphanumeric string.
+    password = "#{SecureRandom.alphanumeric(10)}#{rand(10)}#{("a".."z").to_a.sample}"
     academy = @athlete.academy
 
     ActiveRecord::Base.transaction do
@@ -214,8 +217,13 @@ class AthletesController < ApplicationController
 
   def assign_name_from_user(athlete)
     names = current_user.name.to_s.split
-    athlete.first_name ||= names.first
-    athlete.last_name ||= names.drop(1).join(" ").presence
+    case names.size
+    when 1
+      athlete.first_name ||= names.first
+    when 2
+      athlete.first_name ||= names.first
+      athlete.last_name ||= names.last
+    end
     athlete.contact_number ||= current_user.phone
   end
 

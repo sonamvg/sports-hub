@@ -1,6 +1,17 @@
 require "test_helper"
 
 class TournamentTest < ActiveSupport::TestCase
+  test "fee_label strips trailing zeros for whole-number fees and keeps decimals otherwise" do
+    tournament = Tournament.new(registration_fee: 1000, currency: "INR")
+    assert_equal "INR 1000", tournament.fee_label
+
+    tournament.registration_fee = 749.5
+    assert_equal "INR 749.50", tournament.fee_label
+
+    tournament.registration_fee = nil
+    assert_nil tournament.fee_label
+  end
+
   test "end date cannot be before start date" do
     tournament = Tournament.new(name: "Test", start_date: Date.new(2026, 10, 2), end_date: Date.new(2026, 10, 1))
     assert_not tournament.valid?
@@ -48,6 +59,24 @@ class TournamentTest < ActiveSupport::TestCase
 
     tournament.status = :registration_paused
     assert_not tournament.accepting_registrations?(at: Time.zone.local(2026, 9, 10, 12, 0))
+  end
+
+  test "reads and re-encrypts a payment field that was stored as plaintext before encryption was enabled" do
+    organizer = User.create!(name: "Organizer", email: "plaintext-payment-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(
+      name: "Plaintext Payment Open", organizer: organizer, registration_fee: 500,
+      payment_account_name: "Placeholder", payment_bank_name: "Placeholder", payment_account_number: "0000000000", payment_ifsc: "PLCH0000000",
+      start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19)
+    )
+    ActiveRecord::Base.connection.execute(
+      "UPDATE tournaments SET payment_account_name = 'Legacy Plaintext Name' WHERE id = #{tournament.id}"
+    )
+
+    reloaded = Tournament.find(tournament.id)
+    assert_equal "Legacy Plaintext Name", reloaded.payment_account_name
+
+    reloaded.update!(updated_by: organizer, venue: "New Venue")
+    assert_equal "Legacy Plaintext Name", reloaded.reload.payment_account_name
   end
 
   test "logs an audit entry when payment details are set or changed" do
@@ -103,6 +132,10 @@ class TournamentTest < ActiveSupport::TestCase
 
     assert_not tournament.valid?
     assert_includes tournament.errors[:base].join, "payment details"
+    assert_includes tournament.errors[:payment_account_name], "is required for a tournament that charges a fee"
+    assert_includes tournament.errors[:payment_bank_name], "is required for a tournament that charges a fee"
+    assert_includes tournament.errors[:payment_account_number], "is required for a tournament that charges a fee"
+    assert_includes tournament.errors[:payment_ifsc], "is required for a tournament that charges a fee"
 
     tournament.payment_account_name = "Pune Taekwondo Association"
     tournament.payment_bank_name = "Demo Bank"
@@ -146,6 +179,50 @@ class TournamentTest < ActiveSupport::TestCase
 
     assert_equal TournamentCategory::DEFAULT_CATEGORY_TEMPLATES.size, tournament.tournament_categories.count
     assert_equal "Default categories", tournament.category_generation_method
+  end
+
+  test "cannot move a cancelled tournament back to an active status" do
+    organizer = User.create!(name: "Organizer", email: "cancelled-status-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(name: "Cancelled Open", organizer: organizer, status: :registration_open, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    tournament.update!(status: :cancelled)
+
+    tournament.status = :registration_open
+    assert_not tournament.valid?
+    assert_includes tournament.errors[:status], "cannot change from cancelled to registration open"
+
+    tournament.status = :archived
+    assert tournament.valid?
+  end
+
+  test "cannot move a completed tournament back to an active status" do
+    organizer = User.create!(name: "Organizer", email: "completed-status-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(name: "Completed Open", organizer: organizer, status: :registration_open, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    tournament.update!(status: :completed)
+
+    tournament.status = :in_progress
+    assert_not tournament.valid?
+    assert_includes tournament.errors[:status], "cannot change from completed to in progress"
+  end
+
+  test "archived tournament cannot change status at all" do
+    organizer = User.create!(name: "Organizer", email: "archived-status-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(name: "Archived Open", organizer: organizer, status: :cancelled, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    tournament.update!(status: :archived)
+
+    tournament.status = :draft
+    assert_not tournament.valid?
+  end
+
+  test "active statuses can move freely between each other" do
+    organizer = User.create!(name: "Organizer", email: "active-status-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(name: "Active Open", organizer: organizer, status: :draft, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+
+    tournament.status = :registration_open
+    assert tournament.valid?
+    tournament.save!
+
+    tournament.status = :registration_paused
+    assert tournament.valid?
   end
 
   test "rejects unsupported tournament logo upload type" do

@@ -90,6 +90,27 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_operator response.body.scan("field_with_errors").size, :>=, 4
   end
 
+  test "profile setup prefills first name only from a single-word account name" do
+    athlete_user = User.create!(name: "Sritha", email: "single-word-name@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    sign_in_as athlete_user
+
+    get new_athlete_path(profile_setup: true)
+
+    assert_response :success
+    assert_includes response.body, 'value="Sritha"'
+  end
+
+  test "profile setup splits a two-word account name into first and last name" do
+    athlete_user = User.create!(name: "Sritha Bhavaraju", email: "two-word-name@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    sign_in_as athlete_user
+
+    get new_athlete_path(profile_setup: true)
+
+    assert_response :success
+    assert_includes response.body, 'value="Sritha"'
+    assert_includes response.body, 'value="Bhavaraju"'
+  end
+
   test "athlete account without profile is redirected to profile setup" do
     athlete_user = User.create!(name: "New Athlete", email: "new-athlete-profile@example.test", phone: "9876543210", password: "password123", role: :athlete)
     sign_in_as athlete_user

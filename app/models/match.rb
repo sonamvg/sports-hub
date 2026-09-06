@@ -43,6 +43,7 @@ class Match < ApplicationRecord
   def record_result!(winner_registration_id:, decision:, score_data: {})
     raise NotReadyForResultError, "Match is not ready for a result" unless ready_for_result?
     raise NotReadyForResultError, "A winner is required" if winner_registration_id.blank?
+    raise NotReadyForResultError, "Tournament has been #{tournament_category.tournament.status}" if tournament_category.tournament.closed_out?
 
     transaction do
       update!(

@@ -17,7 +17,7 @@
     <div><%= form.label :date_of_birth %><%= form.date_field :date_of_birth, required: true %><%= field_error(athlete, :date_of_birth) %></div>
     <div><%= form.label :gender %><%= form.select :gender, Athlete::GENDERS.map { |gender| [gender.titleize, gender] }, include_blank: "Select gender" %><%= field_error(athlete, :gender) %></div>
     <div><%= form.label :belt %><%= form.select :belt, Athlete::BELTS.map { |belt| [belt.titleize, belt] }, include_blank: "Select belt" %><%= field_error(athlete, :belt) %></div>
-    <div><%= form.label :weight, "Current weight (kg)" %><%= form.number_field :weight, step: 0.1, min: 1 %><%= field_error(athlete, :weight) %></div>
+    <div><%= form.label :weight, "Current weight (kg)" %><%= form.number_field :weight, step: 0.1, min: 1, max: 300 %><%= field_error(athlete, :weight) %></div>
     <div><%= form.label :blood_group %><%= form.select :blood_group, Athlete::BLOOD_GROUPS, include_blank: "Select blood group" %><%= field_error(athlete, :blood_group) %></div>
     <div><%= form.label :contact_number, "Contact number" %><%= form.telephone_field :contact_number %><%= field_error(athlete, :contact_number) %></div>
     <% if athlete_self_service %>
@@ -63,7 +63,7 @@
     <div class="form-section-heading full"><h2>Address</h2></div>
     <div class="full"><%= form.label :address, "Address" %><%= form.text_area :address, rows: 3 %><%= field_error(athlete, :address) %></div>
     <div><%= form.label :city %><%= form.text_field :city %><%= field_error(athlete, :city) %></div>
-    <div><%= form.label :state %><%= form.text_field :state %><%= field_error(athlete, :state) %></div>
+    <div><%= form.label :state %><%= form.select :state, Tournament::INDIAN_STATES_AND_UNION_TERRITORIES, { include_blank: "Select state" } %><%= field_error(athlete, :state) %></div>
     <div><%= form.label :country %><%= form.text_field :country, value: athlete.country.presence || "India" %><%= field_error(athlete, :country) %></div>
     <div class="form-section-heading full">
       <h2>Emergency and documents</h2>

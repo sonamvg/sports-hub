@@ -19,8 +19,8 @@
       <%= hidden_field_tag :account_type, @account_type %>
       <%= hidden_field_tag :return_to, params[:return_to] if params[:return_to].present? %>
       <div class="form-grid two-col">
-        <div><%= form.label :name %><%= form.text_field :name, required: true, autocomplete: "name" %><%= field_error(@user, :name) %></div>
-        <div><%= form.label :phone, organizer_account ? "Mobile number" : "Phone number" %><%= form.telephone_field :phone, required: organizer_account || (!academy_owner_account && !organizer_account), autocomplete: "tel" %><%= field_error(@user, :phone) %></div>
+        <div><%= form.label :name %><%= form.text_field :name, required: true, autocomplete: "name", pattern: "[a-zA-Z\\s'-]+", title: "Letters, spaces, hyphens, and apostrophes only" %><%= field_error(@user, :name) %></div>
+        <div><%= form.label :phone, organizer_account ? "Mobile number" : "Phone number" %><%= form.telephone_field :phone, required: organizer_account || (!academy_owner_account && !organizer_account), autocomplete: "tel", pattern: "\\d{10}", maxlength: 10, title: "10-digit mobile number" %><%= field_error(@user, :phone) %></div>
         <% if organizer_account %>
           <div>
             <%= form.label :organizer_designation, "Designation" %>
@@ -46,7 +46,7 @@
           </div>
         <% end %>
         <div class="full"><%= form.label :email %><%= form.email_field :email, required: true, autocomplete: "email" %><%= field_error(@user, :email) %></div>
-        <div><%= form.label :password %><%= form.password_field :password, required: true, autocomplete: "new-password" %><%= field_error(@user, :password) %></div>
+        <div><%= form.label :password %><%= form.password_field :password, required: true, autocomplete: "new-password", minlength: 8, pattern: "(?=.*[A-Za-z])(?=.*\\d)\\S{8,}", title: "At least 8 characters, with a letter and a number, and no spaces" %><%= field_error(@user, :password) %></div>
         <div><%= form.label :password_confirmation %><%= form.password_field :password_confirmation, required: true, autocomplete: "new-password" %><%= field_error(@user, :password_confirmation) %></div>
       </div>
       <div class="form-actions">

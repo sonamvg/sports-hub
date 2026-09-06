@@ -17,6 +17,18 @@ class BracketGeneratorTest < ActiveSupport::TestCase
     assert_not @category.reload.draw_generated?
   end
 
+  test "refuses to generate a draw for a cancelled tournament" do
+    create_weight_verified_registration(tournament: @tournament, category: @category, email: "one@example.test")
+    create_weight_verified_registration(tournament: @tournament, category: @category, email: "two@example.test")
+    @tournament.update!(status: :cancelled)
+
+    result = BracketGenerator.new(@category).call
+
+    assert_not result.success?
+    assert_match(/cancelled/i, result.error)
+    assert_not @category.reload.draw_generated?
+  end
+
   test "refuses to regenerate an already-generated draw" do
     seed_registrations(3)
     BracketGenerator.new(@category).call

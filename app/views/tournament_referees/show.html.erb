@@ -30,7 +30,7 @@
       </dl>
       <div class="form-actions">
         <%= link_to "Edit referee", edit_tournament_tournament_referee_path(@tournament, @referee), class: "primary-button" %>
-        <%= button_to "Remove referee", tournament_tournament_referee_path(@tournament, @referee), method: :delete, class: "secondary-button button-reset" %>
+        <%= button_to "Remove referee", tournament_tournament_referee_path(@tournament, @referee), method: :delete, class: "secondary-button button-reset", form: { data: { turbo_confirm: "Remove #{@referee.name} from this tournament?" } } %>
       </div>
     </div>
   </div>

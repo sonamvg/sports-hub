@@ -1,0 +1,18 @@
+<section class="page-shell">
+  <div class="container narrow">
+    <p class="eyebrow">RESET PASSWORD</p>
+    <h1 class="page-title">Choose a new password</h1>
+
+    <%= form_with url: password_reset_path, method: :patch, model: @user, class: "form-card" do |form| %>
+      <%= render "shared/errors", record: @user %>
+      <%= hidden_field_tag :token, params[:token] %>
+      <div class="form-grid">
+        <div><%= form.label :password, "New password" %><%= form.password_field :password, required: true, autofocus: true, autocomplete: "new-password" %></div>
+        <div><%= form.label :password_confirmation, "Confirm new password" %><%= form.password_field :password_confirmation, required: true, autocomplete: "new-password" %></div>
+      </div>
+      <div class="form-actions">
+        <%= form.submit "Update password", class: "primary-button button-reset" %>
+      </div>
+    <% end %>
+  </div>
+</section>

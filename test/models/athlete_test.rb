@@ -40,6 +40,50 @@ class AthleteTest < ActiveSupport::TestCase
     assert athlete.profile_complete_for_registration?
   end
 
+  test "rejects zero, negative, non-numeric, and out-of-range weight" do
+    base = { first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female" }
+
+    zero = @user.athletes.build(base.merge(weight: 0))
+    assert_not zero.valid?
+    assert_includes zero.errors[:weight], "must be greater than 0"
+
+    negative = @user.athletes.build(base.merge(weight: -5))
+    assert_not negative.valid?
+    assert_includes negative.errors[:weight], "must be greater than 0"
+
+    non_numeric = @user.athletes.build(base.merge(weight: "abc"))
+    assert_not non_numeric.valid?
+    assert_includes non_numeric.errors[:weight], "is not a number"
+
+    too_large = @user.athletes.build(base.merge(weight: 1000))
+    assert_not too_large.valid?
+    assert_includes too_large.errors[:weight], "must be less than or equal to 999.99"
+
+    valid = @user.athletes.build(base.merge(weight: 55.5))
+    assert valid.valid?
+  end
+
+  test "rejects a city containing digits and a state outside the Indian states list" do
+    athlete = @user.athletes.build(
+      first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female",
+      city: "Pune123", state: "Telaanga"
+    )
+
+    assert_not athlete.valid?
+    assert_includes athlete.errors[:city], "can only contain letters, spaces, hyphens, and apostrophes"
+    assert_includes athlete.errors[:state], "is not included in the list"
+  end
+
+  test "rejects an emergency contact name containing digits" do
+    athlete = @user.athletes.build(
+      first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female",
+      emergency_contact_name: "Priya2"
+    )
+
+    assert_not athlete.valid?
+    assert_includes athlete.errors[:emergency_contact_name], "can only contain letters, spaces, hyphens, and apostrophes"
+  end
+
   test "rejects future date of birth" do
     athlete = @user.athletes.build(
       first_name: "Aarohi",

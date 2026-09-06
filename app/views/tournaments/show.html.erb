@@ -31,7 +31,7 @@
     <%= image_with_placeholder(
       @tournament.banner_image_source,
       alt: "#{@tournament.name} banner",
-      placeholder: "#{@tournament.name.to_s.first&.upcase || "T"} banner"
+      placeholder: @tournament.name.to_s.first&.upcase || "T"
     ) %>
   </div>
 
@@ -47,7 +47,7 @@
     <div><strong>Registration opens</strong><span><%= @tournament.registration_opens_at&.strftime("%d %b %Y, %I:%M %p") || "--" %></span></div>
     <div><strong>Registration closes</strong><span><%= @tournament.registration_closes_at&.strftime("%d %b %Y, %I:%M %p") || "--" %></span></div>
     <div><strong>Capacity</strong><span><%= @tournament.registration_capacity || "--" %></span></div>
-    <div><strong>Fee per category</strong><span><%= @tournament.registration_fee ? "#{@tournament.currency.presence || "INR"} #{@tournament.registration_fee}" : "--" %></span></div>
+    <div><strong>Fee per category</strong><span><%= @tournament.fee_label || "--" %></span></div>
     <div><strong>Courts</strong><span><%= @tournament.courts_count || "--" %></span></div>
     <div><strong>Referees</strong><span><%= pluralize(@tournament.tournament_referees.count, "referee") %></span></div>
   </div>

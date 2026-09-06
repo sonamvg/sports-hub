@@ -10,6 +10,16 @@ class MatchTest < ActiveSupport::TestCase
     @category.reload
   end
 
+  test "cannot record a result once the tournament is cancelled" do
+    @tournament.update!(status: :cancelled)
+    semifinal = @category.matches.find_by(round_number: 1, slot_position: 1)
+
+    error = assert_raises(Match::NotReadyForResultError) do
+      semifinal.record_result!(winner_registration_id: semifinal.registration_one_id, decision: :points, score_data: {})
+    end
+    assert_match(/cancelled/i, error.message)
+  end
+
   test "recording a semifinal result advances the winner and awards bronze to the loser" do
     semifinal = @category.matches.find_by(round_number: 1, slot_position: 1)
     winner_id = semifinal.registration_one_id

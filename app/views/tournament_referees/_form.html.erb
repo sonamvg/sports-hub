@@ -5,6 +5,7 @@
     <div>
       <%= form.label :name, "Referee name" %>
       <%= form.text_field :name, required: true, autocomplete: "name" %>
+      <%= field_error(referee, :name) %>
     </div>
 
     <div>
@@ -20,6 +21,7 @@
     <div>
       <%= form.label :email %>
       <%= form.email_field :email, autocomplete: "email" %>
+      <%= field_error(referee, :email) %>
     </div>
 
     <div>
@@ -40,6 +42,7 @@
     <div>
       <%= form.label :photo, "Referee photo" %>
       <%= form.file_field :photo, accept: "image/png,image/jpeg,image/webp" %>
+      <%= field_error(referee, :photo) %>
       <p class="field-hint">Optional. Upload a clear photo up to 5 MB.</p>
     </div>
 
@@ -52,5 +55,8 @@
   <div class="form-actions">
     <%= form.submit referee.persisted? ? "Update referee" : "Add referee", class: "primary-button button-reset" %>
     <%= link_to "Cancel", tournament_tournament_referees_path(tournament), class: "secondary-button" %>
+    <% if referee.persisted? %>
+      <%= button_to "Remove referee", tournament_tournament_referee_path(tournament, referee), method: :delete, class: "reject-button button-reset", form: { data: { turbo_confirm: "Remove #{referee.name} from this tournament?" } } %>
+    <% end %>
   </div>
 <% end %>

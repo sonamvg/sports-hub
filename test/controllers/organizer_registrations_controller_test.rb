@@ -57,6 +57,24 @@ class OrganizerRegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_operator response.body.index("Accepted Athlete"), :<, response.body.index("Denied Athlete")
   end
 
+  test "organizer can approve a registration whose receipt predates stricter content-type validation" do
+    organizer = User.create!(name: "Organizer", email: "legacy-receipt-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Athlete User", email: "legacy-receipt-athlete@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Owned Open", organizer: organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    registration = tournament.registrations.build(athlete: athlete, tournament_category: category)
+    registration.payment_receipt.attach(io: StringIO.new("not a real image"), filename: "receipt.png", content_type: "image/png")
+    registration.save!(validate: false)
+    sign_in_as organizer
+
+    patch approve_organizer_registration_path(registration)
+
+    assert_redirected_to organizer_registrations_path
+    assert_equal "Registration accepted.", flash[:notice]
+    assert_predicate registration.reload, :approved?
+  end
+
   test "organizer accepting registration creates action log" do
     organizer = User.create!(name: "Organizer", email: "accept-organizer@example.test", password: "password123", role: :organizer)
     athlete_user = User.create!(name: "Athlete User", email: "accept-athlete@example.test", password: "password123", role: :parent)
@@ -197,5 +215,22 @@ class OrganizerRegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "INR 1000"
     assert_includes response.body, "Total for 2 categories submitted together"
+  end
+
+  test "cannot approve or reject a registration once its tournament is cancelled" do
+    organizer = User.create!(name: "Organizer", email: "cancelled-review-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Athlete User", email: "cancelled-review-athlete@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Owned Open", organizer: organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    registration = tournament.registrations.create!(athlete: athlete, tournament_category: category, payment_receipt: payment_receipt_upload)
+    tournament.update!(status: :cancelled)
+    sign_in_as organizer
+
+    patch approve_organizer_registration_path(registration)
+
+    assert_redirected_to organizer_registrations_path
+    assert_equal "This registration can no longer be reviewed because the tournament has been cancelled.", flash[:alert]
+    assert_predicate registration.reload, :pending?
   end
 end

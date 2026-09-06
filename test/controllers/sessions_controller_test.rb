@@ -72,6 +72,15 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_nil session[:user_id]
     assert_includes response.body, "Invalid email or password."
     assert_includes response.body, "Join as athlete"
+    assert_includes response.body, 'value="admin@example.com"'
+  end
+
+  test "new session page includes a forgot password link" do
+    get login_path
+
+    assert_response :success
+    assert_includes response.body, "Forgot your password?"
+    assert_includes response.body, new_password_reset_path
   end
 
   test "new session page hides registration links when signed in" do

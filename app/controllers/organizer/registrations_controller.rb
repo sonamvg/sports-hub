@@ -23,7 +23,7 @@ module Organizer
       if @registration.review!(actor: current_user, status: :approved)
         redirect_to organizer_registrations_path, notice: "Registration accepted."
       else
-        redirect_to organizer_registrations_path, alert: "Registration has already been reviewed."
+        redirect_to organizer_registrations_path, alert: review_failure_alert
       end
     end
 
@@ -31,7 +31,7 @@ module Organizer
       if @registration.review!(actor: current_user, status: :rejected)
         redirect_to organizer_registrations_path, notice: "Registration denied."
       else
-        redirect_to organizer_registrations_path, alert: "Registration has already been reviewed."
+        redirect_to organizer_registrations_path, alert: review_failure_alert
       end
     end
 
@@ -45,6 +45,12 @@ module Organizer
     end
 
     private
+
+    def review_failure_alert
+      return "Registration has already been reviewed." if @registration.errors[:base].exclude?("tournament has been #{@registration.tournament.status}")
+
+      "This registration can no longer be reviewed because the tournament has been #{@registration.tournament.status}."
+    end
 
     def visible_registrations
       tournament_ids = Tournament

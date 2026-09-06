@@ -83,6 +83,16 @@ class TournamentRefereesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "State referee", referee.qualification
   end
 
+  test "index lists a remove action for each referee" do
+    referee = @tournament.tournament_referees.create!(name: "Meera Rao")
+
+    get tournament_tournament_referees_path(@tournament)
+
+    assert_response :success
+    assert_includes response.body, "Remove"
+    assert_includes response.body, tournament_tournament_referee_path(@tournament, referee)
+  end
+
   test "destroys referee" do
     referee = @tournament.tournament_referees.create!(name: "Meera Rao")
 

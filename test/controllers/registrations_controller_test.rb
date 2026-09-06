@@ -74,6 +74,7 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_includes response.body, "Athlete must be selected"
     assert_includes response.body, "Add athlete"
+    assert_includes response.body, "field-error-message\" data-field-error-message=\"true\">must be selected"
   end
 
   test "registration create highlights the category field directly when no category is selected" do

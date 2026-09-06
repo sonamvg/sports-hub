@@ -11,6 +11,7 @@ class RegistrationWeightCheck < ApplicationRecord
   validate :registration_can_be_weighed
   validate :attempt_is_next_attempt
   validate :draw_not_yet_generated
+  validate :tournament_not_closed_out
 
   private
 
@@ -41,6 +42,14 @@ class RegistrationWeightCheck < ApplicationRecord
 
     if registration.tournament_category.draw_generated?
       errors.add(:base, "Weight check is locked because the draw has already been set")
+    end
+  end
+
+  def tournament_not_closed_out
+    return if registration.blank?
+
+    if registration.tournament.closed_out?
+      errors.add(:base, "Weight check is locked because the tournament has been #{registration.tournament.status}")
     end
   end
 

@@ -1,0 +1,17 @@
+<section class="page-shell">
+  <div class="container narrow">
+    <p class="eyebrow">RESET PASSWORD</p>
+    <h1 class="page-title">Forgot your password?</h1>
+    <p class="page-copy">Enter your email and we'll send you a link to reset it.</p>
+
+    <%= form_with url: password_reset_path, class: "form-card" do |form| %>
+      <div class="form-grid">
+        <div><%= form.label :email %><%= form.email_field :email, required: true, autofocus: true, autocomplete: "email" %></div>
+      </div>
+      <div class="form-actions">
+        <%= form.submit "Send reset link", class: "primary-button button-reset" %>
+        <%= link_to "Back to sign in", login_path, class: "secondary-button" %>
+      </div>
+    <% end %>
+  </div>
+</section>
