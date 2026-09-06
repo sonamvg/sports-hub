@@ -38,7 +38,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "signed in user cannot open another account registration page" do
-    user = User.create!(name: "Existing User", email: "existing-user@example.com", password: "password123", role: :super_admin)
+    user = User.create!(name: "Existing User", email: "existing-user@example.test", password: "password123", role: :super_admin)
     sign_in_as user
 
     get new_user_path(account_type: "organizer", return_to: new_tournament_path)
@@ -48,14 +48,14 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "signed in user cannot create another account by posting directly" do
-    user = User.create!(name: "Existing Direct User", email: "existing-direct-user@example.com", password: "password123", role: :super_admin)
+    user = User.create!(name: "Existing Direct User", email: "existing-direct-user@example.test", password: "password123", role: :super_admin)
     sign_in_as user
 
     assert_no_difference("User.count") do
       post users_path, params: {
         user: {
           name: "Second Account",
-          email: "second-account@example.com",
+          email: "second-account@example.test",
           phone: "9876543210",
           password: "password123",
           password_confirmation: "password123"
@@ -72,7 +72,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
       post users_path, params: {
         user: {
           name: "New Athlete",
-          email: "new-athlete@example.com",
+          email: "new-athlete@example.test",
           phone: "9876543210",
           password: "password123",
           password_confirmation: "password123"
@@ -95,10 +95,10 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
         return_to: new_tournament_path,
         user: {
           name: "New Organizer",
-          email: "new-organizer@example.com",
+          email: "new-organizer@example.test",
           phone: "9876543210",
           organizer_designation: "Tournament Director",
-          profile_photo_url: "https://example.com/organizer.jpg",
+          profile_photo_url: "https://example.test/organizer.jpg",
           identity_document: identity_document_upload,
           password: "password123",
           password_confirmation: "password123"
@@ -111,7 +111,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_predicate user, :organizer_pending?
     assert_equal "9876543210", user.phone
     assert_equal "Tournament Director", user.organizer_designation
-    assert_equal "https://example.com/organizer.jpg", user.profile_photo_url
+    assert_equal "https://example.test/organizer.jpg", user.profile_photo_url
     assert_predicate user.identity_document, :attached?
     assert_equal user.id, session[:user_id]
     assert_redirected_to organizers_path
@@ -124,7 +124,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
         account_type: "organizer",
         user: {
           name: "New Organizer",
-          email: "missing-verification@example.com",
+          email: "missing-verification@example.test",
           password: "password123",
           password_confirmation: "password123"
         }
@@ -144,7 +144,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
         return_to: new_academy_path,
         user: {
           name: "New Academy Owner",
-          email: "new-academy-owner@example.com",
+          email: "new-academy-owner@example.test",
           password: "password123",
           password_confirmation: "password123"
         }

@@ -1,5 +1,6 @@
 class User < ApplicationRecord
   include AttachmentContentTypeValidatable
+  include EmailFormatValidatable
 
   MAX_IDENTITY_DOCUMENT_SIZE = 5.megabytes
   ACCEPTED_IDENTITY_DOCUMENT_TYPES = %w[image/jpeg image/png application/pdf].freeze
@@ -34,6 +35,7 @@ class User < ApplicationRecord
   validates :name, format: { with: NAME_FORMAT, message: "can only contain letters, spaces, hyphens, and apostrophes" }, allow_blank: true
   validates :email, uniqueness: true
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP, message: "must be a valid email address" }, allow_blank: true
+  rejects_placeholder_email :email
   validates :profile_photo_url, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid http or https URL" }, allow_blank: true
   validates :phone, presence: true, if: :organizer_registration_pending?
   validates :phone, format: { with: PHONE_FORMAT, message: "must be a 10-digit mobile number" }, allow_blank: true

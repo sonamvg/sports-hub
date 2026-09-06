@@ -21,9 +21,9 @@ module Organizer
       )
 
       if weight_check.save
-        redirect_to organizer_tournament_weight_checks_path(@registration.tournament, q: params[:q]), notice: weight_check_notice(weight_check)
+        redirect_to organizer_tournament_weight_checks_path(@registration.tournament, q: params[:q], highlight: @registration.id), notice: weight_check_notice(weight_check)
       else
-        redirect_to organizer_tournament_weight_checks_path(@registration.tournament, q: params[:q]), alert: weight_check.errors.full_messages.to_sentence
+        redirect_to organizer_tournament_weight_checks_path(@registration.tournament, q: params[:q], highlight: @registration.id), alert: weight_check.errors.full_messages.to_sentence
       end
     end
 

@@ -2,7 +2,7 @@ require "test_helper"
 
 class TournamentsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @organizer = User.create!(name: "Demo Organizer", email: "organizer@example.com", password: "password123", role: :organizer)
+    @organizer = User.create!(name: "Demo Organizer", email: "organizer@example.test", password: "password123", role: :organizer)
     sign_in_as @organizer
   end
 
@@ -87,7 +87,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
           registration_opens_at: "2026-10-01T09:00",
           registration_closes_at: "2026-11-25T18:00",
           primary_contact_name: "Event Desk",
-          primary_contact_email: "events@example.com",
+          primary_contact_email: "events@example.test",
           primary_contact_phone: "9876543210",
           competition_format_options: ["Kyorugi", "Individual Poomsae"],
           competition_format_other: ["Breaking"],
@@ -104,7 +104,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
           required_document_other: ["Coach approval"],
           refund_policy_options: ["Full refund before registration closes", "No refund after final schedules are published"],
           status: "registration_open",
-          website_url: "https://example.com/pune-invitational",
+          website_url: "https://example.test/pune-invitational",
           logo_image: tournament_image_upload,
           banner_image: tournament_image_upload,
           organizer_user_ids: [collaborator.id]
@@ -116,7 +116,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to tournament_path(tournament)
     assert_equal @organizer, tournament.organizer
     assert_equal "registration_open", tournament.status
-    assert_equal "https://example.com/pune-invitational", tournament.website_url
+    assert_equal "https://example.test/pune-invitational", tournament.website_url
     assert_predicate tournament.logo_image, :attached?
     assert_predicate tournament.banner_image, :attached?
     assert_not_nil tournament.terms_accepted_at
@@ -124,7 +124,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "State", tournament.tournament_level
     assert_equal "Maharashtra Taekwondo Association", tournament.organizing_organization
     assert_equal "Mumbai", tournament.time_zone
-    assert_equal "events@example.com", tournament.primary_contact_email
+    assert_equal "events@example.test", tournament.primary_contact_email
     assert_equal "Kyorugi, Individual Poomsae, Breaking", tournament.competition_formats
     assert_equal "Age proof required, Red belt and above, State ranking required", tournament.eligibility_summary
     assert_equal "Default categories", tournament.category_generation_method
@@ -401,8 +401,8 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "show lists current user's registered athletes under tournament" do
-    parent = User.create!(name: "Demo Parent", email: "parent@example.com", password: "password123", role: :parent)
-    other_parent = User.create!(name: "Other Parent", email: "other-parent@example.com", password: "password123", role: :parent)
+    parent = User.create!(name: "Demo Parent", email: "parent@example.test", password: "password123", role: :parent)
+    other_parent = User.create!(name: "Other Parent", email: "other-parent@example.test", password: "password123", role: :parent)
     athlete = parent.athletes.create!(
       first_name: "Aarohi",
       last_name: "Shah",
@@ -444,7 +444,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "tournament manager sees all registered athletes" do
-    parent = User.create!(name: "Demo Parent", email: "manager-parent@example.com", password: "password123", role: :parent)
+    parent = User.create!(name: "Demo Parent", email: "manager-parent@example.test", password: "password123", role: :parent)
     athlete = parent.athletes.create!(
       first_name: "Aarohi",
       last_name: "Shah",
@@ -479,7 +479,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6),
       primary_contact_name: "Event Desk",
-      primary_contact_email: "private-contact@example.com",
+      primary_contact_email: "private-contact@example.test",
       primary_contact_phone: "9876543210"
     )
     tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
@@ -498,7 +498,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Register athlete"
     assert_not_includes response.body, "Register →"
     assert_not_includes response.body, "Add athlete"
-    assert_not_includes response.body, "private-contact@example.com"
+    assert_not_includes response.body, "private-contact@example.test"
     assert_not_includes response.body, "9876543210"
   end
 
@@ -621,7 +621,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       organizer: @organizer,
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6),
-      website_url: "https://example.com/pune-invitational"
+      website_url: "https://example.test/pune-invitational"
     )
     tournament.logo_image.attach(tournament_image_upload)
 
@@ -630,7 +630,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "#{tournament.name} logo"
     assert_includes response.body, "/rails/active_storage"
-    assert_includes response.body, "https://example.com/pune-invitational"
+    assert_includes response.body, "https://example.test/pune-invitational"
   end
 
   test "signed in users see register link for open tournaments on index" do

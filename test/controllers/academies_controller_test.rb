@@ -2,7 +2,7 @@ require "test_helper"
 
 class AcademiesControllerTest < ActionDispatch::IntegrationTest
   test "creates academy submission owned by current user" do
-    owner = User.create!(name: "Demo Parent", email: "parent@example.com", password: "password123", role: :parent)
+    owner = User.create!(name: "Demo Parent", email: "parent@example.test", password: "password123", role: :parent)
     sign_in_as owner
 
     assert_difference("Academy.count", 1) do
@@ -10,7 +10,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
         academy: {
           name: "Deccan Taekwondo Academy",
           city: "Pune",
-          email: "deccan@example.com",
+          email: "deccan@example.test",
           logo_image: tournament_image_upload
         }.merge(consent_params)
       }
@@ -27,7 +27,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "super admin approves academy and promotes owner" do
-    super_admin = User.create!(name: "Demo Parent", email: "parent@example.com", password: "password123", role: :super_admin)
+    super_admin = User.create!(name: "Demo Parent", email: "parent@example.test", password: "password123", role: :super_admin)
     owner = User.create!(name: "Academy Owner", email: "owner@example.test", password: "password123", role: :parent)
     academy = Academy.create!(name: "Pending Academy", city: "Pune", owner: owner, status: :pending)
     sign_in_as super_admin
@@ -42,7 +42,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "public index hides pending academies from normal users" do
-    User.create!(name: "Demo Parent", email: "parent@example.com", password: "password123", role: :parent)
+    User.create!(name: "Demo Parent", email: "parent@example.test", password: "password123", role: :parent)
     approved = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved)
     pending = Academy.create!(name: "Pending Academy", city: "Mumbai", status: :pending)
 
@@ -56,8 +56,34 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, pending.name
   end
 
+  test "new academy form labels the name field and prefills contact name and email from the account" do
+    owner = User.create!(name: "Kanchan Surudkar", email: "prefill-owner@example.test", password: "password123", role: :academy_owner)
+    sign_in_as owner
+
+    get new_academy_path
+
+    assert_response :success
+    assert_includes response.body, "Academy name"
+    assert_includes response.body, 'value="Kanchan Surudkar"'
+    assert_includes response.body, 'value="prefill-owner@example.test"'
+  end
+
+  test "submitting the academy form with a blank name highlights the field and explains the error" do
+    owner = User.create!(name: "Academy Owner", email: "blank-name-owner@example.test", password: "password123", role: :academy_owner)
+    sign_in_as owner
+
+    assert_no_difference("Academy.count") do
+      post academies_path, params: { academy: { name: "", city: "Pune" }.merge(consent_params) }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Name can&#39;t be blank"
+    assert_includes response.body, "field-error-message\" data-field-error-message=\"true\">can&#39;t be blank"
+    assert_includes response.body, "field_with_errors"
+  end
+
   test "academy form pages render breadcrumbs" do
-    owner = User.create!(name: "Academy Owner", email: "breadcrumbs-owner@example.com", password: "password123", role: :academy_owner)
+    owner = User.create!(name: "Academy Owner", email: "breadcrumbs-owner@example.test", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Breadcrumb Academy", city: "Pune", status: :approved, owner: owner)
     sign_in_as owner
 
@@ -83,7 +109,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "invalid academy submission shows inline field errors" do
-    owner = User.create!(name: "Demo Parent", email: "inline-academy-errors@example.com", password: "password123", role: :parent)
+    owner = User.create!(name: "Demo Parent", email: "inline-academy-errors@example.test", password: "password123", role: :parent)
     sign_in_as owner
 
     post academies_path, params: {
@@ -106,7 +132,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "academy creation requires terms and data sharing consent" do
-    owner = User.create!(name: "Demo Parent", email: "academy-consent@example.com", password: "password123", role: :parent)
+    owner = User.create!(name: "Demo Parent", email: "academy-consent@example.test", password: "password123", role: :parent)
     sign_in_as owner
 
     assert_no_difference("Academy.count") do
@@ -125,7 +151,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
 
   test "logged out index hides academy athlete counts" do
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved)
-    parent = User.create!(name: "Demo Parent", email: "parent@example.com", password: "password123", role: :parent)
+    parent = User.create!(name: "Demo Parent", email: "parent@example.test", password: "password123", role: :parent)
     parent.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
 
     get academies_path
@@ -137,7 +163,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
 
   test "logged out show hides registered athlete details" do
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved)
-    parent = User.create!(name: "Demo Parent", email: "parent@example.com", password: "password123", role: :parent)
+    parent = User.create!(name: "Demo Parent", email: "parent@example.test", password: "password123", role: :parent)
     parent.athletes.create!(
       academy: academy,
       first_name: "Aarohi",
@@ -157,7 +183,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "academy show links manager to athletes without listing roster inline" do
-    owner = User.create!(name: "Academy Owner", email: "owner@example.com", password: "password123", role: :academy_owner)
+    owner = User.create!(name: "Academy Owner", email: "owner@example.test", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
     owner.athletes.create!(
       academy: academy,
@@ -179,7 +205,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "academy owner sees other academies but not their athletes" do
-    owner = User.create!(name: "Academy Owner", email: "owner-privacy@example.com", password: "password123", role: :academy_owner)
+    owner = User.create!(name: "Academy Owner", email: "owner-privacy@example.test", password: "password123", role: :academy_owner)
     owned_academy = Academy.create!(name: "Owned Academy", city: "Pune", status: :approved, owner: owner)
     other_academy = Academy.create!(name: "Other Academy", city: "Mumbai", status: :approved)
     owner.athletes.create!(academy: owned_academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
@@ -211,7 +237,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "academy owner sees owned academy athletes in list view with profile links" do
-    owner = User.create!(name: "Academy Owner", email: "owner-list@example.com", password: "password123", role: :academy_owner)
+    owner = User.create!(name: "Academy Owner", email: "owner-list@example.test", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
     athlete = owner.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", belt: "red")
     sign_in_as owner
@@ -238,7 +264,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "academy show presents logo contact details and top action menu" do
-    owner = User.create!(name: "Academy Owner", email: "academy-show-owner@example.com", password: "password123", role: :academy_owner)
+    owner = User.create!(name: "Academy Owner", email: "academy-show-owner@example.test", password: "password123", role: :academy_owner)
     academy = Academy.create!(
       name: "Card Dojang",
       city: "Pune",
@@ -272,7 +298,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "super admin sees edit member action in academy athlete menu" do
-    super_admin = User.create!(name: "Super Admin", email: "academy-menu-admin@example.com", password: "password123", role: :super_admin)
+    super_admin = User.create!(name: "Super Admin", email: "academy-menu-admin@example.test", password: "password123", role: :super_admin)
     athlete_user = User.create!(name: "Athlete User", email: "academy-menu-athlete@example.test", password: "password123", role: :athlete)
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved)
     athlete = athlete_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", belt: "red")
@@ -287,7 +313,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "academy owner sees athlete tournament registration statuses for owned academy" do
-    owner = User.create!(name: "Academy Owner", email: "academy-status-owner@example.com", password: "password123", role: :academy_owner)
+    owner = User.create!(name: "Academy Owner", email: "academy-status-owner@example.test", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
     athlete_user = User.create!(name: "Athlete User", email: "academy-status-athlete@example.test", password: "password123", role: :athlete)
     athlete = athlete_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", belt: "red", weight: 39.5)
@@ -328,7 +354,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "academy owner can approve athlete join request" do
-    owner = User.create!(name: "Academy Owner", email: "membership-owner@example.com", password: "password123", role: :academy_owner)
+    owner = User.create!(name: "Academy Owner", email: "membership-owner@example.test", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
     athlete_user = User.create!(name: "Athlete User", email: "membership-athlete@example.test", password: "password123", role: :athlete)
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
@@ -363,7 +389,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "academy owner can dismiss join request notification without changing request status" do
-    owner = User.create!(name: "Academy Owner", email: "membership-dismiss-owner@example.com", password: "password123", role: :academy_owner)
+    owner = User.create!(name: "Academy Owner", email: "membership-dismiss-owner@example.test", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
     athlete_user = User.create!(name: "Athlete User", email: "membership-dismiss-athlete@example.test", password: "password123", role: :athlete)
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
@@ -388,7 +414,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "academy owner can reject athlete join request" do
-    owner = User.create!(name: "Academy Owner", email: "membership-reject-owner@example.com", password: "password123", role: :academy_owner)
+    owner = User.create!(name: "Academy Owner", email: "membership-reject-owner@example.test", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
     athlete_user = User.create!(name: "Athlete User", email: "membership-reject-athlete@example.test", password: "password123", role: :athlete)
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
@@ -405,7 +431,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "academy owner assigning athlete to own academy does not need approval" do
-    owner = User.create!(name: "Academy Owner", email: "direct-add-owner@example.com", password: "password123", role: :academy_owner)
+    owner = User.create!(name: "Academy Owner", email: "direct-add-owner@example.test", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
     sign_in_as owner
 
@@ -437,7 +463,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "academy owner cannot create athlete with email already used by another role" do
-    owner = User.create!(name: "Academy Owner", email: "direct-add-duplicate-owner@example.com", password: "password123", role: :academy_owner)
+    owner = User.create!(name: "Academy Owner", email: "direct-add-duplicate-owner@example.test", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
     User.create!(name: "Existing Organizer", email: "used-email@example.test", password: "password123", role: :organizer)
     sign_in_as owner
@@ -462,7 +488,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "academy owner removing athlete detaches academy and notifies athlete" do
-    owner = User.create!(name: "Academy Owner", email: "remove-athlete-owner@example.com", password: "password123", role: :academy_owner)
+    owner = User.create!(name: "Academy Owner", email: "remove-athlete-owner@example.test", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
     athlete_user = User.create!(name: "Athlete User", email: "removed-athlete@example.test", password: "password123", role: :athlete)
     athlete = athlete_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
@@ -483,7 +509,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "academy owner remove unlinks even when athlete account belongs to owner" do
-    owner = User.create!(name: "Academy Owner", email: "remove-own-athlete-owner@example.com", password: "password123", role: :academy_owner)
+    owner = User.create!(name: "Academy Owner", email: "remove-own-athlete-owner@example.test", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Owner Athlete Academy", city: "Pune", status: :approved, owner: owner)
     athlete = owner.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     sign_in_as owner
@@ -531,7 +557,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "academy show sorts athletes by name" do
-    owner = User.create!(name: "Academy Owner", email: "sort-owner@example.com", password: "password123", role: :academy_owner)
+    owner = User.create!(name: "Academy Owner", email: "sort-owner@example.test", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
     owner.athletes.create!(academy: academy, first_name: "Zoya", last_name: "Kapoor", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     owner.athletes.create!(academy: academy, first_name: "Aarav", last_name: "Mehta", date_of_birth: Date.new(2014, 5, 12), gender: "male")

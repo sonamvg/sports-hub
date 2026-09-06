@@ -7,7 +7,7 @@
     </div>
   <% end %>
   <div class="form-grid two-col">
-    <div class="full"><%= form.label :name %><%= form.text_field :name, required: true %><%= field_error(academy, :name) %></div>
+    <div class="full"><%= form.label :name, "Academy name" %><%= form.text_field :name, required: true %><%= field_error(academy, :name) %></div>
     <div><%= form.label :registration_number %><%= form.text_field :registration_number %><%= field_error(academy, :registration_number) %></div>
     <div><%= form.label :contact_name %><%= form.text_field :contact_name %><%= field_error(academy, :contact_name) %></div>
     <div><%= form.label :city %><%= form.text_field :city, required: true %><%= field_error(academy, :city) %></div>

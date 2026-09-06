@@ -57,7 +57,7 @@ class Athlete < ApplicationRecord
   end
 
   def profile_complete_for_registration?
-    identity_document.attached? && contact_number.present?
+    contact_number.present?
   end
 
   private

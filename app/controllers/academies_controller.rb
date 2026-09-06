@@ -32,7 +32,7 @@ class AcademiesController < ApplicationController
   end
 
   def new
-    @academy = current_user.owned_academies.build
+    @academy = current_user.owned_academies.build(contact_name: current_user.name, email: current_user.email)
   end
 
   def create

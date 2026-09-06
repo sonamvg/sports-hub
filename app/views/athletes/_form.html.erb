@@ -67,7 +67,7 @@
     <div><%= form.label :country %><%= form.text_field :country, value: athlete.country.presence || "India" %><%= field_error(athlete, :country) %></div>
     <div class="form-section-heading full">
       <h2>Emergency and documents</h2>
-      <p class="field-hint">A contact number and a government ID upload are required before this athlete can register for a tournament.</p>
+      <p class="field-hint">A contact number is required before this athlete can register for a tournament.</p>
     </div>
     <div><%= form.label :emergency_contact_name %><%= form.text_field :emergency_contact_name %><%= field_error(athlete, :emergency_contact_name) %></div>
     <div><%= form.label :emergency_contact_phone %><%= form.telephone_field :emergency_contact_phone %><%= field_error(athlete, :emergency_contact_phone) %></div>
@@ -76,6 +76,9 @@
       <%= form.file_field :profile_photo, accept: "image/png,image/jpeg" %>
       <%= field_error(athlete, :profile_photo) %>
       <p class="field-hint">Accepted: JPG or PNG, up to 5 MB.</p>
+      <% if athlete.profile_photo.attached? %>
+        <p class="field-hint">Current upload: <%= athlete.profile_photo.filename %></p>
+      <% end %>
     </div>
     <div class="full">
       <fieldset class="checkbox-fieldset">
@@ -94,6 +97,14 @@
       <%= form.file_field :identity_document, accept: "image/png,image/jpeg" %>
       <%= field_error(athlete, :identity_document) %>
       <p class="field-hint">Accepted: JPG or PNG, up to 5 MB.</p>
+      <% if athlete.identity_document.attached? %>
+        <p class="field-hint">
+          Current upload: <%= athlete.identity_document.filename %>
+          <% if athlete.persisted? %>
+            · <%= link_to "View", identity_document_athlete_path(athlete), class: "text-link", target: "_blank", rel: "noopener" %>
+          <% end %>
+        </p>
+      <% end %>
     </div>
     <% if athlete.new_record? %>
       <div class="full consent-panel">

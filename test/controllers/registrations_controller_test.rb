@@ -104,6 +104,45 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "category-picker-invalid"
   end
 
+  test "registration form warns upfront when the athlete's profile is missing a contact number" do
+    athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6),
+      registration_opens_at: 1.day.ago,
+      registration_closes_at: 1.day.from_now
+    )
+
+    get new_tournament_registration_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Aarohi Shah&rsquo;s profile is incomplete."
+    assert_includes response.body, "Add a contact number to this athlete's profile"
+    assert_includes response.body, edit_athlete_path(athlete)
+    assert_not_includes response.body, "data-incomplete-profile-notice hidden"
+  end
+
+  test "registration form does not warn when the athlete's profile is already complete" do
+    athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", contact_number: "9876543210")
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6),
+      registration_opens_at: 1.day.ago,
+      registration_closes_at: 1.day.from_now
+    )
+
+    get new_tournament_registration_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "data-incomplete-profile-notice hidden"
+  end
+
   test "registration form does not show save and pay later option" do
     athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     tournament = Tournament.create!(
@@ -329,7 +368,7 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "registration create is blocked when athlete profile is missing contact number and identity document" do
+  test "registration create is blocked when athlete profile is missing a contact number" do
     athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     tournament = Tournament.create!(
       name: "Pune Invitational",
@@ -354,7 +393,7 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :unprocessable_entity
-    assert_includes response.body, "profile must include a contact number and identity document before registering"
+    assert_includes response.body, "profile must include a contact number before registering"
   end
 
   test "resubmitting an already reviewed category does not reset its status and skips it with a notice" do

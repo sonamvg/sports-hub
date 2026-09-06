@@ -13,6 +13,7 @@ class RegistrationsController < ApplicationController
     )
     set_registration_collections
     @selected_category_ids = selected_category_ids
+    @selected_athlete = @athletes.find_by(id: @registration.athlete_id)
   end
 
   def create
@@ -127,7 +128,7 @@ class RegistrationsController < ApplicationController
     @registration.errors.add(:tournament_category, "must include at least one category") if @selected_category_ids.blank?
 
     if @athlete.present? && !@athlete.profile_complete_for_registration?
-      @registration.errors.add(:athlete, "profile must include a contact number and identity document before registering")
+      @registration.errors.add(:athlete, "profile must include a contact number before registering")
     end
 
     if !@tournament.free? && registration_params[:payment_receipt].blank?

@@ -6,38 +6,149 @@ class TournamentCategory < ApplicationRecord
   has_many :registrations, dependent: :restrict_with_error
   has_many :matches, dependent: :destroy
 
-  DEFAULT_CATEGORY_TEMPLATES = [
-    { key: "sub-junior-female-u18", event_type: "kyorugi", gender: "female", age_min: 8, age_max: 11, weight_max: 18 },
-    { key: "sub-junior-female-u21", event_type: "kyorugi", gender: "female", age_min: 8, age_max: 11, weight_min: 18, weight_max: 21 },
-    { key: "sub-junior-female-u24", event_type: "kyorugi", gender: "female", age_min: 8, age_max: 11, weight_min: 21, weight_max: 24 },
-    { key: "sub-junior-male-u18", event_type: "kyorugi", gender: "male", age_min: 8, age_max: 11, weight_max: 18 },
-    { key: "sub-junior-male-u21", event_type: "kyorugi", gender: "male", age_min: 8, age_max: 11, weight_min: 18, weight_max: 21 },
-    { key: "sub-junior-male-u24", event_type: "kyorugi", gender: "male", age_min: 8, age_max: 11, weight_min: 21, weight_max: 24 },
-    { key: "cadet-female-u33", event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 33 },
-    { key: "cadet-female-u37", event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37 },
-    { key: "cadet-female-u41", event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 37, weight_max: 41 },
-    { key: "cadet-male-u33", event_type: "kyorugi", gender: "male", age_min: 12, age_max: 14, weight_max: 33 },
-    { key: "cadet-male-u37", event_type: "kyorugi", gender: "male", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37 },
-    { key: "cadet-male-u41", event_type: "kyorugi", gender: "male", age_min: 12, age_max: 14, weight_min: 37, weight_max: 41 },
-    { key: "junior-female-u44", event_type: "kyorugi", gender: "female", age_min: 15, age_max: 17, weight_max: 44 },
-    { key: "junior-female-u49", event_type: "kyorugi", gender: "female", age_min: 15, age_max: 17, weight_min: 44, weight_max: 49 },
-    { key: "junior-female-u55", event_type: "kyorugi", gender: "female", age_min: 15, age_max: 17, weight_min: 49, weight_max: 55 },
-    { key: "junior-male-u45", event_type: "kyorugi", gender: "male", age_min: 15, age_max: 17, weight_max: 45 },
-    { key: "junior-male-u51", event_type: "kyorugi", gender: "male", age_min: 15, age_max: 17, weight_min: 45, weight_max: 51 },
-    { key: "junior-male-u55", event_type: "kyorugi", gender: "male", age_min: 15, age_max: 17, weight_min: 51, weight_max: 55 },
-    { key: "senior-female-u49", event_type: "kyorugi", gender: "female", age_min: 18, weight_max: 49 },
-    { key: "senior-female-u57", event_type: "kyorugi", gender: "female", age_min: 18, weight_min: 49, weight_max: 57 },
-    { key: "senior-female-u67", event_type: "kyorugi", gender: "female", age_min: 18, weight_min: 57, weight_max: 67 },
-    { key: "senior-male-u58", event_type: "kyorugi", gender: "male", age_min: 18, weight_max: 58 },
-    { key: "senior-male-u68", event_type: "kyorugi", gender: "male", age_min: 18, weight_min: 58, weight_max: 68 },
-    { key: "senior-male-u80", event_type: "kyorugi", gender: "male", age_min: 18, weight_min: 68, weight_max: 80 },
-    { key: "individual-poomsae-female-cadet", event_type: "poomsae", gender: "female", age_min: 12, age_max: 14 },
-    { key: "individual-poomsae-male-cadet", event_type: "poomsae", gender: "male", age_min: 12, age_max: 14 },
-    { key: "individual-poomsae-female-junior", event_type: "poomsae", gender: "female", age_min: 15, age_max: 17 },
-    { key: "individual-poomsae-male-junior", event_type: "poomsae", gender: "male", age_min: 15, age_max: 17 },
-    { key: "individual-poomsae-female-senior", event_type: "poomsae", gender: "female", age_min: 18 },
-    { key: "individual-poomsae-male-senior", event_type: "poomsae", gender: "male", age_min: 18 }
+  # Weight brackets per World Taekwondo age division. Each gender's array is
+  # the ascending list of upper weight bounds (kg); the final bracket is
+  # open-ended above the last bound. Senior Olympic uses the 4-class Olympic
+  # program; Senior World Championships uses the wider 8-class program.
+  KYORUGI_WEIGHT_BOUNDARIES = {
+    sub_junior: {
+      age_min: 8, age_max: 11,
+      male: [16, 18, 21, 23, 25, 27, 29, 32, 35],
+      female: [14, 16, 18, 20, 22, 24, 26, 29, 32]
+    },
+    cadet: {
+      age_min: 12, age_max: 14,
+      male: [33, 37, 41, 45, 49, 53, 57, 61, 65],
+      female: [29, 33, 37, 41, 44, 47, 51, 55, 59]
+    },
+    junior: {
+      age_min: 15, age_max: 17,
+      male: [45, 48, 51, 55, 59, 63, 68, 73, 78],
+      female: [42, 44, 46, 49, 52, 55, 59, 63, 68]
+    },
+    senior_world: {
+      age_min: 17, age_max: nil,
+      male: [54, 58, 63, 68, 74, 80, 87],
+      female: [46, 49, 53, 57, 62, 67, 73]
+    },
+    senior_olympic: {
+      age_min: 17, age_max: nil,
+      male: [58, 68, 80],
+      female: [49, 57, 67]
+    }
+  }.freeze
+
+  INDIVIDUAL_POOMSAE_AGE_DIVISIONS = [
+    { key: "under-9", age_min: nil, age_max: 9 },
+    { key: "under-11", age_min: 10, age_max: 11 },
+    { key: "cadet", age_min: 12, age_max: 14 },
+    { key: "junior", age_min: 15, age_max: 17 },
+    { key: "under-30", age_min: 18, age_max: 30 },
+    { key: "under-40", age_min: 31, age_max: 40 },
+    { key: "under-50", age_min: 41, age_max: 50 },
+    { key: "under-60", age_min: 51, age_max: 60 },
+    { key: "under-65", age_min: 61, age_max: 65 },
+    { key: "over-65", age_min: 66, age_max: nil }
   ].freeze
+
+  # Pair (1 male + 1 female) and mixed-team poomsae use two broad age tiers
+  # rather than the finer-grained individual-poomsae age divisions.
+  PAIR_TEAM_POOMSAE_AGE_DIVISIONS = [
+    { key: "under-17", age_min: 12, age_max: 17 },
+    { key: "over-17", age_min: 18, age_max: nil }
+  ].freeze
+
+  def self.weight_brackets_for(boundaries)
+    brackets = []
+    previous_max = nil
+    boundaries.each do |max|
+      brackets << { weight_min: previous_max, weight_max: max }
+      previous_max = max
+    end
+    brackets << { weight_min: previous_max, weight_max: nil }
+    brackets
+  end
+
+  def self.weight_bracket_key(bracket)
+    if bracket[:weight_min].nil?
+      "u#{bracket[:weight_max]}"
+    elsif bracket[:weight_max].nil?
+      "o#{bracket[:weight_min]}"
+    else
+      "#{bracket[:weight_min]}-#{bracket[:weight_max]}"
+    end
+  end
+
+  # NOTE: every hash below carries ALL of event_type/gender/age_min/age_max/
+  # weight_min/weight_max explicitly (using nil rather than omitting a key)
+  # because find_or_create_by! turns a nil value into "column IS NULL" but
+  # turns an OMITTED key into "no constraint on that column at all" — with
+  # some keys omitted, two different brackets that share every other field
+  # (e.g. a Senior World bracket and the open-ended Senior Olympic bracket
+  # above it) could silently match the same existing row instead of getting
+  # their own.
+  def self.build_kyorugi_templates
+    KYORUGI_WEIGHT_BOUNDARIES.flat_map do |age_group, config|
+      %i[male female].flat_map do |gender|
+        weight_brackets_for(config.fetch(gender)).map do |bracket|
+          {
+            key: "kyorugi-#{age_group.to_s.dasherize}-#{gender}-#{weight_bracket_key(bracket)}",
+            event_type: "kyorugi",
+            gender: gender.to_s,
+            age_min: config[:age_min],
+            age_max: config[:age_max],
+            weight_min: bracket[:weight_min],
+            weight_max: bracket[:weight_max]
+          }
+        end
+      end
+    end
+  end
+
+  def self.build_individual_poomsae_templates
+    INDIVIDUAL_POOMSAE_AGE_DIVISIONS.flat_map do |division|
+      %w[male female].map do |gender|
+        {
+          key: "individual-poomsae-#{gender}-#{division[:key]}",
+          event_type: "individual_poomsae",
+          gender: gender,
+          age_min: division[:age_min],
+          age_max: division[:age_max]
+        }
+      end
+    end
+  end
+
+  def self.build_pair_poomsae_templates
+    PAIR_TEAM_POOMSAE_AGE_DIVISIONS.map do |division|
+      {
+        key: "pair-poomsae-#{division[:key]}",
+        event_type: "pair_poomsae",
+        gender: nil,
+        age_min: division[:age_min],
+        age_max: division[:age_max]
+      }
+    end
+  end
+
+  def self.build_team_poomsae_templates
+    PAIR_TEAM_POOMSAE_AGE_DIVISIONS.map do |division|
+      {
+        key: "team-poomsae-#{division[:key]}",
+        event_type: "team_poomsae",
+        gender: nil,
+        age_min: division[:age_min],
+        age_max: division[:age_max]
+      }
+    end
+  end
+
+  DEFAULT_CATEGORY_TEMPLATES = (
+    build_kyorugi_templates +
+    build_individual_poomsae_templates +
+    build_pair_poomsae_templates +
+    build_team_poomsae_templates
+  ).freeze
 
   validates :name, :event_type, :category_key, presence: true
   validates :category_key, uniqueness: { scope: :tournament_id, message: "already exists for this tournament" }

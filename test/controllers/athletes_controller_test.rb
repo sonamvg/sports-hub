@@ -2,7 +2,7 @@ require "test_helper"
 
 class AthletesControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @parent = User.create!(name: "Demo Parent", email: "parent@example.com", password: "password123", role: :parent)
+    @parent = User.create!(name: "Demo Parent", email: "parent@example.test", password: "password123", role: :parent)
     sign_in_as @parent
   end
 
@@ -547,6 +547,19 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     get identity_document_athlete_path(athlete)
     assert_response :success
     assert_equal "image/png", response.media_type
+  end
+
+  test "edit form shows which document and photo are currently uploaded" do
+    athlete = @parent.athletes.create!(
+      first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female",
+      identity_document: identity_image_upload, profile_photo: tournament_image_upload
+    )
+
+    get edit_athlete_path(athlete)
+
+    assert_response :success
+    assert_includes response.body, "Current upload: tournament-image.png"
+    assert_includes response.body, identity_document_athlete_path(athlete)
   end
 
   test "a user who cannot manage the athlete sees no document link and cannot fetch it" do

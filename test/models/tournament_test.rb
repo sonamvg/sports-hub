@@ -225,6 +225,17 @@ class TournamentTest < ActiveSupport::TestCase
     assert tournament.valid?
   end
 
+  test "rejects a primary contact phone that is not exactly 10 digits" do
+    tournament = Tournament.new(name: "Pune Invitational", start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19), primary_contact_phone: "98765abcde")
+
+    assert_not tournament.valid?
+    assert_includes tournament.errors[:primary_contact_phone], "must be a 10-digit mobile number"
+
+    tournament.primary_contact_phone = "9876543210"
+    tournament.valid?
+    assert_empty tournament.errors[:primary_contact_phone]
+  end
+
   test "rejects unsupported tournament logo upload type" do
     organizer = User.create!(name: "Organizer", email: "logo-organizer@example.test", password: "password123", role: :organizer)
     tournament = Tournament.new(name: "Logo Upload Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))

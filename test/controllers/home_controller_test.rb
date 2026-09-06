@@ -21,7 +21,7 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "homepage hides other account registration buttons when signed in" do
-    user = User.create!(name: "Signed In User", email: "signed-in@example.com", password: "password123", role: :super_admin)
+    user = User.create!(name: "Signed In User", email: "signed-in@example.test", password: "password123", role: :super_admin)
     sign_in_as user
 
     get root_path
@@ -36,7 +36,7 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "athlete account uses own profile as home page" do
-    user = User.create!(name: "Athlete User", email: "athlete-home@example.com", phone: "9876543210", password: "password123", role: :athlete)
+    user = User.create!(name: "Athlete User", email: "athlete-home@example.test", phone: "9876543210", password: "password123", role: :athlete)
     athlete = user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     sign_in_as user
 
@@ -46,7 +46,7 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "terms page is visible to signed in athletes" do
-    user = User.create!(name: "Athlete User", email: "athlete-terms@example.com", phone: "9876543210", password: "password123", role: :athlete)
+    user = User.create!(name: "Athlete User", email: "athlete-terms@example.test", phone: "9876543210", password: "password123", role: :athlete)
     user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     sign_in_as user
 

@@ -40,6 +40,17 @@ class TournamentRefereeTest < ActiveSupport::TestCase
     assert_includes referee.errors[:email], "is invalid"
   end
 
+  test "rejects a phone number that is not exactly 10 digits" do
+    referee = @tournament.tournament_referees.build(name: "Meera Rao", phone: "98765abcde")
+
+    assert_not referee.valid?
+    assert_includes referee.errors[:phone], "must be a 10-digit mobile number"
+
+    referee.phone = "9876543210"
+    referee.valid?
+    assert_empty referee.errors[:phone]
+  end
+
   test "rejects a referee photo whose content does not match its declared image type" do
     referee = @tournament.tournament_referees.build(name: "Meera Rao")
     spoofed_upload = Rack::Test::UploadedFile.new(StringIO.new("PK\x03\x04" + ("x" * 50)), "image/png", original_filename: "photo.png")

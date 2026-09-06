@@ -1,4 +1,6 @@
 class TournamentOrganizerInvitation < ApplicationRecord
+  include EmailFormatValidatable
+
   belongs_to :tournament
   belongs_to :invited_by, class_name: "User"
 
@@ -8,6 +10,7 @@ class TournamentOrganizerInvitation < ApplicationRecord
 
   validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :email, uniqueness: { scope: :tournament_id }
+  rejects_placeholder_email :email
   validate :email_is_not_existing_verified_organizer
 
   private

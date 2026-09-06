@@ -11,6 +11,12 @@
 <% if @tournament.registration_closed_for_weight_check? && @tournament.late_registration_allowed_for?(current_user) %>
   <div class="inline-notice">Registration is closed. As super organiser, you can manually add athletes.</div>
 <% end %>
+<% athlete_profile_data = @athletes.each_with_object({}) { |athlete, hash| hash[athlete.id] = { complete: athlete.profile_complete_for_registration?, name: athlete.full_name, editPath: edit_athlete_path(athlete, return_to: request.fullpath) } } %>
+<div class="inline-notice inline-notice-warning" data-incomplete-profile-notice <%= "hidden" if @selected_athlete.blank? || @selected_athlete.profile_complete_for_registration? %>>
+  <strong data-incomplete-profile-name><%= @selected_athlete&.full_name %>&rsquo;s profile is incomplete.</strong>
+  <span>Add a contact number to this athlete's profile before registering for a tournament.</span>
+  <%= link_to "Complete profile", @selected_athlete.present? ? edit_athlete_path(@selected_athlete, return_to: request.fullpath) : "#", class: "primary-button", data: { incomplete_profile_link: true } %>
+</div>
 <%= form_with model: [@tournament, @registration], class: "form-card" do |form| %>
   <%= render "shared/errors", record: @registration %>
   <% if @athletes.empty? %>
@@ -29,7 +35,7 @@
         <div class="readonly-field"><%= athlete.full_name %></div>
       <% else %>
         <%= form.label :athlete_id, "Athlete" %>
-        <%= form.collection_select :athlete_id, @athletes, :id, :full_name, { prompt: "Choose athlete" }, data: { athlete_select: true } %>
+        <%= form.collection_select :athlete_id, @athletes, :id, :full_name, { prompt: "Choose athlete" }, data: { athlete_select: true, athlete_profile_data: athlete_profile_data.to_json } %>
         <%= field_error(@registration, :athlete) %>
         <% if @athletes.any? %>
           <p class="field-hint"><%= link_to "Add another athlete", new_athlete_path(return_to: request.fullpath), class: "text-link" %></p>
@@ -141,6 +147,21 @@
     if (!athleteSelect) return;
 
     document.querySelectorAll("[data-category-picker]").forEach(resetCategoryPicker);
+
+    const notice = document.querySelector("[data-incomplete-profile-notice]");
+    if (!notice) return;
+
+    const profiles = JSON.parse(athleteSelect.dataset.athleteProfileData || "{}");
+    const profile = profiles[athleteSelect.value];
+
+    if (!profile || profile.complete) {
+      notice.hidden = true;
+      return;
+    }
+
+    notice.querySelector("[data-incomplete-profile-name]").textContent = profile.name + "’s profile is incomplete.";
+    notice.querySelector("[data-incomplete-profile-link]").href = profile.editPath;
+    notice.hidden = false;
   });
 
   document.addEventListener("change", function(event) {

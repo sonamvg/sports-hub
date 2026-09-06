@@ -81,7 +81,7 @@ function updateRoundRow(row) {
   const twoInput = row.querySelector('[data-round-points="two"]')
   const resultEl = row.querySelector("[data-round-result]")
   const superiorityField = row.querySelector("[data-round-superiority-field]")
-  const superioritySelect = row.querySelector("[data-round-superiority-select]")
+  const superiorityGroup = row.querySelector("[data-round-superiority-select]")
   if (!oneInput || !twoInput || !resultEl || !superiorityField) return
 
   const oneValue = oneInput.value.trim()
@@ -92,7 +92,7 @@ function updateRoundRow(row) {
   if (oneValue === "" || twoValue === "") {
     resultEl.textContent = ""
     superiorityField.hidden = true
-    if (superioritySelect) superioritySelect.value = ""
+    clearSuperiorityChoice(superiorityGroup)
     return
   }
 
@@ -108,8 +108,13 @@ function updateRoundRow(row) {
     resultEl.textContent = `${winnerName} wins this round`
     resultEl.classList.add("is-decided")
     superiorityField.hidden = true
-    if (superioritySelect) superioritySelect.value = ""
+    clearSuperiorityChoice(superiorityGroup)
   }
+}
+
+function clearSuperiorityChoice(group) {
+  if (!group) return
+  group.querySelectorAll('input[type="radio"]').forEach((input) => { input.checked = false })
 }
 
 function initBracketViewer() {

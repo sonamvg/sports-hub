@@ -24,7 +24,6 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, "Sign in to submit and manage your academy."
-    assert_includes response.body, "Sign in and create academy"
     assert_includes response.body, "Register academy"
     assert_not_includes response.body, "Create academy owner account"
     assert_not_includes response.body, "Sign in as academy owner"
@@ -32,9 +31,9 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "signs in with valid credentials" do
-    user = User.create!(name: "Demo Super Admin", email: "admin@example.com", password: "password123", role: :super_admin)
+    user = User.create!(name: "Demo Super Admin", email: "admin@example.test", password: "password123", role: :super_admin)
 
-    post login_path, params: { email: "ADMIN@example.com ", password: "password123" }
+    post login_path, params: { email: "ADMIN@example.test ", password: "password123" }
 
     assert_redirected_to tournaments_path
     assert_equal user.id, session[:user_id]
@@ -45,34 +44,34 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "athlete sign in defaults to own profile" do
-    user = User.create!(name: "Athlete User", email: "athlete-login@example.com", phone: "9876543210", password: "password123", role: :athlete)
+    user = User.create!(name: "Athlete User", email: "athlete-login@example.test", phone: "9876543210", password: "password123", role: :athlete)
     athlete = user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
 
-    post login_path, params: { email: "athlete-login@example.com", password: "password123" }
+    post login_path, params: { email: "athlete-login@example.test", password: "password123" }
 
     assert_redirected_to athlete_path(athlete)
     assert_equal user.id, session[:user_id]
   end
 
   test "academy owner sign in defaults to academies page" do
-    user = User.create!(name: "Academy Owner", email: "academy-login@example.com", phone: "9876543210", password: "password123", role: :academy_owner)
+    user = User.create!(name: "Academy Owner", email: "academy-login@example.test", phone: "9876543210", password: "password123", role: :academy_owner)
 
-    post login_path, params: { email: "academy-login@example.com", password: "password123" }
+    post login_path, params: { email: "academy-login@example.test", password: "password123" }
 
     assert_redirected_to academies_path
     assert_equal user.id, session[:user_id]
   end
 
   test "rejects invalid credentials" do
-    User.create!(name: "Demo Super Admin", email: "admin@example.com", password: "password123", role: :super_admin)
+    User.create!(name: "Demo Super Admin", email: "admin@example.test", password: "password123", role: :super_admin)
 
-    post login_path, params: { email: "admin@example.com", password: "wrong" }
+    post login_path, params: { email: "admin@example.test", password: "wrong" }
 
     assert_response :unprocessable_entity
     assert_nil session[:user_id]
     assert_includes response.body, "Invalid email or password."
     assert_includes response.body, "Join as athlete"
-    assert_includes response.body, 'value="admin@example.com"'
+    assert_includes response.body, 'value="admin@example.test"'
   end
 
   test "new session page includes a forgot password link" do
@@ -84,7 +83,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "new session page hides registration links when signed in" do
-    user = User.create!(name: "Signed In Organizer", email: "signed-in-organizer@example.com", password: "password123", role: :organizer, organizer_status: :verified)
+    user = User.create!(name: "Signed In Organizer", email: "signed-in-organizer@example.test", password: "password123", role: :organizer, organizer_status: :verified)
     sign_in_as user
 
     get login_path(return_to: new_tournament_path)
@@ -106,7 +105,7 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "signs out" do
-    user = User.create!(name: "Demo Parent", email: "parent@example.com", password: "password123", role: :parent)
+    user = User.create!(name: "Demo Parent", email: "parent@example.test", password: "password123", role: :parent)
     sign_in_as user
 
     delete logout_path

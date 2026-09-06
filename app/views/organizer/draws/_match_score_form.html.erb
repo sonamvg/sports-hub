@@ -5,7 +5,11 @@
 <article class="match-score-card" data-match-form>
   <div class="match-score-heading">
     <span class="status-pill">Round <%= match.round_number %> &middot; Match <%= match.slot_position %></span>
-    <h3><%= athlete_one.full_name %> vs <%= athlete_two.full_name %></h3>
+    <h3><span class="corner-name-red"><%= athlete_one.full_name %></span> vs <span class="corner-name-blue"><%= athlete_two.full_name %></span></h3>
+    <div class="match-corner-legend">
+      <span class="corner-tag corner-tag-red">Red &middot; <%= athlete_one.full_name %></span>
+      <span class="corner-tag corner-tag-blue">Blue &middot; <%= athlete_two.full_name %></span>
+    </div>
   </div>
 
   <%= form_with url: organizer_match_path(match), method: :patch, class: "match-score-fields" do %>
@@ -27,29 +31,40 @@
           <span class="match-round-label">Round <%= round_number %></span>
           <%= number_field_tag "match[rounds][#{round_number - 1}][points_one]", nil,
                 min: 0, placeholder: athlete_one.full_name, id: "#{dom_id}_round_#{round_number}_points_one",
-                data: { round_points: "one" } %>
+                data: { round_points: "one" }, class: "corner-input-red" %>
           <%= number_field_tag "match[rounds][#{round_number - 1}][points_two]", nil,
                 min: 0, placeholder: athlete_two.full_name, id: "#{dom_id}_round_#{round_number}_points_two",
-                data: { round_points: "two" } %>
+                data: { round_points: "two" }, class: "corner-input-blue" %>
           <span class="match-round-result" data-round-result>&nbsp;</span>
           <div class="match-round-superiority" data-round-superiority-field hidden>
-            <%= select_tag "match[rounds][#{round_number - 1}][superiority_winner]", options_for_select([
-                  [ "Who showed superiority?", "" ],
-                  [ athlete_one.full_name, "one" ],
-                  [ athlete_two.full_name, "two" ]
-                ]), id: "#{dom_id}_round_#{round_number}_superiority", data: { round_superiority_select: true } %>
+            <p class="field-hint">Who showed superiority?</p>
+            <div class="corner-toggle" data-round-superiority-select>
+              <label class="corner-toggle-option corner-toggle-red">
+                <input type="radio" name="match[rounds][<%= round_number - 1 %>][superiority_winner]" value="one">
+                <span><%= athlete_one.full_name %></span>
+              </label>
+              <label class="corner-toggle-option corner-toggle-blue">
+                <input type="radio" name="match[rounds][<%= round_number - 1 %>][superiority_winner]" value="two">
+                <span><%= athlete_two.full_name %></span>
+              </label>
+            </div>
           </div>
         </div>
       <% end %>
     </div>
 
     <div class="form-field" data-match-winner-field hidden>
-      <%= label_tag "#{dom_id}_winner_side", "Winner" %>
-      <%= select_tag "match[winner_side]", options_for_select([
-            [ "Select winner", "" ],
-            [ athlete_one.full_name, "one" ],
-            [ athlete_two.full_name, "two" ]
-          ]), id: "#{dom_id}_winner_side" %>
+      <label>Winner</label>
+      <div class="corner-toggle">
+        <label class="corner-toggle-option corner-toggle-red">
+          <input type="radio" name="match[winner_side]" value="one">
+          <span><%= athlete_one.full_name %></span>
+        </label>
+        <label class="corner-toggle-option corner-toggle-blue">
+          <input type="radio" name="match[winner_side]" value="two">
+          <span><%= athlete_two.full_name %></span>
+        </label>
+      </div>
     </div>
 
     <div class="form-actions">

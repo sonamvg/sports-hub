@@ -28,7 +28,7 @@
     <% @registrations.each do |registration| %>
       <% athlete = registration.athlete %>
       <% attempts = registration.registration_weight_checks.sort_by(&:attempt_number) %>
-      <article class="weight-check-row">
+      <article class="weight-check-row" id="weight-check-registration-<%= registration.id %>" data-weight-check-row data-registration-id="<%= registration.id %>">
         <div class="weight-check-main">
           <span class="status-pill status-<%= registration.status %>"><%= registration.status.humanize %></span>
           <h2><%= athlete.full_name %></h2>
@@ -72,3 +72,23 @@
   <% end %>
 </div>
 </div></section>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    var params = new URLSearchParams(window.location.search);
+    var highlightId = params.get("highlight");
+    if (!highlightId) return;
+
+    var row = document.querySelector('[data-weight-check-row][data-registration-id="' + highlightId + '"]');
+    if (row) {
+      row.scrollIntoView({ behavior: "smooth", block: "center" });
+      row.classList.add("weight-check-row-highlighted");
+      setTimeout(function() { row.classList.remove("weight-check-row-highlighted"); }, 2600);
+    }
+
+    params.delete("highlight");
+    var newSearch = params.toString();
+    var newUrl = window.location.pathname + (newSearch ? "?" + newSearch : "") + window.location.hash;
+    window.history.replaceState({}, "", newUrl);
+  });
+</script>

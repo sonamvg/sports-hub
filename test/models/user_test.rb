@@ -36,6 +36,17 @@ class UserTest < ActiveSupport::TestCase
     assert_includes user.errors[:email], "must be a valid email address"
   end
 
+  test "rejects a placeholder or example email domain" do
+    user = User.new(name: "Sritha", email: "sritha@example.com", password: "password123")
+
+    assert_not user.valid?
+    assert_includes user.errors[:email], "must be a real email address, not a placeholder or test domain"
+
+    user.email = "test@test.com"
+    assert_not user.valid?
+    assert_includes user.errors[:email], "must be a real email address, not a placeholder or test domain"
+  end
+
   test "rejects a password shorter than 8 characters" do
     user = User.new(name: "Sritha", email: "short-password@example.test", password: "abc123")
 

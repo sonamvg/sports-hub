@@ -29,14 +29,11 @@ class AthleteTest < ActiveSupport::TestCase
     assert_equal "aarohi shah", athlete.full_name
   end
 
-  test "profile is not complete for registration until identity document and contact number are set" do
+  test "profile is not complete for registration until a contact number is set" do
     athlete = @user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     assert_not athlete.profile_complete_for_registration?
 
     athlete.contact_number = "9123456789"
-    assert_not athlete.profile_complete_for_registration?
-
-    athlete.identity_document.attach(io: StringIO.new("png-data"), filename: "id.png", content_type: "image/png")
     assert athlete.profile_complete_for_registration?
   end
 

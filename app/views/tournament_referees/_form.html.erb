@@ -15,7 +15,8 @@
 
     <div>
       <%= form.label :phone, "Contact number" %>
-      <%= form.telephone_field :phone, autocomplete: "tel" %>
+      <%= form.telephone_field :phone, autocomplete: "tel", pattern: "\\d{10}", maxlength: 10, title: "10-digit mobile number" %>
+      <%= field_error(referee, :phone) %>
     </div>
 
     <div>

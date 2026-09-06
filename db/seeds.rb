@@ -531,19 +531,19 @@ completed_tournament = seed_tournament(
   end
 end
 
-open_categories = %w[cadet-female-u37 cadet-male-u41 junior-male-u55 individual-poomsae-female-cadet].map do |key|
+open_categories = %w[kyorugi-cadet-female-33-37 kyorugi-cadet-male-37-41 kyorugi-junior-male-51-55 individual-poomsae-female-cadet].map do |key|
   seed_category(open_tournament, key)
 end
 
-closed_categories = %w[cadet-female-u37 junior-male-u55 senior-male-u68].map do |key|
+closed_categories = %w[kyorugi-cadet-female-33-37 kyorugi-junior-male-51-55 kyorugi-senior-olympic-male-58-68].map do |key|
   seed_category(closed_tournament, key)
 end
 
-upcoming_categories = %w[sub-junior-female-u24 cadet-female-u37 cadet-male-u41 junior-male-u55 senior-female-u57 individual-poomsae-male-junior].map do |key|
+upcoming_categories = %w[kyorugi-sub-junior-female-22-24 kyorugi-cadet-female-33-37 kyorugi-cadet-male-37-41 kyorugi-junior-male-51-55 kyorugi-senior-olympic-female-49-57 individual-poomsae-male-junior].map do |key|
   seed_category(upcoming_tournament, key)
 end
 
-completed_categories = %w[cadet-female-u37 cadet-male-u41 junior-female-u49 junior-male-u55 senior-female-u57 senior-male-u68].map do |key|
+completed_categories = %w[kyorugi-cadet-female-33-37 kyorugi-cadet-male-37-41 kyorugi-junior-female-46-49 kyorugi-junior-male-51-55 kyorugi-senior-olympic-female-49-57 kyorugi-senior-olympic-male-58-68].map do |key|
   seed_category(completed_tournament, key)
 end
 

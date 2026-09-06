@@ -2,7 +2,7 @@ require "test_helper"
 
 class OrganizerRegistrationsControllerTest < ActionDispatch::IntegrationTest
   test "organizer sees only registrations for owned tournaments" do
-    organizer = User.create!(name: "Demo Parent", email: "parent@example.com", password: "password123", role: :organizer)
+    organizer = User.create!(name: "Demo Parent", email: "parent@example.test", password: "password123", role: :organizer)
     other_organizer = User.create!(name: "Other Organizer", email: "other-organizer@example.test", password: "password123", role: :organizer)
     athlete_user = User.create!(name: "Athlete User", email: "athlete-user@example.test", password: "password123", role: :parent)
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")

@@ -1,5 +1,6 @@
 class TournamentReferee < ApplicationRecord
   include AttachmentContentTypeValidatable
+  include EmailFormatValidatable
 
   MIN_UPLOAD_SIZE = 1.byte
   MAX_UPLOAD_SIZE = 5.megabytes
@@ -13,6 +14,8 @@ class TournamentReferee < ApplicationRecord
   validates :name, presence: true
   validates :name, length: { in: 2..100 }, allow_blank: true
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
+  rejects_placeholder_email :email
+  validates :phone, format: { with: User::PHONE_FORMAT, message: "must be a 10-digit mobile number" }, allow_blank: true
   validate :photo_size
 
   private

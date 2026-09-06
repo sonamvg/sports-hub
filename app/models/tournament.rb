@@ -1,6 +1,7 @@
 class Tournament < ApplicationRecord
   include ConsentRecordable
   include AttachmentContentTypeValidatable
+  include EmailFormatValidatable
 
   MAX_IMAGE_SIZE = 5.megabytes
   ACCEPTED_IMAGE_TYPES = %w[image/jpeg image/png image/webp].freeze
@@ -20,6 +21,7 @@ class Tournament < ApplicationRecord
   encrypts :payment_account_name, :payment_bank_name, :payment_account_number, :payment_ifsc
 
   before_validation :normalize_fields
+  before_validation :sync_status_with_registration_window
 
   belongs_to :organizer, class_name: "User"
   has_many :tournament_categories, dependent: :destroy
@@ -92,6 +94,8 @@ class Tournament < ApplicationRecord
   validates :slug, uniqueness: true, allow_blank: true
   validates :website_url, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid http or https URL" }, allow_blank: true
   validates :primary_contact_email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
+  rejects_placeholder_email :primary_contact_email
+  validates :primary_contact_phone, format: { with: User::PHONE_FORMAT, message: "must be a 10-digit mobile number" }, allow_blank: true
   validates :registration_capacity, numericality: { only_integer: true, greater_than: 0 }, allow_blank: true
   validates :registration_fee, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   validates :courts_count, numericality: { only_integer: true, greater_than: 0 }, allow_blank: true
@@ -107,8 +111,11 @@ class Tournament < ApplicationRecord
   after_save :log_payment_detail_changes
 
   def accepting_registrations?(at: Time.current)
-    registration_open? &&
-      (registration_opens_at.blank? || registration_opens_at <= at) &&
+    registration_open? && registration_window_open?(at: at)
+  end
+
+  def registration_window_open?(at: Time.current)
+    (registration_opens_at.blank? || registration_opens_at <= at) &&
       (registration_closes_at.blank? || registration_closes_at >= at)
   end
 
@@ -193,6 +200,21 @@ class Tournament < ApplicationRecord
     self.payment_account_number = payment_account_number.to_s.squish.presence
     self.payment_ifsc = payment_ifsc.to_s.upcase.squish.presence
     self.payment_instructions = payment_instructions.to_s.squish.presence
+  end
+
+  # If an organizer or super admin edits the registration window on an
+  # existing tournament, keep the status in sync with the new dates instead
+  # of leaving it stale (e.g. re-extending a closed registration window
+  # should reopen registration, and pulling the close date into the past
+  # should close it) — this only moves the status between the two
+  # calendar-driven states themselves; a deliberate "registration_paused"
+  # override, or any other status, is left alone.
+  def sync_status_with_registration_window
+    return if new_record?
+    return unless will_save_change_to_registration_opens_at? || will_save_change_to_registration_closes_at?
+    return unless status.in?(%w[registration_open registration_closed])
+
+    self.status = registration_window_open? ? "registration_open" : "registration_closed"
   end
 
   def payment_details_present_when_charging_fee

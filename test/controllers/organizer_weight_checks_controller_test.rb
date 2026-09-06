@@ -33,7 +33,7 @@ class OrganizerWeightChecksControllerTest < ActionDispatch::IntegrationTest
       post organizer_registration_weight_checks_path(registration), params: { registration_weight_check: { weight: 37.0 } }
     end
 
-    assert_redirected_to organizer_tournament_weight_checks_path(tournament)
+    assert_redirected_to organizer_tournament_weight_checks_path(tournament, highlight: registration.id)
     assert_predicate registration.reload, :weight_verified?
     assert_equal collaborator, registration.registration_action_logs.last.actor
   end
