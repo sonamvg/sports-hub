@@ -32,11 +32,13 @@ document.addEventListener("turbo:load", scheduleAutoDismiss)
 document.addEventListener("turbo:load", initMatchDecisionFields)
 document.addEventListener("turbo:load", initBracketViewer)
 document.addEventListener("turbo:load", initRoundRows)
+document.addEventListener("turbo:load", initSessionTimeout)
 document.addEventListener("DOMContentLoaded", updateAcademyOtherFields)
 document.addEventListener("DOMContentLoaded", scheduleAutoDismiss)
 document.addEventListener("DOMContentLoaded", initMatchDecisionFields)
 document.addEventListener("DOMContentLoaded", initBracketViewer)
 document.addEventListener("DOMContentLoaded", initRoundRows)
+document.addEventListener("DOMContentLoaded", initSessionTimeout)
 
 function updateAcademyOtherFields() {
   document.querySelectorAll("[data-academy-choice-select]").forEach(updateAcademyOtherField)
@@ -138,6 +140,34 @@ function scheduleAutoDismiss() {
       window.setTimeout(() => element.remove(), 250)
     }, delay)
   })
+}
+
+// Reloading (rather than navigating to a logout URL) reuses the server-side
+// idle check in ApplicationController#enforce_session_timeout, which is the
+// actual source of truth — this timer just makes the sign-out happen without
+// waiting for the user's next click.
+const SESSION_TIMEOUT_ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scroll", "touchstart"]
+
+function initSessionTimeout() {
+  const timeoutSeconds = Number.parseInt(document.body.dataset.sessionTimeoutSeconds, 10)
+  if (!timeoutSeconds) return
+
+  resetSessionTimeoutTimer(timeoutSeconds)
+
+  if (window.__sessionTimeoutListenersAttached) return
+  window.__sessionTimeoutListenersAttached = true
+
+  SESSION_TIMEOUT_ACTIVITY_EVENTS.forEach((eventName) => {
+    document.addEventListener(eventName, () => {
+      const currentTimeoutSeconds = Number.parseInt(document.body.dataset.sessionTimeoutSeconds, 10)
+      if (currentTimeoutSeconds) resetSessionTimeoutTimer(currentTimeoutSeconds)
+    }, { passive: true })
+  })
+}
+
+function resetSessionTimeoutTimer(timeoutSeconds) {
+  window.clearTimeout(window.__sessionTimeoutTimer)
+  window.__sessionTimeoutTimer = window.setTimeout(() => window.location.reload(), timeoutSeconds * 1000)
 }
 
 function copyText(button) {

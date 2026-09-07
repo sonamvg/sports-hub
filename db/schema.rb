@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_04_130125) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_07_151744) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -99,6 +99,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_130125) do
     t.string "gender", null: false
     t.string "government_id_document_type"
     t.string "last_name", null: false
+    t.string "profile_photo_url"
     t.string "state"
     t.datetime "terms_accepted_at"
     t.datetime "updated_at", null: false
@@ -261,18 +262,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_04_130125) do
     t.index ["tournament_draw_id"], name: "index_tournament_draw_matches_on_tournament_draw_id"
     t.index ["winner_registration_id"], name: "index_tournament_draw_matches_on_winner_registration_id"
     t.check_constraint "\"position\" >= 1", name: "draw_matches_position_positive"
-    t.check_constraint "blue_head_guard_color::text = ANY (ARRAY['red'::character varying, 'blue'::character varying]::text[])", name: "draw_matches_blue_head_guard_color_valid"
+    t.check_constraint "blue_head_guard_color::text = ANY (ARRAY['red'::character varying::text, 'blue'::character varying::text])", name: "draw_matches_blue_head_guard_color_valid"
     t.check_constraint "blue_round_1_points IS NULL OR blue_round_1_points >= 0", name: "draw_matches_blue_round_1_points_nonnegative"
     t.check_constraint "blue_round_2_points IS NULL OR blue_round_2_points >= 0", name: "draw_matches_blue_round_2_points_nonnegative"
     t.check_constraint "blue_round_3_points IS NULL OR blue_round_3_points >= 0", name: "draw_matches_blue_round_3_points_nonnegative"
     t.check_constraint "red_head_guard_color::text <> blue_head_guard_color::text", name: "draw_matches_head_guard_colors_distinct"
-    t.check_constraint "red_head_guard_color::text = ANY (ARRAY['red'::character varying, 'blue'::character varying]::text[])", name: "draw_matches_red_head_guard_color_valid"
+    t.check_constraint "red_head_guard_color::text = ANY (ARRAY['red'::character varying::text, 'blue'::character varying::text])", name: "draw_matches_red_head_guard_color_valid"
     t.check_constraint "red_round_1_points IS NULL OR red_round_1_points >= 0", name: "draw_matches_red_round_1_points_nonnegative"
     t.check_constraint "red_round_2_points IS NULL OR red_round_2_points >= 0", name: "draw_matches_red_round_2_points_nonnegative"
     t.check_constraint "red_round_3_points IS NULL OR red_round_3_points >= 0", name: "draw_matches_red_round_3_points_nonnegative"
-    t.check_constraint "round_1_winner_side IS NULL OR (round_1_winner_side::text = ANY (ARRAY['red'::character varying, 'blue'::character varying]::text[]))", name: "draw_matches_round_1_winner_side_valid"
-    t.check_constraint "round_2_winner_side IS NULL OR (round_2_winner_side::text = ANY (ARRAY['red'::character varying, 'blue'::character varying]::text[]))", name: "draw_matches_round_2_winner_side_valid"
-    t.check_constraint "round_3_winner_side IS NULL OR (round_3_winner_side::text = ANY (ARRAY['red'::character varying, 'blue'::character varying]::text[]))", name: "draw_matches_round_3_winner_side_valid"
+    t.check_constraint "round_1_winner_side IS NULL OR (round_1_winner_side::text = ANY (ARRAY['red'::character varying::text, 'blue'::character varying::text]))", name: "draw_matches_round_1_winner_side_valid"
+    t.check_constraint "round_2_winner_side IS NULL OR (round_2_winner_side::text = ANY (ARRAY['red'::character varying::text, 'blue'::character varying::text]))", name: "draw_matches_round_2_winner_side_valid"
+    t.check_constraint "round_3_winner_side IS NULL OR (round_3_winner_side::text = ANY (ARRAY['red'::character varying::text, 'blue'::character varying::text]))", name: "draw_matches_round_3_winner_side_valid"
     t.check_constraint "round_number >= 1", name: "draw_matches_round_number_positive"
   end
 

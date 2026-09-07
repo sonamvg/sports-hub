@@ -231,7 +231,7 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
   test "registration create requires receipt when submitting multiple categories" do
     athlete = @parent.athletes.create!(
       first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female",
-      contact_number: "9123456789", emergency_contact_name: "Priya Shah", emergency_contact_phone: "9876543210", identity_document: identity_image_upload
+      contact_number: "9123456789", emergency_contact_name: "Priya Shah", emergency_contact_phone: "9876543210", identity_documents: [identity_image_upload]
     )
     tournament = Tournament.create!(
       name: "Pune Invitational",
@@ -295,7 +295,7 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
   test "registration create succeeds without a receipt when tournament is free" do
     athlete = @parent.athletes.create!(
       first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female",
-      contact_number: "9123456789", emergency_contact_name: "Priya Shah", emergency_contact_phone: "9876543210", identity_document: identity_image_upload
+      contact_number: "9123456789", emergency_contact_name: "Priya Shah", emergency_contact_phone: "9876543210", identity_documents: [identity_image_upload]
     )
     tournament = Tournament.create!(
       name: "Community Open",
@@ -335,7 +335,7 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     athlete_user = User.create!(name: "Athlete User", email: "register-academy-athlete@example.test", password: "password123", role: :athlete)
     athlete = athlete_user.athletes.create!(
       academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female",
-      contact_number: "9123456789", emergency_contact_name: "Priya Shah", emergency_contact_phone: "9876543210", identity_document: identity_image_upload
+      contact_number: "9123456789", emergency_contact_name: "Priya Shah", emergency_contact_phone: "9876543210", identity_documents: [identity_image_upload]
     )
     tournament = Tournament.create!(
       name: "Pune Invitational",
@@ -399,7 +399,7 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
   test "resubmitting an already reviewed category does not reset its status and skips it with a notice" do
     athlete = @parent.athletes.create!(
       first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female",
-      contact_number: "9123456789", emergency_contact_name: "Priya Shah", emergency_contact_phone: "9876543210", identity_document: identity_image_upload
+      contact_number: "9123456789", emergency_contact_name: "Priya Shah", emergency_contact_phone: "9876543210", identity_documents: [identity_image_upload]
     )
     tournament = Tournament.create!(
       name: "Pune Invitational",
@@ -433,7 +433,7 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
   test "registration create is blocked when every selected category already has a decision" do
     athlete = @parent.athletes.create!(
       first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female",
-      contact_number: "9123456789", emergency_contact_name: "Priya Shah", emergency_contact_phone: "9876543210", identity_document: identity_image_upload
+      contact_number: "9123456789", emergency_contact_name: "Priya Shah", emergency_contact_phone: "9876543210", identity_documents: [identity_image_upload]
     )
     tournament = Tournament.create!(
       name: "Pune Invitational",
@@ -465,7 +465,7 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
   test "submitting the same category twice in one request creates only one registration" do
     athlete = @parent.athletes.create!(
       first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female",
-      contact_number: "9123456789", emergency_contact_name: "Priya Shah", emergency_contact_phone: "9876543210", identity_document: identity_image_upload
+      contact_number: "9123456789", emergency_contact_name: "Priya Shah", emergency_contact_phone: "9876543210", identity_documents: [identity_image_upload]
     )
     tournament = Tournament.create!(
       name: "Pune Invitational",
@@ -495,7 +495,7 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
   test "registration create shows a friendly error when a selected category no longer exists" do
     athlete = @parent.athletes.create!(
       first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female",
-      contact_number: "9123456789", emergency_contact_name: "Priya Shah", emergency_contact_phone: "9876543210", identity_document: identity_image_upload
+      contact_number: "9123456789", emergency_contact_name: "Priya Shah", emergency_contact_phone: "9876543210", identity_documents: [identity_image_upload]
     )
     tournament = Tournament.create!(
       name: "Pune Invitational",

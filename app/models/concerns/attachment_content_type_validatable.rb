@@ -11,8 +11,13 @@ module AttachmentContentTypeValidatable
   # is trivial to spoof. This sniffs the attachment's actual magic bytes via
   # marcel and checks THAT against the allow-list instead of trusting the
   # declared type.
+  #
+  # `attachment` is either a has_one_attached proxy (responds to `attached?`)
+  # or a single ActiveStorage::Attachment record pulled from a
+  # has_many_attached collection (already known to be attached, and has no
+  # `attached?` method of its own).
   def attachment_content_type_allowed?(attachment, allowed_types)
-    return true unless attachment.attached?
+    return true if attachment.respond_to?(:attached?) && !attachment.attached?
 
     blob = attachment.blob
     return false if blob.byte_size.to_i > MAX_SNIFFABLE_ATTACHMENT_SIZE
@@ -40,9 +45,24 @@ module AttachmentContentTypeValidatable
     blob = attachment.blob
     return StringIO.new(blob.download) if blob.persisted?
 
-    pending_upload = attachment.record.attachment_changes[attachment.name.to_s]&.attachable
+    pending_upload = pending_attachable_for(attachment)
     pending_upload = pending_upload[:io] if pending_upload.is_a?(Hash)
 
     pending_upload if pending_upload.respond_to?(:read)
+  end
+
+  # A has_one_attached change exposes the pending file directly via
+  # `#attachable`. A has_many_attached change (CreateMany) holds one
+  # `#attachable` per file instead, in the same order as its `#attachments` —
+  # so the specific pending file for THIS attachment has to be looked up by
+  # matching object identity against that parallel array.
+  def pending_attachable_for(attachment)
+    change = attachment.record.attachment_changes[attachment.name.to_s]
+    return if change.nil?
+    return change.attachable if change.respond_to?(:attachable)
+    return unless change.respond_to?(:attachables)
+
+    index = change.attachments.find_index { |candidate| candidate.equal?(attachment) }
+    change.attachables[index] if index
   end
 end

@@ -23,11 +23,11 @@ class AthletesController < ApplicationController
   end
 
   def identity_document
-    raise ActiveRecord::RecordNotFound unless @athlete.identity_document.attached?
+    document = @athlete.identity_documents_attachments.find(params[:attachment_id])
 
-    send_data @athlete.identity_document.download,
-      filename: @athlete.identity_document.filename.to_s,
-      type: @athlete.identity_document.content_type,
+    send_data document.download,
+      filename: document.filename.to_s,
+      type: document.content_type,
       disposition: "inline"
   end
 
@@ -195,7 +195,8 @@ class AthletesController < ApplicationController
       :belt, :weight, :association_id, :city, :state, :country,
       :contact_number, :blood_group, :emergency_contact_name,
       :emergency_contact_phone, :address, :government_id_document_type,
-      :external_academy_name, :profile_photo, :identity_document
+      :external_academy_name, :profile_photo, :profile_photo_url,
+      identity_documents: []
     )
     permitted.merge!(
       terms_accepted: params.dig(:athlete, :terms_accepted),

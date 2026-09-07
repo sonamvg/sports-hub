@@ -9,7 +9,7 @@
   <p class="eyebrow">ATHLETE PROFILE</p><h1 class="page-title"><%= @athlete.full_name %></h1>
   <div class="athlete-photo">
     <%= image_with_placeholder(
-      @athlete.profile_photo.attached? ? @athlete.profile_photo : nil,
+      @athlete.profile_photo_source,
       alt: "#{@athlete.full_name} photo",
       placeholder: @athlete.full_name.to_s.split.map(&:first).join.first(2).presence || "A"
     ) %>
@@ -47,9 +47,11 @@
         <dt>Government ID</dt>
         <dd>
           <%= @athlete.government_id_document_type || "Not set" %>
-          <% if @athlete.identity_document.attached? %>
+          <% if @athlete.identity_documents.attached? %>
             <% if super_admin? || @athlete.user_id == current_user.id %>
-              · <%= link_to "View document", identity_document_athlete_path(@athlete), class: "text-link", target: "_blank", rel: "noopener" %>
+              <% @athlete.identity_documents.each_with_index do |document, index| %>
+                · <%= link_to "View document#{" #{index + 1}" if @athlete.identity_documents.count > 1}", identity_document_athlete_path(@athlete, attachment_id: document.id), class: "text-link", target: "_blank", rel: "noopener" %>
+              <% end %>
             <% else %>
               · Uploaded
             <% end %>

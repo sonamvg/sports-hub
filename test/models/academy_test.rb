@@ -61,6 +61,40 @@ class AcademyTest < ActiveSupport::TestCase
     assert_includes academy.errors[:email], "must be a real email address, not a placeholder or test domain"
   end
 
+  test "rejects a name longer than 120 characters" do
+    academy = Academy.new(name: "A" * 121, city: "Pune")
+
+    assert_not academy.valid?
+    assert_includes academy.errors[:name], "is too long (maximum is 120 characters)"
+  end
+
+  test "rejects a city, state, or country longer than 60 characters" do
+    academy = Academy.new(name: "Deccan Taekwondo Academy", city: "A" * 61, state: "B" * 61, country: "C" * 61)
+
+    assert_not academy.valid?
+    assert_includes academy.errors[:city], "is too long (maximum is 60 characters)"
+    assert_includes academy.errors[:state], "is too long (maximum is 60 characters)"
+    assert_includes academy.errors[:country], "is too long (maximum is 60 characters)"
+  end
+
+  test "rejects a contact name containing digits or symbols" do
+    academy = Academy.new(name: "Deccan Taekwondo Academy", city: "Pune", contact_name: "12345 !!!")
+
+    assert_not academy.valid?
+    assert_includes academy.errors[:contact_name], "can only contain letters, spaces, hyphens, and apostrophes"
+  end
+
+  test "rejects a phone number that is not a 10-digit mobile number" do
+    academy = Academy.new(name: "Deccan Taekwondo Academy", city: "Pune", phone: "abc123XYZ!!")
+
+    assert_not academy.valid?
+    assert_includes academy.errors[:phone], "must be a 10-digit mobile number"
+
+    academy.phone = "9876543210"
+    academy.valid?
+    assert_empty academy.errors[:phone]
+  end
+
   test "academy logo must be jpg or png" do
     academy = Academy.new(name: "Deccan Taekwondo Academy", city: "Pune")
     academy.logo_image.attach(io: StringIO.new("%PDF-1.4"), filename: "logo.pdf", content_type: "application/pdf")

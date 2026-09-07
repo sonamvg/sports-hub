@@ -1,14 +1,38 @@
 class ApplicationController < ActionController::Base
   helper ApplicationHelper
 
+  # Idle timeout: a signed-in user who sends no request for this long is
+  # signed out automatically on their next request. The session's
+  # `last_seen_at` slides forward on every authenticated request, so this is
+  # inactivity time, not a hard session lifetime.
+  SESSION_TIMEOUT = 30.minutes
+
+  before_action :enforce_session_timeout
   before_action :require_athlete_profile_completion
 
-  helper_method :current_user, :super_admin?, :can_manage_academy?, :can_manage_tournament?, :can_register_for_tournament?, :athlete_home_path
+  helper_method :current_user, :super_admin?, :can_manage_academy?, :can_manage_tournament?, :can_register_for_tournament?, :athlete_home_path, :session_timeout_seconds
 
   private
 
   def current_user
     @current_user ||= User.find_by(id: session[:user_id]) if session[:user_id].present?
+  end
+
+  def enforce_session_timeout
+    return if session[:user_id].blank?
+
+    last_seen_at = session[:last_seen_at]
+    if last_seen_at.present? && Time.current.to_i - last_seen_at > SESSION_TIMEOUT
+      reset_session
+      redirect_to login_path, alert: "You've been signed out due to inactivity. Please sign in again."
+      return
+    end
+
+    session[:last_seen_at] = Time.current.to_i
+  end
+
+  def session_timeout_seconds
+    SESSION_TIMEOUT.to_i
   end
 
   def require_user

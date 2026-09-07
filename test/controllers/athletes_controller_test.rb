@@ -25,7 +25,7 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
           state: "Maharashtra",
           government_id_document_type: "Aadhaar",
           profile_photo: tournament_image_upload,
-          identity_document: identity_image_upload
+          identity_documents: [identity_image_upload]
         }.merge(consent_params)
       }
     end
@@ -37,7 +37,7 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Line 1, Sports Nagar", athlete.address
     assert_equal "Aadhaar", athlete.government_id_document_type
     assert_predicate athlete.profile_photo, :attached?
-    assert_predicate athlete.identity_document, :attached?
+    assert_predicate athlete.identity_documents, :attached?
     assert_not_nil athlete.terms_accepted_at
     assert_not_nil athlete.data_sharing_consent_accepted_at
     assert_redirected_to athlete_path(athlete)
@@ -271,7 +271,7 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "data-academy-choice-select"
     assert_includes response.body, "A request will be sent to the academy owner for approval."
     assert_includes response.body, "If your academy is not already registered, please enter its name above."
-    assert_includes response.body, "Accepted: JPG or PNG, up to 5 MB."
+    assert_includes response.body, "Accepted file formats: .jpg, .jpeg, .png"
     assert_not_includes response.body, "Association ID"
     assert_not_includes response.body, "TKD-123"
   end
@@ -537,22 +537,41 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "owner can view the uploaded identity document and the link appears on their profile" do
-    athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", identity_document: identity_image_upload)
+    athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", identity_documents: [identity_image_upload])
 
     get athlete_path(athlete)
     assert_response :success
     assert_includes response.body, "View document"
     assert_includes response.body, identity_document_athlete_path(athlete)
 
-    get identity_document_athlete_path(athlete)
+    get identity_document_athlete_path(athlete, attachment_id: athlete.identity_documents.first.id)
     assert_response :success
     assert_equal "image/png", response.media_type
+  end
+
+  test "owner can upload and view multiple identity documents" do
+    athlete = @parent.athletes.create!(
+      first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female",
+      identity_documents: [identity_image_upload, identity_image_upload]
+    )
+
+    assert_equal 2, athlete.identity_documents.count
+
+    get athlete_path(athlete)
+    assert_response :success
+    assert_includes response.body, "View document 1"
+    assert_includes response.body, "View document 2"
+
+    athlete.identity_documents.each do |document|
+      get identity_document_athlete_path(athlete, attachment_id: document.id)
+      assert_response :success
+    end
   end
 
   test "edit form shows which document and photo are currently uploaded" do
     athlete = @parent.athletes.create!(
       first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female",
-      identity_document: identity_image_upload, profile_photo: tournament_image_upload
+      identity_documents: [identity_image_upload], profile_photo: tournament_image_upload
     )
 
     get edit_athlete_path(athlete)
@@ -564,7 +583,7 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
 
   test "a user who cannot manage the athlete sees no document link and cannot fetch it" do
     other_parent = User.create!(name: "Other Parent", email: "other-parent-doc@example.test", password: "password123", role: :parent)
-    athlete = other_parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", identity_document: identity_image_upload)
+    athlete = other_parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", identity_documents: [identity_image_upload])
     organizer = User.create!(name: "Organizer", email: "doc-organizer@example.test", password: "password123", role: :organizer)
     tournament = Tournament.create!(name: "Doc Open", organizer: organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
     category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
@@ -575,7 +594,7 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_not_includes response.body, "View document"
 
-    get identity_document_athlete_path(athlete)
+    get identity_document_athlete_path(athlete, attachment_id: athlete.identity_documents.first.id)
     assert_response :not_found
   end
 

@@ -19,9 +19,12 @@ class Academy < ApplicationRecord
   validates :name, :city, presence: true
   validates :name, uniqueness: { scope: :city, case_sensitive: false, message: "already exists in this city" }, allow_blank: true
   validates :name, format: { with: NAME_OR_PLACE_FORMAT, message: "must contain letters, and can include spaces, numbers, hyphens, and apostrophes" }, allow_blank: true
-  validates :city, format: { with: NAME_OR_PLACE_FORMAT, message: "cannot be blank or numbers only" }, allow_blank: true
-  validates :state, format: { with: NAME_OR_PLACE_FORMAT, message: "cannot be blank or numbers only" }, allow_blank: true
-  validates :country, format: { with: NAME_OR_PLACE_FORMAT, message: "cannot be blank or numbers only" }, allow_blank: true
+  validates :name, length: { maximum: 120 }, allow_blank: true
+  validates :city, :state, :country, format: { with: NAME_OR_PLACE_FORMAT, message: "cannot be blank or numbers only" }, allow_blank: true
+  validates :city, :state, :country, length: { maximum: 60 }, allow_blank: true
+  validates :contact_name, format: { with: User::NAME_FORMAT, message: "can only contain letters, spaces, hyphens, and apostrophes" }, allow_blank: true
+  validates :phone, format: { with: User::PHONE_FORMAT, message: "must be a 10-digit mobile number" }, allow_blank: true
+  validates :registration_number, length: { maximum: 60 }, allow_blank: true
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   rejects_placeholder_email :email
   validate :logo_image_size

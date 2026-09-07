@@ -73,12 +73,18 @@
     <div><%= form.label :emergency_contact_phone %><%= form.telephone_field :emergency_contact_phone %><%= field_error(athlete, :emergency_contact_phone) %></div>
     <div class="full">
       <%= form.label :profile_photo, "Athlete photo" %>
-      <%= form.file_field :profile_photo, accept: "image/png,image/jpeg" %>
+      <%= form.file_field :profile_photo, accept: "image/png,image/jpeg,image/jpg,.jpg,.jpeg,.png" %>
       <%= field_error(athlete, :profile_photo) %>
-      <p class="field-hint">Accepted: JPG or PNG, up to 5 MB.</p>
+      <p class="field-hint">Accepted file formats: .jpg, .jpeg, .png &mdash; up to 5 MB.</p>
       <% if athlete.profile_photo.attached? %>
         <p class="field-hint">Current upload: <%= athlete.profile_photo.filename %></p>
       <% end %>
+    </div>
+    <div class="full">
+      <%= form.label :profile_photo_url, "Profile photo URL (optional)" %>
+      <%= form.url_field :profile_photo_url, placeholder: "https://example.com/photo.jpg" %>
+      <%= field_error(athlete, :profile_photo_url) %>
+      <p class="field-hint">Only used if no athlete photo is uploaded above.</p>
     </div>
     <div class="full">
       <fieldset class="checkbox-fieldset">
@@ -93,15 +99,22 @@
       <%= field_error(athlete, :government_id_document_type) %>
     </div>
     <div class="full">
-      <%= form.label :identity_document, "Upload government ID document" %>
-      <%= form.file_field :identity_document, accept: "image/png,image/jpeg" %>
-      <%= field_error(athlete, :identity_document) %>
-      <p class="field-hint">Accepted: JPG or PNG, up to 5 MB.</p>
-      <% if athlete.identity_document.attached? %>
+      <%= form.label :identity_documents, "Upload government ID document(s)" %>
+      <%= form.file_field :identity_documents, multiple: true, accept: "image/png,image/jpeg,image/jpg,.jpg,.jpeg,.png" %>
+      <%= field_error(athlete, :identity_documents) %>
+      <p class="field-hint">
+        Accepted file formats: .jpg, .jpeg, .png &mdash; up to 5 MB each. You can select multiple files at once
+        (for example, both sides of an Aadhaar card, or several passport pages) &mdash; up to <%= Athlete::MAX_IDENTITY_DOCUMENTS %> files.
+        Selecting new files replaces the current set.
+      </p>
+      <% if athlete.identity_documents.attached? %>
         <p class="field-hint">
-          Current upload: <%= athlete.identity_document.filename %>
-          <% if athlete.persisted? %>
-            · <%= link_to "View", identity_document_athlete_path(athlete), class: "text-link", target: "_blank", rel: "noopener" %>
+          Current upload<%= "s" if athlete.identity_documents.count > 1 %>:
+          <% athlete.identity_documents.each_with_index do |document, index| %>
+            <%= ", " if index.positive? %><%= document.filename %>
+            <% if athlete.persisted? %>
+              (<%= link_to "View", identity_document_athlete_path(athlete, attachment_id: document.id), class: "text-link", target: "_blank", rel: "noopener" %>)
+            <% end %>
           <% end %>
         </p>
       <% end %>

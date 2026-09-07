@@ -18,13 +18,16 @@ class Athlete < ApplicationRecord
   MIN_UPLOAD_SIZE = 1.byte
   MAX_UPLOAD_SIZE = 5.megabytes
   ACCEPTED_UPLOAD_TYPES = %w[image/jpeg image/png].freeze
+  # Lets an athlete upload both sides of an Aadhaar card, or multiple passport
+  # pages, instead of being limited to a single government ID file.
+  MAX_IDENTITY_DOCUMENTS = 5
 
   belongs_to :user
   belongs_to :academy, optional: true
   has_many :registrations, dependent: :destroy
   has_many :academy_membership_requests, dependent: :destroy
   has_one_attached :profile_photo
-  has_one_attached :identity_document
+  has_many_attached :identity_documents
 
   before_validation :normalize_profile_fields
 
@@ -39,10 +42,13 @@ class Athlete < ApplicationRecord
   validates :state, inclusion: { in: Tournament::INDIAN_STATES_AND_UNION_TERRITORIES }, allow_blank: true
   validates :address, length: { maximum: 255 }, allow_blank: true
   validates :emergency_contact_name, format: { with: User::NAME_FORMAT, message: "can only contain letters, spaces, hyphens, and apostrophes" }, allow_blank: true
+  validates :profile_photo_url, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid http or https URL" }, allow_blank: true
   validate :profile_photo_size
-  validate :identity_document_size
+  validate :identity_documents_size
+  validate :identity_documents_count
   validate :academy_must_be_approved
   validate :date_of_birth_cannot_be_in_the_future
+  validate :emergency_contact_must_differ_from_athlete
 
   def full_name
     [first_name, last_name].compact_blank.join(" ")
@@ -58,6 +64,14 @@ class Athlete < ApplicationRecord
 
   def profile_complete_for_registration?
     contact_number.present?
+  end
+
+  # Prefers an uploaded photo (already validated for size/type) and falls
+  # back to the optional external URL when no file has been uploaded.
+  def profile_photo_source
+    return profile_photo if profile_photo.attached?
+
+    profile_photo_url.presence
   end
 
   private
@@ -78,6 +92,7 @@ class Athlete < ApplicationRecord
     self.emergency_contact_phone = emergency_contact_phone.to_s.squish.presence
     self.address = address.to_s.squish.presence
     self.government_id_document_type = government_id_document_type.to_s.squish.presence
+    self.profile_photo_url = profile_photo_url.to_s.squish.presence
   end
 
   def date_of_birth_cannot_be_in_the_future
@@ -92,16 +107,32 @@ class Athlete < ApplicationRecord
     errors.add(:academy, "must be approved before athletes can be assigned")
   end
 
+  def emergency_contact_must_differ_from_athlete
+    if emergency_contact_name.present? && full_name.present? && emergency_contact_name.casecmp?(full_name)
+      errors.add(:emergency_contact_name, "cannot be the same as the athlete's own name")
+    end
+
+    if emergency_contact_phone.present? && contact_number.present? && emergency_contact_phone == contact_number
+      errors.add(:emergency_contact_phone, "cannot be the same as the athlete's own contact number")
+    end
+  end
+
   def profile_photo_size
     validate_upload_size(profile_photo, :profile_photo)
   end
 
-  def identity_document_size
-    validate_upload_size(identity_document, :identity_document)
+  def identity_documents_size
+    identity_documents.each { |document| validate_upload_size(document, :identity_documents) }
+  end
+
+  def identity_documents_count
+    return if identity_documents.size <= MAX_IDENTITY_DOCUMENTS
+
+    errors.add(:identity_documents, "cannot include more than #{MAX_IDENTITY_DOCUMENTS} files")
   end
 
   def validate_upload_size(attachment, attribute)
-    return unless attachment.attached?
+    return if attachment.respond_to?(:attached?) && !attachment.attached?
 
     if attachment.blob.byte_size < MIN_UPLOAD_SIZE
       errors.add(attribute, "must be at least 1 byte")
