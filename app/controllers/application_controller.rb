@@ -1,4 +1,6 @@
 class ApplicationController < ActionController::Base
+  protect_from_forgery with: :exception
+
   helper ApplicationHelper
 
   # Idle timeout: a signed-in user who sends no request for this long is
@@ -8,6 +10,7 @@ class ApplicationController < ActionController::Base
   SESSION_TIMEOUT = 30.minutes
 
   before_action :enforce_session_timeout
+  before_action :enforce_session_fingerprint
   before_action :require_athlete_profile_completion
 
   helper_method :current_user, :super_admin?, :can_manage_academy?, :can_manage_tournament?, :can_register_for_tournament?, :athlete_home_path, :session_timeout_seconds
@@ -33,6 +36,29 @@ class ApplicationController < ActionController::Base
 
   def session_timeout_seconds
     SESSION_TIMEOUT.to_i
+  end
+
+  # Binds the session to the browser it was issued in. The session cookie
+  # itself is scoped per-browser-profile already (a real incognito window has
+  # its own separate cookie jar and can never read another window's session
+  # cookie) — this is a second, independent check on top of that: if a
+  # session cookie is somehow replayed from a different client (a copied
+  # cookie, a proxy, a compromised device), the User-Agent it arrives with
+  # won't match the one recorded at login, and the session is discarded.
+  def enforce_session_fingerprint
+    return if session[:user_id].blank?
+
+    if session[:fingerprint].present? && session[:fingerprint] != session_fingerprint
+      reset_session
+      redirect_to login_path, alert: "Your session could not be verified for this browser. Please sign in again."
+      return
+    end
+
+    session[:fingerprint] ||= session_fingerprint
+  end
+
+  def session_fingerprint
+    Digest::SHA256.hexdigest(request.user_agent.to_s)
   end
 
   def require_user
