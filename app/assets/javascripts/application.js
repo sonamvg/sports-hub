@@ -33,12 +33,14 @@ document.addEventListener("turbo:load", initMatchDecisionFields)
 document.addEventListener("turbo:load", initBracketViewer)
 document.addEventListener("turbo:load", initRoundRows)
 document.addEventListener("turbo:load", initSessionTimeout)
+document.addEventListener("turbo:load", initMobileNav)
 document.addEventListener("DOMContentLoaded", updateAcademyOtherFields)
 document.addEventListener("DOMContentLoaded", scheduleAutoDismiss)
 document.addEventListener("DOMContentLoaded", initMatchDecisionFields)
 document.addEventListener("DOMContentLoaded", initBracketViewer)
 document.addEventListener("DOMContentLoaded", initRoundRows)
 document.addEventListener("DOMContentLoaded", initSessionTimeout)
+document.addEventListener("DOMContentLoaded", initMobileNav)
 
 function updateAcademyOtherFields() {
   document.querySelectorAll("[data-academy-choice-select]").forEach(updateAcademyOtherField)
@@ -168,6 +170,34 @@ function initSessionTimeout() {
 function resetSessionTimeoutTimer(timeoutSeconds) {
   window.clearTimeout(window.__sessionTimeoutTimer)
   window.__sessionTimeoutTimer = window.setTimeout(() => window.location.reload(), timeoutSeconds * 1000)
+}
+
+function initMobileNav() {
+  const toggle = document.querySelector("[data-mobile-nav-toggle]")
+  const closeButton = document.querySelector("[data-mobile-nav-close]")
+  const backdrop = document.querySelector("[data-mobile-nav-backdrop]")
+  const sideMenu = document.querySelector(".side-menu")
+  if (!toggle || !sideMenu) return
+
+  // Toggle the open state directly on the panel and backdrop (rather than
+  // relying on a `body.is-open .side-menu` descendant selector) so it takes
+  // effect immediately and consistently.
+  const setOpen = (open) => {
+    document.body.classList.toggle("mobile-nav-open", open)
+    sideMenu.classList.toggle("is-open", open)
+    backdrop?.classList.toggle("is-open", open)
+    toggle.setAttribute("aria-expanded", open ? "true" : "false")
+  }
+
+  toggle.addEventListener("click", () => setOpen(true))
+  closeButton?.addEventListener("click", () => setOpen(false))
+  backdrop?.addEventListener("click", () => setOpen(false))
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") setOpen(false)
+  })
+  document.querySelectorAll(".side-menu a").forEach((link) => {
+    link.addEventListener("click", () => setOpen(false))
+  })
 }
 
 function copyText(button) {

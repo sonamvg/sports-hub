@@ -15,6 +15,7 @@ module ApplicationHelper
     "lock" => '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
     "log-out" => '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/>',
     "medal" => '<path d="M7 2h10l-3 6h-4Z"/><circle cx="12" cy="14" r="6"/><path d="m10.5 14 1 1 2-2"/>',
+    "menu" => '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>',
     "more-vertical" => '<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>',
     "plus" => '<path d="M12 5v14"/><path d="M5 12h14"/>',
     "save" => '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/>',
