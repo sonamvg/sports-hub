@@ -4,7 +4,7 @@
       <div>
         <p class="eyebrow">ORGANIZERS</p>
         <h1 class="page-title">Event organizers</h1>
-        <p class="page-copy">Have an event in mind? Register yourself as an organizer. Super admins verify organizer accounts before they can create tournaments.</p>
+        <p class="page-copy">Have an event in mind? Register yourself as an organizer. Organizer profiles are reviewed before they can create tournaments.</p>
       </div>
       <% unless current_user %>
         <%= link_to "Register as organizer", login_path(return_to: new_tournament_path), class: "primary-button" %>

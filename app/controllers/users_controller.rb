@@ -58,7 +58,7 @@ class UsersController < ApplicationController
   end
 
   def signup_notice
-    return "Organizer account created and sent to super admin for verification." if @account_type == "organizer"
+    return "Organizer profile created. Your profile will be reviewed and approved before you can manage tournaments." if @account_type == "organizer"
 
     return "Athlete account created. Complete your profile to continue." if @account_type == "athlete"
 

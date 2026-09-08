@@ -103,7 +103,7 @@ class TournamentsController < ApplicationController
   def require_verified_organizer
     return if current_user&.can_organize_tournaments?
 
-    redirect_to organizers_path, alert: "Super admin verification is required before creating tournaments."
+    redirect_to organizers_path, alert: "Organizer profile approval is required before creating tournaments."
   end
 
   def set_available_organizers

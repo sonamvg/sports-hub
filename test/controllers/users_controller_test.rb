@@ -17,7 +17,8 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "ORGANIZER ACCOUNT"
     assert_includes response.body, "Create organizer account"
-    assert_includes response.body, "super admin will verify"
+    assert_includes response.body, "profile will be reviewed and approved"
+    assert_not_includes response.body, "super admin will verify"
     assert_includes response.body, 'value="organizer"'
     assert_includes response.body, "Mobile number"
     assert_includes response.body, "Designation"
@@ -115,7 +116,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_predicate user.identity_document, :attached?
     assert_equal user.id, session[:user_id]
     assert_redirected_to organizers_path
-    assert_equal "Organizer account created and sent to super admin for verification.", flash[:notice]
+    assert_equal "Organizer profile created. Your profile will be reviewed and approved before you can manage tournaments.", flash[:notice]
   end
 
   test "organizer signup requires mobile designation and identity document" do

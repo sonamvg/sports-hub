@@ -1057,7 +1057,8 @@ body { background:#f5f3ee; }
   border-radius:7px;
 }
 .side-tournament-links a:hover,.side-action-button:hover { background:#f7f7f5; }
-.account-action { display:flex; align-items:center; gap:8px; padding:10px 12px; color:var(--muted); }
+.account-action { display:flex; align-items:center; gap:8px; width:100%; padding:10px 12px; color:var(--muted); border-radius:8px; }
+.account-action:hover { background:#f7f7f5; color:var(--gold); }
 .nav-button,.primary-button {
   border:1px solid var(--gold);
   border-radius:4px;
@@ -1254,6 +1255,15 @@ body { background:#f5f3ee; }
   .mobile-nav-backdrop.is-open { opacity:1; pointer-events:auto; }
   body.mobile-nav-open { overflow:hidden; }
   .mobile-nav-close { display:inline-flex; align-items:center; justify-content:center; }
+  .side-account { gap:12px; }
+  .account-action {
+    justify-content:center;
+    min-height:46px;
+    border:1px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+  }
+  .account-action span { font-size:15px; }
   .page-shell,.page-shell.organizer-page,.page-shell.organizer-directory-page { padding:28px 0 64px; }
   .container { width:min(1120px, calc(100% - 32px)); }
 }

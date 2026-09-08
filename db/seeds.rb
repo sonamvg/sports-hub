@@ -255,6 +255,72 @@ pending_academy = seed_academy(
   status: :pending
 )
 
+demo_academy_owner_one = seed_user(
+  email: "demo.academy.owner.one@podiumcircle.test",
+  name: "Demo Academy Owner One",
+  role: :academy_owner,
+  phone: "9012300001"
+)
+
+demo_academy_owner_two = seed_user(
+  email: "demo.academy.owner.two@podiumcircle.test",
+  name: "Demo Academy Owner Two",
+  role: :academy_owner,
+  phone: "9012300002"
+)
+
+demo_academy_owner_three = seed_user(
+  email: "demo.academy.owner.three@podiumcircle.test",
+  name: "Demo Academy Owner Three",
+  role: :academy_owner,
+  phone: "9012300003"
+)
+
+demo_academies = [
+  seed_academy(
+    name: "Demo Summit Taekwondo Academy",
+    owner: demo_academy_owner_one,
+    city: "Pune",
+    state: "Maharashtra",
+    country: "India",
+    email: "summit.demo@podiumcircle.test",
+    phone: "9012300101",
+    contact_name: "Demo Academy Owner One",
+    registration_number: "DEMO-SUMMIT-001",
+    status: :approved,
+    terms_accepted_at: Time.current,
+    data_sharing_consent_accepted_at: Time.current
+  ),
+  seed_academy(
+    name: "Demo Harbor Martial Arts Academy",
+    owner: demo_academy_owner_two,
+    city: "Mumbai",
+    state: "Maharashtra",
+    country: "India",
+    email: "harbor.demo@podiumcircle.test",
+    phone: "9012300102",
+    contact_name: "Demo Academy Owner Two",
+    registration_number: "DEMO-HARBOR-002",
+    status: :approved,
+    terms_accepted_at: Time.current,
+    data_sharing_consent_accepted_at: Time.current
+  ),
+  seed_academy(
+    name: "Demo Skyline Combat Academy",
+    owner: demo_academy_owner_three,
+    city: "Bengaluru",
+    state: "Karnataka",
+    country: "India",
+    email: "skyline.demo@podiumcircle.test",
+    phone: "9012300103",
+    contact_name: "Demo Academy Owner Three",
+    registration_number: "DEMO-SKYLINE-003",
+    status: :approved,
+    terms_accepted_at: Time.current,
+    data_sharing_consent_accepted_at: Time.current
+  )
+]
+
 SuperAdminNotification.notify!(
   kind: :academy_submission,
   notifiable: pending_academy,
@@ -326,7 +392,7 @@ athletes = [
 ]
 
 additional_roster_specs = [
-  [shivneri_academy, "Ira", "Bapat", "female", Date.new(2015, 4, 8), "yellow", 24.3, "A+", "SMA-ATH-2101", "Kothrud"],
+  [shivneri_academy, "Ira", "Bapat", "female", Date.new(2015, 4, 8), "yellow", 23.6, "A+", "SMA-ATH-2101", "Kothrud"],
   [shivneri_academy, "Nirav", "Joshi", "male", Date.new(2014, 10, 2), "green", 31.6, "B+", "SMA-ATH-2102", "Erandwane"],
   [shivneri_academy, "Rhea", "Kulkarni", "female", Date.new(2012, 7, 19), "blue", 36.4, "O+", "SMA-ATH-2103", "Karve Nagar"],
   [shivneri_academy, "Omkar", "Deshpande", "male", Date.new(2009, 11, 6), "red", 53.8, "AB+", "SMA-ATH-2104", "Shivajinagar"],
@@ -369,6 +435,75 @@ additional_roster_specs.each_with_index do |(student_academy, first_name, last_n
     government_id_document_type: "Aadhaar"
   )
 end
+
+demo_first_names = %w[
+  Aadhya Aarav Aarna Advait Ahana Akshay Amaya Anika Ansh Arjun
+  Arya Avani Devansh Dhruv Diya Esha Gauri Harsh Ishan Ishita
+  Kabir Kavya Kiara Krish Lavanya Meera Mihir Myra Navya Neel
+  Nisha Omkar Pari Pranav Rhea Rohan Ruhi Saanvi Samar Sara
+  Shaurya Siya Tara Tanay Trisha Vedant Vihaan Vivaan Yash Zara
+  Aanya Aarohi Aditi Akira Anaya Anvi Arnav Bhavya Charvi Daksh
+  Darsh Devika Eshaan Gia Hansika Ira Ishaan Jiya Kaira Laksh
+  Mahika Naina Neil Niyati Ojas Pia Prisha Reyansh Riya Rudra
+  Samaira Shanaya Shivam Tanvi Tia Urvi Vanya Veda Viaan Yuvaan
+  Zoya Amrita Bharat Chaitanya Disha Farah Gagan Hiral Kunal Leela
+]
+
+demo_age_bands = [
+  { age: 7, weight: 18.5 },
+  { age: 8, weight: 21.2 },
+  { age: 9, weight: 24.8 },
+  { age: 10, weight: 28.4 },
+  { age: 11, weight: 32.6 },
+  { age: 12, weight: 36.5 },
+  { age: 13, weight: 40.7 },
+  { age: 14, weight: 45.3 },
+  { age: 15, weight: 49.8 },
+  { age: 16, weight: 54.4 },
+  { age: 17, weight: 58.1 },
+  { age: 18, weight: 62.6 },
+  { age: 21, weight: 67.8 },
+  { age: 24, weight: 73.2 }
+]
+
+demo_athletes = demo_first_names.first(100).each_with_index.map do |first_name, index|
+  athlete_number = index + 1
+  phone = "90124#{format('%05d', athlete_number)}"
+  band = demo_age_bands[index % demo_age_bands.length]
+  linked_academy = athlete_number % 4 == 0 ? nil : demo_academies[index % demo_academies.length]
+  user = seed_user(
+    email: "demo.athlete#{format('%03d', athlete_number)}@podiumcircle.test",
+    name: "#{first_name} Surname test",
+    role: :athlete,
+    phone: phone
+  )
+
+  seed_athlete(
+    user: user,
+    academy: linked_academy,
+    first_name: first_name,
+    last_name: "Surname test",
+    date_of_birth: Date.current.change(month: 6, day: 15) - band[:age].years,
+    gender: Athlete::GENDERS[index % Athlete::GENDERS.length],
+    belt: Athlete::BELTS[index % Athlete::BELTS.length],
+    weight: band[:weight] + (index % 3) * 0.4,
+    blood_group: Athlete::BLOOD_GROUPS[index % Athlete::BLOOD_GROUPS.length],
+    association_id: "DEMO-ATH-#{format('%03d', athlete_number)}",
+    contact_number: phone,
+    emergency_contact_name: "#{first_name} Guardian",
+    emergency_contact_phone: "90125#{format('%05d', athlete_number)}",
+    address: "Demo lane #{athlete_number}, #{linked_academy&.city || 'Independent'}",
+    city: linked_academy&.city || %w[Pune Mumbai Bengaluru Nashik Nagpur][index % 5],
+    state: linked_academy&.state || "Maharashtra",
+    country: "India",
+    government_id_document_type: Athlete::GOVERNMENT_ID_DOCUMENT_TYPES[index % Athlete::GOVERNMENT_ID_DOCUMENT_TYPES.length],
+    external_academy_name: linked_academy ? nil : "Individual Demo Academy #{athlete_number}",
+    terms_accepted_at: Time.current,
+    data_sharing_consent_accepted_at: Time.current
+  )
+end
+
+athletes.concat(demo_athletes)
 
 open_tournament = seed_tournament(
   name: "Pune Open Taekwondo Championship",
@@ -734,9 +869,9 @@ upcoming_registration_pairs = [
   [athletes[0], upcoming_categories.second, :pending],
   [athletes[3], upcoming_categories.first, :approved],
   [athletes[5], upcoming_categories.second, :approved],
-  [athletes[7], upcoming_categories.third, :pending],
-  [athletes[10], upcoming_categories.third, :rejected],
-  [athletes[13], upcoming_categories.fifth, :pending]
+  [athletes[1], upcoming_categories.third, :pending],
+  [athletes[10], upcoming_categories.fourth, :rejected],
+  [athletes[14], upcoming_categories.fifth, :pending]
 ]
 
 upcoming_registration_pairs.each do |student, category, status|
@@ -751,11 +886,11 @@ end
 
 completed_registration_pairs = [
   [athletes[0], completed_categories.first, :weight_verified],
-  [athletes[4], completed_categories.first, :weight_verified],
-  [athletes[6], completed_categories.third, :weight_verified],
-  [athletes[8], completed_categories.fourth, :weight_verified],
-  [athletes[11], completed_categories.fifth, :disqualified],
-  [athletes[14], completed_categories.fifth, :weight_verified]
+  [athletes[5], completed_categories.first, :weight_verified],
+  [athletes[9], completed_categories.third, :weight_verified],
+  [athletes[6], completed_categories.fourth, :weight_verified],
+  [athletes[14], completed_categories.fifth, :disqualified],
+  [athletes[10], completed_categories.fourth, :weight_verified]
 ]
 
 completed_registration_pairs.each_with_index do |(student, category, status), index|
@@ -831,3 +966,5 @@ puts "Super admin: admin@podiumcircle.test / #{PASSWORD}"
 puts "Organizer: organizer@podiumcircle.test / #{PASSWORD}"
 puts "Academy owner: academy@podiumcircle.test / #{PASSWORD}"
 puts "Athlete: athlete@podiumcircle.test / #{PASSWORD}"
+puts "Demo academies: #{demo_academies.map(&:name).join(', ')}"
+puts "Demo athletes: #{demo_athletes.size} athletes with last name 'Surname test'."

@@ -3067,3 +3067,39 @@ This file is the long-lived implementation journal for PodiumCircle. Keep it cur
 - Re-ran `rtk mise exec -- bin/rails test`; result: 199 runs, 1859 assertions, 0 failures, 0 errors, 0 skips.
 - Rebuilt stale `debug` and `rbs` native extensions with `rtk mise exec -- gem pristine ...`; result: Rails commands no longer print extension warnings.
 - Final `rtk mise exec -- bin/rails test`; result: 199 runs, 1859 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-08 - Organizer Approval Copy and Mobile Sign Out Clarity
+
+### Reference
+- User requested removing direct `super admin` wording from organizer account creation messaging and making the mobile logout option clearer.
+
+### Change Log
+- Changed organizer signup success copy to say the organizer profile will be reviewed and approved before tournament management access is available.
+- Changed organizer signup page, organizer directory, and tournament creation approval copy to avoid naming the approver role directly.
+- Updated the mobile side-menu sign-out action to render as a clearer full-width button with stronger contrast and a larger touch target.
+- Updated user-controller tests to assert the generic organizer approval wording.
+
+### Verification Log
+- Ran `rg -n "Super admin verification|Super admins verify|super admin will verify|sent to super admin" app test`; result: only the negative user-controller assertion still mentions the old copy.
+- Ran `git diff --check`; result: no whitespace errors.
+- Ran `mise exec -- bin/rails test test/controllers/users_controller_test.rb test/controllers/tournaments_controller_test.rb`; result: 53 runs, 555 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-08 - Demo Academy and Athlete Seed Data
+
+### Reference
+- User requested seed data with 3 academies containing `Demo` in their names, logical images, and 100 athletes that can be identified later by `Surname test`.
+
+### Change Log
+- Added 3 approved demo academies: `Demo Summit Taekwondo Academy`, `Demo Harbor Martial Arts Academy`, and `Demo Skyline Combat Academy`.
+- Added 3 academy-owner users for the demo academies.
+- Added 100 demo athlete accounts and athlete profiles with last name `Surname test`, covering a spread of ages, weights, genders, belts, blood groups, and cities.
+- Assigned 75 demo athletes to the demo academies and 25 as independent athletes with external academy names.
+- Attached the existing valid PNG fixture to demo academy logos and athlete profile photos so seed data satisfies current upload validations.
+- Corrected older seed registration fixtures whose athlete/category combinations no longer satisfied strict age, weight, and gender eligibility checks.
+
+### Verification Log
+- Ran `ruby -c db/seeds.rb`; result: `Syntax OK`.
+- Ran `git diff --check`; result: no whitespace errors.
+- Ran `mise exec -- bin/rails db:seed`; result: completed successfully.
+- Ran seed count verification; result: `{ demo_academies: 3, surname_test_athletes: 100, linked_demo_athletes: 75, independent_demo_athletes: 25 }`.
+- Ran `mise exec -- bin/rails test test/models/athlete_test.rb test/models/academy_test.rb test/models/registration_test.rb`; result: 43 runs, 163 assertions, 0 failures, 0 errors, 0 skips.

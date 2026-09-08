@@ -223,7 +223,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to organizers_path
-    assert_equal "Super admin verification is required before creating tournaments.", flash[:alert]
+    assert_equal "Organizer profile approval is required before creating tournaments.", flash[:alert]
   end
 
   test "renders errors when tournament is invalid" do
