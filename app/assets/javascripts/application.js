@@ -34,6 +34,7 @@ document.addEventListener("turbo:load", initBracketViewer)
 document.addEventListener("turbo:load", initRoundRows)
 document.addEventListener("turbo:load", initSessionTimeout)
 document.addEventListener("turbo:load", initMobileNav)
+document.addEventListener("turbo:load", initDefaultMidnightDateTimes)
 document.addEventListener("DOMContentLoaded", updateAcademyOtherFields)
 document.addEventListener("DOMContentLoaded", scheduleAutoDismiss)
 document.addEventListener("DOMContentLoaded", initMatchDecisionFields)
@@ -41,6 +42,7 @@ document.addEventListener("DOMContentLoaded", initBracketViewer)
 document.addEventListener("DOMContentLoaded", initRoundRows)
 document.addEventListener("DOMContentLoaded", initSessionTimeout)
 document.addEventListener("DOMContentLoaded", initMobileNav)
+document.addEventListener("DOMContentLoaded", initDefaultMidnightDateTimes)
 
 function updateAcademyOtherFields() {
   document.querySelectorAll("[data-academy-choice-select]").forEach(updateAcademyOtherField)
@@ -197,6 +199,25 @@ function initMobileNav() {
   })
   document.querySelectorAll(".side-menu a").forEach((link) => {
     link.addEventListener("click", () => setOpen(false))
+  })
+}
+
+function initDefaultMidnightDateTimes() {
+  document.querySelectorAll("[data-default-midnight]").forEach((input) => {
+    if (input.dataset.midnightBound === "true") return
+    input.dataset.midnightBound = "true"
+
+    // The browser fills in the current time of day the first time a date is
+    // picked in an empty datetime-local field. Snap that first value to
+    // midnight instead — once the field holds a value, later edits (the
+    // organizer deliberately picking a time) are left alone.
+    input.addEventListener("change", function onFirstChange() {
+      input.removeEventListener("change", onFirstChange)
+      if (!input.value) return
+
+      const [datePart] = input.value.split("T")
+      input.value = `${datePart}T00:00`
+    })
   })
 }
 

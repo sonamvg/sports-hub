@@ -109,10 +109,7 @@
     const select = event.target.closest("[data-category-select]");
     if (!select) return;
 
-    const picker = select.closest("[data-category-picker]");
-    const addMoreWrapper = picker.querySelector("[data-add-more-wrapper]");
-    addMoreWrapper.hidden = picker.querySelectorAll("[data-category-select]").length > 0 && select.value === "";
-    if (select.value !== "") addMoreWrapper.hidden = false;
+    updateAddMoreVisibility(select.closest("[data-category-picker]"));
   });
 
   document.addEventListener("change", function(event) {
@@ -123,7 +120,7 @@
     const template = picker.querySelector("[data-category-template]");
     picker.insertBefore(template.content.cloneNode(true), checkbox.closest("[data-add-more-wrapper]"));
     checkbox.checked = false;
-    checkbox.closest("[data-add-more-wrapper]").hidden = true;
+    updateAddMoreVisibility(picker);
   });
 
   document.addEventListener("click", function(event) {
@@ -135,10 +132,10 @@
     if (rows.length === 1) {
       rows[0].querySelector("select").value = "";
       button.hidden = true;
-      picker.querySelector("[data-add-more-wrapper]").hidden = true;
     } else {
       button.closest("[data-category-row]").remove();
     }
+    updateAddMoreVisibility(picker);
     updateRegistrationTotal(picker);
   });
 
@@ -207,10 +204,28 @@
     const firstRow = picker.querySelector("[data-category-row]");
     const firstSelect = firstRow.querySelector("select");
     const removeButton = firstRow.querySelector("[data-remove-category]");
-    const addMoreWrapper = picker.querySelector("[data-add-more-wrapper]");
     firstSelect.value = "";
     removeButton.hidden = true;
-    addMoreWrapper.hidden = true;
+    updateAddMoreVisibility(picker);
     updateRegistrationTotal(picker);
+  }
+
+  // Shows the "add more categories?" checkbox only once at least one
+  // category is picked and every row currently on screen has a value —
+  // there's no point offering another row while one is still blank, and no
+  // point offering it at all before anything's been chosen. Re-running this
+  // after every add/remove (rather than only on the event that triggered it)
+  // is what keeps it re-appearing correctly after a newly-added row is
+  // deleted, instead of staying stuck hidden.
+  function updateAddMoreVisibility(picker) {
+    if (!picker) return;
+
+    const addMoreWrapper = picker.querySelector("[data-add-more-wrapper]");
+    if (!addMoreWrapper) return;
+
+    const selects = Array.from(picker.querySelectorAll("[data-category-select]"));
+    const hasSelection = selects.some(function(select) { return select.value !== ""; });
+    const hasBlankRow = selects.some(function(select) { return select.value === ""; });
+    addMoreWrapper.hidden = !hasSelection || hasBlankRow;
   }
 </script>
