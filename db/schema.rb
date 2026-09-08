@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_07_151744) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_08_165356) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -370,7 +370,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_07_151744) do
     t.decimal "registration_fee", precision: 10, scale: 2
     t.datetime "registration_opens_at"
     t.text "required_documents"
-    t.string "slug"
     t.date "start_date", null: false
     t.string "state"
     t.integer "status", default: 0, null: false
@@ -381,7 +380,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_07_151744) do
     t.string "venue"
     t.string "website_url"
     t.index ["organizer_id"], name: "index_tournaments_on_organizer_id"
-    t.index ["slug"], name: "index_tournaments_on_slug", unique: true
   end
 
   create_table "users", force: :cascade do |t|

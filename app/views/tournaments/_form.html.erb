@@ -105,13 +105,13 @@
 
     <div>
       <%= form.label :registration_opens_at %>
-      <%= form.datetime_local_field :registration_opens_at, required: true %>
+      <%= form.datetime_local_field :registration_opens_at, required: true, data: { default_midnight: true } %>
       <%= field_error(tournament, :registration_opens_at) %>
     </div>
 
     <div>
       <%= form.label :registration_closes_at %>
-      <%= form.datetime_local_field :registration_closes_at, required: true %>
+      <%= form.datetime_local_field :registration_closes_at, required: true, data: { default_midnight: true } %>
       <%= field_error(tournament, :registration_closes_at) %>
     </div>
 
@@ -282,12 +282,6 @@
       <%= form.label :primary_contact_phone, "Primary contact mobile" %>
       <%= form.telephone_field :primary_contact_phone, required: true, autocomplete: "tel", pattern: "\\d{10}", maxlength: 10, title: "10-digit mobile number" %>
       <%= field_error(tournament, :primary_contact_phone) %>
-    </div>
-
-    <div>
-      <%= form.label :slug %>
-      <%= form.text_field :slug %>
-      <%= field_error(tournament, :slug) %>
     </div>
 
     <div class="full">
