@@ -33,6 +33,7 @@ class Athlete < ApplicationRecord
 
   validates :first_name, :last_name, :date_of_birth, :gender, presence: true
   validates :first_name, :last_name, length: { in: 2..60 }, allow_blank: true
+  validates :first_name, :last_name, format: { with: User::NAME_FORMAT, message: "can only contain letters, spaces, hyphens, and apostrophes" }, allow_blank: true
   validates :gender, inclusion: { in: GENDERS }, allow_blank: true
   validates :belt, inclusion: { in: BELTS }, allow_blank: true
   validates :blood_group, inclusion: { in: BLOOD_GROUPS }, allow_blank: true

@@ -601,7 +601,7 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
   test "index paginates athletes" do
     13.times do |index|
       @parent.athletes.create!(
-        first_name: "Athlete#{index}",
+        first_name: "Athlete #{("A".."Z").to_a[index]}",
         last_name: "Page",
         date_of_birth: 12.years.ago.to_date,
         gender: "female"

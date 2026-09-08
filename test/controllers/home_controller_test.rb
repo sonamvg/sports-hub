@@ -35,14 +35,15 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Super admin"
   end
 
-  test "athlete account uses own profile as home page" do
+  test "signed in athlete visiting root sees the landing page, not their profile" do
     user = User.create!(name: "Athlete User", email: "athlete-home@example.test", phone: "9876543210", password: "password123", role: :athlete)
-    athlete = user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     sign_in_as user
 
     get root_path
 
-    assert_redirected_to athlete_path(athlete)
+    assert_response :success
+    assert_includes response.body, "Train. Compete."
   end
 
   test "terms page is visible to signed in athletes" do

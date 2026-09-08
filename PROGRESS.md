@@ -3103,3 +3103,19 @@ This file is the long-lived implementation journal for PodiumCircle. Keep it cur
 - Ran `mise exec -- bin/rails db:seed`; result: completed successfully.
 - Ran seed count verification; result: `{ demo_academies: 3, surname_test_athletes: 100, linked_demo_athletes: 75, independent_demo_athletes: 25 }`.
 - Ran `mise exec -- bin/rails test test/models/athlete_test.rb test/models/academy_test.rb test/models/registration_test.rb`; result: 43 runs, 163 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-08 - Athlete Registration Security QA
+
+### Reference
+- User requested testing the athlete registration flow against signed-out access, ID tampering, category tampering, duplicate submissions, file upload abuse, XSS, SQL-like input, direct object access, payment-data exposure, CSRF, email reuse, return-path tampering, and login probing.
+
+### Change Log
+- Added `test/controllers/athlete_flow_security_test.rb` with request-level regression coverage for 18 athlete-flow security scenarios.
+- Enabled explicit Rails CSRF protection in `ApplicationController` with exception-mode forgery handling.
+- Added first-name and last-name format validation to `Athlete` so script-like names are rejected before storage.
+- Updated an athlete pagination test fixture to use valid human-style names after tightening name validation.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/athlete_flow_security_test.rb`; result: 18 runs, 156 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test test/controllers/athlete_flow_security_test.rb test/controllers/registrations_controller_test.rb test/models/registration_test.rb test/controllers/athletes_controller_test.rb test/controllers/sessions_controller_test.rb test/controllers/organizer_registrations_controller_test.rb`; result: 105 runs, 777 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `git diff --check`; result: no whitespace errors.

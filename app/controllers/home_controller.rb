@@ -1,6 +1,4 @@
 class HomeController < ApplicationController
-  before_action :redirect_athlete_to_profile, except: :terms
-
   def index
     @previous_competitions = [
       {
@@ -153,13 +151,4 @@ class HomeController < ApplicationController
   end
 
   def terms; end
-
-  private
-
-  def redirect_athlete_to_profile
-    return unless current_user&.athlete?
-    return unless current_user.athletes.exists?
-
-    redirect_to athlete_home_path
-  end
 end
