@@ -706,6 +706,9 @@ select:disabled { cursor:not-allowed; opacity:.6; }
   display:block;
   line-height:1.45;
 }
+.stacked-results { margin:0; padding:0; list-style:none; display:grid; gap:12px; }
+.stacked-results li { padding-bottom:12px; border-bottom:1px solid var(--line); line-height:1.5; }
+.stacked-results li:last-child { border-bottom:none; padding-bottom:0; }
 .tournament-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
 .tournament-summary div { display:flex; flex-direction:column; gap:8px; }
 .tournament-summary strong { text-transform:uppercase; font-size:11px; letter-spacing:.08em; color:var(--muted); }
@@ -889,7 +892,9 @@ select:disabled { cursor:not-allowed; opacity:.6; }
 .search-bar { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:end; margin:26px 0; }
 .search-bar label { grid-column:1 / -1; font-weight:800; text-transform:uppercase; letter-spacing:.08em; font-size:11px; }
 .search-bar input[type="search"] { width:100%; border:1px solid var(--line); padding:13px 14px; font:inherit; }
-.weight-check-list { display:grid; gap:14px; margin-top:24px; }
+.weight-check-list { display:grid; gap:36px; margin-top:24px; }
+.weight-check-category-group { display:grid; gap:14px; }
+.weight-check-category-heading { margin:0; }
 .weight-check-row { display:grid; grid-template-columns:1.2fr 1.5fr minmax(180px,.7fr); gap:18px; align-items:center; padding:20px; border:1px solid var(--line); background:white; transition:background-color 1.2s ease, border-color 1.2s ease; }
 .weight-check-row-highlighted { background-color:#fdf6e3; border-color:var(--gold); box-shadow:0 0 0 3px rgba(169,118,31,.18); }
 .weight-check-main h2 { margin:10px 0 6px; font-size:22px; }
@@ -1193,6 +1198,12 @@ body { background:#f5f3ee; }
 .match-round-row { display:grid; grid-template-columns:90px 1fr 1fr 1.4fr; gap:10px; align-items:center; }
 .match-round-label { font-size:11px; text-transform:uppercase; letter-spacing:.08em; font-weight:800; color:var(--muted); }
 .match-round-row input,.match-round-row select { border:1px solid var(--line); padding:10px; font:inherit; width:100%; }
+.match-score-card-locked { background:#fafaf8; }
+.locked-pill { display:inline-flex; align-items:center; gap:6px; }
+.locked-pill .ui-icon { width:13px; height:13px; }
+.match-round-row-locked { padding:8px 0; border-bottom:1px solid var(--line); }
+.match-round-row-locked:last-child { border-bottom:none; }
+.match-round-row-locked .corner-name-red,.match-round-row-locked .corner-name-blue { font-size:16px; font-weight:800; }
 .match-round-row input.corner-input-red { border-color:var(--corner-red); }
 .match-round-row input.corner-input-blue { border-color:var(--corner-blue); }
 .match-round-result { font-size:13px; font-weight:800; color:var(--muted); }

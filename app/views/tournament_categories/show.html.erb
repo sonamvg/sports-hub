@@ -1,5 +1,12 @@
+<% content_for :head do %>
+  <% if @category.draw_generated? %>
+    <%= stylesheet_link_tag "vendor/brackets-viewer.min" %>
+    <%= javascript_include_tag "vendor/brackets-viewer.min", defer: true %>
+  <% end %>
+<% end %>
+
 <section class="page-shell">
-  <div class="container narrow">
+  <div class="container">
     <%= render "shared/breadcrumbs", items: [
       { label: "Home", path: root_path },
       { label: "Tournaments", path: tournaments_path },
@@ -11,6 +18,27 @@
     <p class="eyebrow">CATEGORY</p>
     <h1 class="page-title"><%= @category.name %></h1>
 
+    <% if can_manage_tournament?(@tournament) %>
+      <div class="detail-card organizer-actions-panel">
+        <p class="eyebrow">YOU MANAGE THIS TOURNAMENT</p>
+        <p class="page-copy">
+          <% if @category.draw_generated? %>
+            The draw is set for this category. Enter results as matches are played.
+          <% else %>
+            This is the public view athletes and spectators see. Weigh in athletes and set the draw from the organizer view.
+          <% end %>
+        </p>
+        <div class="form-actions">
+          <%= link_to organizer_tournament_tournament_category_draw_path(@tournament, @category), class: "primary-button" do %>
+            <%= @category.draw_generated? ? "Score matches for this category" : "Set the draw for this category" %>
+          <% end %>
+          <%= link_to organizer_tournament_weight_checks_path(@tournament), class: "secondary-button" do %>
+            Weigh in athletes
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
     <div class="detail-card">
       <p><strong>Event:</strong> <%= @category.event_type.titleize %></p>
       <p><strong>Gender:</strong> <%= @category.gender&.titleize || "Open" %></p>
@@ -20,10 +48,90 @@
 
       <div class="form-actions">
         <%= link_to "Back to categories", tournament_tournament_categories_path(@tournament), class: "secondary-button" %>
-        <% if can_manage_tournament?(@tournament) %>
-          <%= link_to "Draw", organizer_tournament_tournament_category_draw_path(@tournament, @category), class: "primary-button" %>
-        <% end %>
       </div>
     </div>
+
+    <% if @category.draw_generated? %>
+      <div class="section-compact">
+        <div class="page-heading compact-heading">
+          <h2 class="section-title">Draw</h2>
+        </div>
+        <div class="detail-card bracket-page">
+          <div class="brackets-viewer" data-bracket="<%= @bracket_data.to_json %>"></div>
+        </div>
+      </div>
+
+      <% if @upcoming_matches.present? %>
+        <div class="section-compact">
+          <div class="page-heading compact-heading">
+            <h2 class="section-title">Next matches</h2>
+            <span class="status-pill"><%= @upcoming_matches.size %> upcoming</span>
+          </div>
+          <div class="match-score-list">
+            <% @upcoming_matches.each do |match| %>
+              <article class="match-score-card">
+                <div class="match-score-heading">
+                  <span class="status-pill">Round <%= match.round_number %> &middot; Match <%= match.slot_position %></span>
+                  <h3><span class="corner-name-red"><%= match.registration_one.athlete.full_name %></span> vs <span class="corner-name-blue"><%= match.registration_two.athlete.full_name %></span></h3>
+                </div>
+              </article>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <% if @completed_matches.present? %>
+        <div class="section-compact">
+          <div class="page-heading compact-heading">
+            <h2 class="section-title">Results so far</h2>
+          </div>
+          <div class="detail-card">
+            <ul class="stacked-results">
+              <% @completed_matches.each do |match| %>
+                <li>
+                  <strong>Round <%= match.round_number %>:</strong>
+                  <span class="corner-name-red"><%= match.registration_one.athlete.full_name %></span> vs
+                  <span class="corner-name-blue"><%= match.registration_two.athlete.full_name %></span>
+                  &mdash; <%= match_result_summary(match) %>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      <% end %>
+
+      <% if @medal_standings.present? %>
+        <div class="section-compact">
+          <div class="page-heading compact-heading">
+            <h2 class="section-title">Winners</h2>
+          </div>
+          <div class="detail-card medal-standings">
+            <div><strong>Gold</strong><span><%= @medal_standings[:gold]&.athlete&.full_name || "--" %></span></div>
+            <div><strong>Silver</strong><span><%= @medal_standings[:silver]&.athlete&.full_name || "--" %></span></div>
+            <div>
+              <strong>Bronze</strong>
+              <span>
+                <% if @medal_standings[:bronze].blank? %>
+                  --
+                <% else %>
+                  <%= @medal_standings[:bronze].map { |registration| registration.athlete.full_name }.join(" & ") %>
+                <% end %>
+              </span>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="section-compact">
+        <div class="inline-empty-state">
+          <strong>Draw not generated yet</strong>
+          <% if can_manage_tournament?(@tournament) %>
+            <p>Weigh in at least 2 athletes for this category, then set the draw from the organizer view above.</p>
+          <% else %>
+            <p>Check back after the organizer completes weigh-ins and generates the draw for this category.</p>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
   </div>
 </section>

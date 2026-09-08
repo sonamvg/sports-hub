@@ -545,6 +545,62 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Register →"
   end
 
+  test "organizer show links straight to the manage panel and empty categories-with-registrations state" do
+    tournament = Tournament.create!(
+      name: "Nav Improvement Open",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "MANAGE THIS TOURNAMENT"
+    assert_includes response.body, "Edit tournament details"
+    assert_includes response.body, "Manage referees"
+    assert_includes response.body, "Venue setup"
+    assert_includes response.body, "Weight check"
+    assert_includes response.body, "All categories &amp; draws"
+    assert_includes response.body, edit_tournament_path(tournament)
+    assert_includes response.body, tournament_tournament_referees_path(tournament)
+    assert_includes response.body, venue_setup_tournament_path(tournament)
+    assert_includes response.body, organizer_tournament_weight_checks_path(tournament)
+    assert_includes response.body, "Categories with registrations"
+    assert_includes response.body, "No registrations yet"
+    assert_includes response.body, "View all #{tournament.tournament_categories.count} categories"
+  end
+
+  test "organizer show links directly to set draw or score matches for categories with registrations" do
+    tournament = Tournament.create!(
+      name: "Nav Registered Open",
+      organizer: @organizer,
+      status: :registration_open,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "male", age_min: 18)
+    create_weight_verified_registration(tournament: tournament, category: category, email: "nav-reg-one@example.test")
+    create_weight_verified_registration(tournament: tournament, category: category, email: "nav-reg-two@example.test")
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Set draw"
+    assert_includes response.body, organizer_tournament_tournament_category_draw_path(tournament, category)
+    assert_not_includes response.body, "Draw set"
+
+    assert BracketGenerator.new(category).call.success?
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Score matches"
+    assert_includes response.body, "Draw set"
+  end
+
   test "organizer sidebar lists tournament operation links" do
     tournament = Tournament.create!(
       name: "Sidebar Invitational",
@@ -915,7 +971,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     get tournament_path(tournament)
     assert_response :success
     assert_includes response.body, "Delete tournament"
-    assert_includes response.body, "page-actions"
+    assert_includes response.body, "organizer-actions-panel"
     assert_includes response.body, "delete-action-button"
     assert_includes response.body, "Are you sure you want to delete Delete Me Open?"
 
@@ -932,6 +988,30 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to tournaments_path
     assert_equal "Tournament removed.", flash[:notice]
     assert_not Tournament.exists?(tournament.id)
+  end
+
+  test "super admin can delete a tournament with a generated multi-round draw" do
+    super_admin = User.create!(name: "Super Admin", email: "delete-drawn-tournament-admin@example.test", password: "password123", role: :super_admin)
+    tournament = Tournament.create!(
+      name: "Delete With Draw Open",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "male", age_min: 18)
+    3.times { |i| create_weight_verified_registration(tournament: tournament, category: category, email: "delete-draw-#{i}@example.test") }
+    assert BracketGenerator.new(category).call.success?
+    assert_operator category.matches.count, :>, 1
+    sign_in_as super_admin
+
+    assert_difference("Tournament.count", -1) do
+      delete tournament_path(tournament)
+    end
+
+    assert_redirected_to tournaments_path
+    assert_equal "Tournament removed.", flash[:notice]
+    assert_not Tournament.exists?(tournament.id)
+    assert_equal 0, Match.where(tournament_category_id: category.id).count
   end
 
   test "organizer cannot delete tournament" do

@@ -68,6 +68,30 @@ module ApplicationHelper
     user.name.to_s.squish.split.first.presence || user.email.to_s.split("@").first
   end
 
+  def match_result_summary(match)
+    winner_name = match.winner_registration&.athlete&.full_name || "Winner"
+    return "#{winner_name} advanced on a bye" if match.bye?
+    return nil unless match.completed?
+
+    case match.decision
+    when "points"
+      rounds_won = match.score_data["rounds_won"] || {}
+      winner_side = match.winner_registration_id == match.registration_one_id ? "one" : "two"
+      loser_side = winner_side == "one" ? "two" : "one"
+      "#{winner_name} won #{rounds_won[winner_side].to_i}-#{rounds_won[loser_side].to_i} on points"
+    when "rsc"
+      "#{winner_name} won by referee stopping the contest"
+    when "disqualification"
+      "#{winner_name} won by disqualification"
+    when "withdrawal"
+      "#{winner_name} won by withdrawal"
+    when "no_show"
+      "#{winner_name} won — opponent did not show"
+    else
+      "#{winner_name} won"
+    end
+  end
+
   def field_error(record, attribute)
     messages = record.errors[attribute]
     classes = ["field-error-message"]

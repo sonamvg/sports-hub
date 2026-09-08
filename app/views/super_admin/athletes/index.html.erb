@@ -7,14 +7,20 @@
   <div class="page-heading compact-heading">
     <div>
       <p class="eyebrow">SUPER ADMIN</p>
-      <h1 class="page-title">Athlete</h1>
+      <h1 class="page-title">Athletes</h1>
       <p class="page-copy">View every athlete profile and remove records when needed.</p>
     </div>
+    <span class="status-pill"><%= @total_count %> total</span>
   </div>
 
+  <%= form_with url: super_admin_athletes_path, method: :get, class: "filter-bar" do |form| %>
+    <div><%= form.label :q do %><%= ui_icon("search") %><span>Search</span><% end %><%= form.search_field :q, value: @query, placeholder: "Name, academy, association ID, or email" %></div>
+    <div class="filter-actions"><%= button_tag type: "submit", class: "primary-button button-reset icon-label" do %><%= ui_icon("search") %><span>Search</span><% end %><%= link_to "Clear", super_admin_athletes_path, class: "secondary-button" %></div>
+  <% end %>
+
   <% if @athletes.any? %>
-    <div class="table-card">
-      <table class="data-table">
+    <div class="approval-table organizer-registration-table">
+      <table>
         <thead>
           <tr>
             <th>Athlete</th>
@@ -28,9 +34,15 @@
           <% @athletes.each do |athlete| %>
             <tr>
               <td>
-                <div class="table-person">
-                  <div class="avatar-circle"><%= athlete.full_name.split.map { |part| part.first }.compact.first(2).join.upcase %></div>
-                  <div>
+                <div class="tournament-status-athlete">
+                  <span class="tournament-status-avatar">
+                    <%= image_with_placeholder(
+                      athlete.profile_photo_source,
+                      alt: "#{athlete.full_name} photo",
+                      placeholder: athlete.full_name.to_s.split.map(&:first).join.first(2).presence || "A"
+                    ) %>
+                  </span>
+                  <div class="tournament-status-athlete-details">
                     <%= link_to athlete.full_name, athlete_path(athlete), class: "notification-athlete-link" %>
                     <span><%= [athlete.gender&.titleize, athlete.date_of_birth&.strftime("%d %b %Y")].compact_blank.join(" · ") %></span>
                   </div>
@@ -60,8 +72,8 @@
     <%= render "shared/pagination", pagination: @pagination %>
   <% else %>
     <div class="inline-empty-state">
-      <strong>No athletes</strong>
-      <p>Athlete profiles will appear here after users create them.</p>
+      <strong>No athletes found</strong>
+      <p><%= @query.present? ? "No athlete matches \"#{@query}\". Try a different search." : "Athlete profiles will appear here after users create them." %></p>
     </div>
   <% end %>
 </div></section>

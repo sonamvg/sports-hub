@@ -10,6 +10,7 @@ module Organizer
       @bracket_data = BracketPresenter.new(@category).as_json
       @medal_standings = @category.medal_standings
       @ready_matches = @category.matches.includes(:registration_one, :registration_two).select(&:ready_for_result?)
+      @completed_matches = @category.matches.includes(:registration_one, :registration_two, :winner_registration).where(status: :completed).order(:round_number, :slot_position)
     end
 
     def create

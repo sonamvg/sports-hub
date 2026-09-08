@@ -53,6 +53,20 @@
       <% end %>
     </div>
 
+    <% if @completed_matches.present? %>
+      <div class="section-compact">
+        <div class="page-heading compact-heading">
+          <h2 class="section-title">Completed matches</h2>
+          <span class="status-pill"><%= @completed_matches.size %> scored</span>
+        </div>
+        <div class="match-score-list">
+          <% @completed_matches.each do |match| %>
+            <%= render "organizer/draws/completed_match", match: match %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
     <% if @medal_standings.present? %>
       <div class="section-compact">
         <div class="page-heading compact-heading">

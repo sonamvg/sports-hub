@@ -27,6 +27,9 @@
         <article class="category-row">
           <div class="category-main">
             <span class="status-pill"><%= category.event_type.titleize %></span>
+            <% if category.draw_generated? %>
+              <span class="status-pill status-approved">Draw set</span>
+            <% end %>
             <h3><%= category.name %></h3>
           </div>
           <div class="category-details">

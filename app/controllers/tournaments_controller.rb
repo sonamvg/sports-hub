@@ -36,6 +36,7 @@ class TournamentsController < ApplicationController
   def show
     @categories = @tournament.tournament_categories.order(:name)
     @registrations = visible_tournament_registrations
+    @categories_with_registrations = @tournament.tournament_categories.joins(:registrations).distinct.order(:name) if can_manage_tournament?(@tournament)
   end
 
   def edit; end

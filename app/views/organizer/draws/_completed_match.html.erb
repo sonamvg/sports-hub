@@ -1,0 +1,31 @@
+<% athlete_one = match.registration_one.athlete %>
+<% athlete_two = match.registration_two.athlete %>
+<% rounds = match.score_data["rounds"] %>
+
+<article class="match-score-card match-score-card-locked">
+  <div class="match-score-heading">
+    <span class="status-pill">Round <%= match.round_number %> &middot; Match <%= match.slot_position %></span>
+    <span class="status-pill locked-pill"><%= ui_icon("lock") %><span>Locked</span></span>
+    <h3><span class="corner-name-red"><%= athlete_one.full_name %></span> vs <span class="corner-name-blue"><%= athlete_two.full_name %></span></h3>
+    <p class="field-hint"><%= match_result_summary(match) %></p>
+  </div>
+
+  <% if rounds.present? %>
+    <div class="match-rounds">
+      <% rounds.each do |round| %>
+        <div class="match-round-row match-round-row-locked">
+          <span class="match-round-label">Round <%= round["round"] %></span>
+          <span class="corner-name-red"><%= round["points_one"] || "--" %></span>
+          <span class="corner-name-blue"><%= round["points_two"] || "--" %></span>
+          <span class="match-round-result is-decided">
+            <% if round["round_winner"] == "one" %>
+              <%= athlete_one.full_name %> won this round
+            <% elsif round["round_winner"] == "two" %>
+              <%= athlete_two.full_name %> won this round
+            <% end %>
+          </span>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</article>

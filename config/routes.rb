@@ -8,7 +8,7 @@ Rails.application.routes.draw do
   delete "logout", to: "sessions#destroy"
   resource :password_reset, only: %i[new create edit update]
   resources :users, only: %i[new create]
-  resources :organizers, only: %i[index] do
+  resources :organizers, only: %i[index destroy] do
     collection do
       get :profile
     end

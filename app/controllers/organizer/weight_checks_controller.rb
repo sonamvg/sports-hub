@@ -11,7 +11,10 @@ module Organizer
       end
 
       @query = params[:q].to_s.squish
+      @category_id = params[:category_id].presence
+      @categories = weight_check_categories
       @registrations = weight_check_registrations
+      @grouped_registrations = @registrations.group_by(&:tournament_category).sort_by { |category, _| category.name }
     end
 
     def create
@@ -19,11 +22,12 @@ module Organizer
         checked_by: current_user,
         weight: weight_check_params[:weight]
       )
+      redirect_params = { q: params[:q], category_id: params[:category_id], highlight: @registration.id }
 
       if weight_check.save
-        redirect_to organizer_tournament_weight_checks_path(@registration.tournament, q: params[:q], highlight: @registration.id), notice: weight_check_notice(weight_check)
+        redirect_to organizer_tournament_weight_checks_path(@registration.tournament, redirect_params), notice: weight_check_notice(weight_check)
       else
-        redirect_to organizer_tournament_weight_checks_path(@registration.tournament, q: params[:q], highlight: @registration.id), alert: weight_check.errors.full_messages.to_sentence
+        redirect_to organizer_tournament_weight_checks_path(@registration.tournament, redirect_params), alert: weight_check.errors.full_messages.to_sentence
       end
     end
 
@@ -39,11 +43,21 @@ module Organizer
       raise ActiveRecord::RecordNotFound unless can_manage_tournament?(@registration.tournament)
     end
 
+    def weight_check_categories
+      @tournament.tournament_categories
+        .joins(:registrations)
+        .where(registrations: { status: %i[approved weight_verified disqualified] })
+        .distinct
+        .order(:name)
+    end
+
     def weight_check_registrations
       registrations = @tournament.registrations
         .includes(:tournament_category, :registration_weight_checks, athlete: :academy)
         .where(status: %i[approved weight_verified disqualified])
         .order(status_sort_sql, created_at: :desc)
+
+      registrations = registrations.where(tournament_category_id: @category_id) if @category_id.present?
 
       return registrations if @query.blank?
 

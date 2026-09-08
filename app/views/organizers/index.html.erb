@@ -30,6 +30,7 @@
               <div class="row-actions">
                 <%= button_to "Verify", approve_organizer_path(organizer), method: :patch, class: "approve-button" %>
                 <%= button_to "Reject", reject_organizer_path(organizer), method: :patch, class: "reject-button" %>
+                <%= button_to "Delete", organizer_path(organizer), method: :delete, class: "reject-button delete-action-button", form: { data: { turbo_confirm: "Are you sure you want to delete #{organizer.name}? This cannot be undone." } } %>
               </div>
             </div>
           <% end %>
@@ -55,6 +56,11 @@
           <% if events.any? %>
             <div class="entity-meta organizer-events">
               <span><strong>Events</strong><%= events.first(3).join(" · ") %></span>
+            </div>
+          <% end %>
+          <% if super_admin? %>
+            <div class="row-actions">
+              <%= button_to "Delete organiser", organizer_path(organizer), method: :delete, class: "reject-button", form: { data: { turbo_confirm: "Are you sure you want to delete #{organizer.name}? This cannot be undone." } } %>
             </div>
           <% end %>
         </article>

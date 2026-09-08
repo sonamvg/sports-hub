@@ -1,8 +1,19 @@
 # Builds a single-elimination bracket for a tournament category from its
-# weight-verified registrations: a pure random blind draw, with byes placed
-# using the standard tournament seeding-table method so they are spread
-# evenly across the bracket instead of clustered on one side.
+# weight-verified registrations: a random blind draw, with byes placed using
+# the standard tournament seeding-table method so they are spread evenly
+# across the bracket instead of clustered on one side.
+#
+# Clubmates are kept apart in round 1 wherever possible — two athletes from
+# the same academy are only ever paired there if the field makes it
+# unavoidable (e.g. one academy makes up more than half the bracket). From
+# round 2 onward, pairings are whoever wins through, with no such constraint.
 class BracketGenerator
+  # Cheap to try many random draws and keep the best one, so this only needs
+  # to be "generous enough" rather than exhaustive — real fields are small
+  # enough that a same-academy-free arrangement, when one exists, turns up
+  # quickly.
+  MAX_DRAW_ATTEMPTS = 200
+
   Result = Struct.new(:ok, :error, keyword_init: true) do
     def success?
       ok
@@ -21,7 +32,7 @@ class BracketGenerator
     return failure("At least 2 weight-verified athletes are required to generate a draw.") if registrations.size < 2
 
     ActiveRecord::Base.transaction do
-      build_bracket(registrations.shuffle)
+      build_bracket(best_effort_draw(registrations))
       @category.update!(draw_generated_at: Time.current)
     end
 
@@ -31,6 +42,47 @@ class BracketGenerator
   end
 
   private
+
+  # Tries several random draws and keeps whichever pairs the fewest
+  # clubmates together in round 1, stopping early the moment one has none.
+  def best_effort_draw(registrations)
+    best = registrations.shuffle
+    best_conflicts = round_one_academy_conflicts(best)
+    return best if best_conflicts.zero?
+
+    (MAX_DRAW_ATTEMPTS - 1).times do
+      candidate = registrations.shuffle
+      candidate_conflicts = round_one_academy_conflicts(candidate)
+      next unless candidate_conflicts < best_conflicts
+
+      best = candidate
+      best_conflicts = candidate_conflicts
+      break if best_conflicts.zero?
+    end
+
+    best
+  end
+
+  def round_one_academy_conflicts(shuffled_registrations)
+    bracket_size = next_power_of_two(shuffled_registrations.size)
+    slots = seed_order(bracket_size).map { |seed| shuffled_registrations[seed - 1] }
+
+    slots.each_slice(2).count do |one, two|
+      next false unless one && two
+
+      key = academy_key(one)
+      key.present? && key == academy_key(two)
+    end
+  end
+
+  # Groups by the real academy when the athlete has one; falls back to the
+  # free-text "unregistered academy" name so clubmates without a formal
+  # academy record are still kept apart. Athletes with neither are never
+  # treated as a conflict with each other.
+  def academy_key(registration)
+    athlete = registration.athlete
+    athlete.academy_id || athlete.external_academy_name.to_s.downcase.presence
+  end
 
   def success
     Result.new(ok: true)

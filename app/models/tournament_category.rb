@@ -3,8 +3,14 @@ class TournamentCategory < ApplicationRecord
   before_validation :assign_category_key
 
   belongs_to :tournament
-  has_many :registrations, dependent: :restrict_with_error
-  has_many :matches, dependent: :destroy
+  # Matches must be destroyed before registrations (a match references its
+  # registrations by foreign key) and in ascending round order (a round's
+  # next_match_id points forward to the next round, so the referencing row
+  # has to go before its target) — otherwise deleting a tournament with a
+  # generated draw fails on a foreign key violation. See reset_draw! below,
+  # which has the same ordering constraint for the same reason.
+  has_many :matches, -> { order(round_number: :asc) }, dependent: :destroy
+  has_many :registrations, dependent: :destroy
 
   # Weight brackets per World Taekwondo age division. Each gender's array is
   # the ascending list of upper weight bounds (kg); the final bracket is

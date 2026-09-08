@@ -13,19 +13,39 @@
       <h1 class="page-title"><%= @tournament.name %></h1>
       <p class="page-copy"><%= @tournament.description.presence || "Tournament registration and category information." %></p>
     </div>
-    <% if can_manage_tournament?(@tournament) %>
-      <div class="page-actions">
-        <%= link_to edit_tournament_path(@tournament), class: "icon-button", title: "Edit tournament", aria: { label: "Edit tournament" } do %>
-          <span aria-hidden="true">✎</span>
-        <% end %>
-        <% if super_admin? %>
-          <%= button_to "Delete tournament", tournament_path(@tournament), method: :delete, class: "reject-button delete-action-button", form: { data: { turbo_confirm: "Are you sure you want to delete #{@tournament.name}?" } } %>
-        <% end %>
-      </div>
-    <% elsif can_register_for_tournament?(@tournament) %>
+    <% if can_register_for_tournament?(@tournament) %>
       <%= link_to "Register for tournament", new_tournament_registration_path(@tournament), class: "primary-button tournament-register-button" %>
     <% end %>
   </div>
+
+  <% if can_manage_tournament?(@tournament) %>
+    <div class="detail-card organizer-actions-panel">
+      <p class="eyebrow">MANAGE THIS TOURNAMENT</p>
+      <p class="page-copy">Everything you need to run this event, in one place.</p>
+      <div class="form-actions organizer-actions-grid">
+        <%= link_to edit_tournament_path(@tournament), class: "secondary-button icon-label" do %>
+          <%= ui_icon("edit") %><span>Edit tournament details</span>
+        <% end %>
+        <%= link_to tournament_tournament_referees_path(@tournament), class: "secondary-button icon-label" do %>
+          <%= ui_icon("user") %><span>Manage referees</span>
+        <% end %>
+        <%= link_to venue_setup_tournament_path(@tournament), class: "secondary-button icon-label" do %>
+          <%= ui_icon("home") %><span>Venue setup</span>
+        <% end %>
+        <%= link_to organizer_tournament_weight_checks_path(@tournament), class: "secondary-button icon-label" do %>
+          <%= ui_icon("search") %><span>Weight check</span>
+        <% end %>
+        <%= link_to tournament_tournament_categories_path(@tournament), class: "secondary-button icon-label" do %>
+          <%= ui_icon("filter") %><span>All categories &amp; draws</span>
+        <% end %>
+      </div>
+      <% if super_admin? %>
+        <div class="form-actions">
+          <%= button_to "Delete tournament", tournament_path(@tournament), method: :delete, class: "reject-button delete-action-button", form: { data: { turbo_confirm: "Are you sure you want to delete #{@tournament.name}?" } } %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
 
   <div class="tournament-banner">
     <%= image_with_placeholder(
@@ -97,16 +117,60 @@
     </div>
   <% end %>
 
+  <% if can_manage_tournament?(@tournament) %>
+    <div class="section-compact">
+      <div class="page-heading compact-heading">
+        <div>
+          <h2 class="section-title">Categories with registrations</h2>
+          <p class="page-copy">Set draws and score matches for the categories athletes have actually registered for.</p>
+        </div>
+        <%= link_to "View all #{@categories.size} categories", tournament_tournament_categories_path(@tournament), class: "secondary-button" %>
+      </div>
+
+      <% if @categories_with_registrations.present? %>
+        <div class="category-list">
+          <% @categories_with_registrations.each do |category| %>
+            <article class="category-row">
+              <div class="category-main">
+                <span class="status-pill"><%= category.event_type.titleize %></span>
+                <% if category.draw_generated? %>
+                  <span class="status-pill status-approved">Draw set</span>
+                <% end %>
+                <h3><%= category.name %></h3>
+              </div>
+              <div class="category-details">
+                <span><strong>Registered</strong><%= pluralize(category.registrations.count, "athlete") %></span>
+                <span><strong>Gender</strong><%= category.gender&.titleize || "Open" %></span>
+                <span><strong>Age</strong><%= [category.age_min, category.age_max].compact.any? ? [category.age_min, category.age_max].compact.join("-") : "Open" %></span>
+              </div>
+              <div class="category-actions">
+                <%= link_to "View", tournament_tournament_category_path(@tournament, category), class: "text-link" %>
+                <%= link_to organizer_tournament_tournament_category_draw_path(@tournament, category), class: "primary-button" do %>
+                  <%= category.draw_generated? ? "Score matches" : "Set draw" %>
+                <% end %>
+              </div>
+            </article>
+          <% end %>
+        </div>
+      <% else %>
+        <div class="inline-empty-state">
+          <strong>No registrations yet</strong>
+          <p>Once athletes register for a category, it will appear here so you can weigh them in, set the draw, and score matches.</p>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
   <div class="section-compact">
     <div class="page-heading compact-heading">
-      <h2 class="section-title">Categories</h2>
+      <h2 class="section-title"><%= can_manage_tournament?(@tournament) ? "All categories" : "Categories" %></h2>
     </div>
     <div class="category-list">
       <% @categories.each do |category| %>
         <article class="category-row">
           <div class="category-main">
             <span class="status-pill"><%= category.event_type.titleize %></span>
-            <h3><%= category.name %></h3>
+            <h3><%= link_to category.name, tournament_tournament_category_path(@tournament, category) %></h3>
           </div>
           <div class="category-details">
             <span><strong>Gender</strong><%= category.gender&.titleize || "Open" %></span>

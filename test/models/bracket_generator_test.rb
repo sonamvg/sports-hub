@@ -39,6 +39,39 @@ class BracketGeneratorTest < ActiveSupport::TestCase
     assert_match(/already been set/i, result.error)
   end
 
+  test "keeps clubmates apart in round 1 when the field allows it" do
+    academy_one = Academy.create!(name: "Deccan Taekwondo Academy", city: "Pune", status: :approved)
+    academy_two = Academy.create!(name: "Mumbai Falcons Taekwondo", city: "Mumbai", status: :approved)
+
+    seed_registration_with_academy(email: "clubmate-a1@example.test", academy: academy_one)
+    seed_registration_with_academy(email: "clubmate-a2@example.test", academy: academy_one)
+    seed_registration_with_academy(email: "clubmate-b1@example.test", academy: academy_two)
+    seed_registration_with_academy(email: "clubmate-b2@example.test", academy: academy_two)
+
+    result = BracketGenerator.new(@category).call
+    assert result.success?
+
+    round_one_matches = @category.reload.matches.where(round_number: 1).includes(registration_one: :athlete, registration_two: :athlete)
+    round_one_matches.each do |match|
+      next unless match.registration_one && match.registration_two
+
+      assert_not_equal match.registration_one.athlete.academy_id, match.registration_two.athlete.academy_id,
+        "expected round 1 match to avoid pairing two athletes from the same academy"
+    end
+  end
+
+  test "allows a same-academy pairing in round 1 only when unavoidable" do
+    academy = Academy.create!(name: "Deccan Taekwondo Academy", city: "Pune", status: :approved)
+
+    seed_registration_with_academy(email: "unavoidable-a1@example.test", academy: academy)
+    seed_registration_with_academy(email: "unavoidable-a2@example.test", academy: academy)
+    seed_registration_with_academy(email: "unavoidable-a3@example.test", academy: academy)
+
+    result = BracketGenerator.new(@category).call
+    assert result.success?
+    assert_equal 3, @category.reload.matches.count
+  end
+
   [ 2, 3, 4, 5, 6, 7, 8, 9, 11, 16 ].each do |count|
     test "builds a valid single-elimination bracket for #{count} entrants" do
       registrations = seed_registrations(count)
@@ -88,5 +121,24 @@ class BracketGeneratorTest < ActiveSupport::TestCase
 
   def seed_registrations(count)
     count.times.map { |i| create_weight_verified_registration(tournament: @tournament, category: @category, email: "bracket-#{count}-#{i}@example.test") }
+  end
+
+  def seed_registration_with_academy(email:, academy:)
+    parent = User.create!(name: "Parent #{email.split("@").first.gsub(/[^a-zA-Z]/, "").presence || "User"}", email: email, password: "password123", role: :parent)
+    athlete = parent.athletes.create!(
+      first_name: "Athlete",
+      last_name: email.split("@").first.gsub(/[^a-zA-Z]/, "").presence || "User",
+      date_of_birth: Date.new(1995, 1, 1),
+      gender: "male",
+      academy: academy
+    )
+
+    Registration.create!(
+      tournament: @tournament,
+      athlete: athlete,
+      tournament_category: @category,
+      status: :weight_verified,
+      payment_receipt: Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/payment-receipt.png"), "image/png")
+    )
   end
 end

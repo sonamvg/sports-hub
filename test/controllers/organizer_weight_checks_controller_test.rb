@@ -38,6 +38,38 @@ class OrganizerWeightChecksControllerTest < ActionDispatch::IntegrationTest
     assert_equal collaborator, registration.registration_action_logs.last.actor
   end
 
+  test "organizer can browse athletes grouped by category and filter to one category" do
+    organizer = User.create!(name: "Organizer", email: "weigh-group-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(name: "Grouped Open", organizer: organizer, status: :registration_open, registration_opens_at: 10.days.ago, registration_closes_at: 1.day.ago, start_date: 2.days.from_now.to_date, end_date: 3.days.from_now.to_date)
+    category_one = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 35, weight_max: 37)
+    category_two = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "male", age_min: 15, age_max: 17, weight_min: 51, weight_max: 55)
+
+    parent_one = User.create!(name: "Parent One", email: "weigh-group-parent-one@example.test", password: "password123", role: :parent)
+    athlete_one = parent_one.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament.registrations.create!(athlete: athlete_one, tournament_category: category_one, status: :approved, payment_receipt: payment_receipt_upload)
+
+    parent_two = User.create!(name: "Parent Two", email: "weigh-group-parent-two@example.test", password: "password123", role: :parent)
+    athlete_two = parent_two.athletes.create!(first_name: "Vihaan", last_name: "Mehta", date_of_birth: Date.new(2010, 5, 12), gender: "male")
+    tournament.registrations.create!(athlete: athlete_two, tournament_category: category_two, status: :approved, payment_receipt: payment_receipt_upload)
+
+    sign_in_as organizer
+
+    get organizer_tournament_weight_checks_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, category_one.name
+    assert_includes response.body, category_two.name
+    assert_includes response.body, "Aarohi Shah"
+    assert_includes response.body, "Vihaan Mehta"
+    assert_includes response.body, "All categories"
+
+    get organizer_tournament_weight_checks_path(tournament, category_id: category_one.id)
+
+    assert_response :success
+    assert_includes response.body, "Aarohi Shah"
+    assert_not_includes response.body, "Vihaan Mehta"
+  end
+
   test "non manager cannot access tournament weight check" do
     organizer = User.create!(name: "Organizer", email: "weigh-owned-organizer@example.test", password: "password123", role: :organizer)
     other_user = User.create!(name: "Other", email: "weigh-other@example.test", password: "password123", role: :organizer)

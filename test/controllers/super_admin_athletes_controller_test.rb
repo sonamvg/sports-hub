@@ -31,6 +31,33 @@ class SuperAdminAthletesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Delete athlete"
   end
 
+  test "super admin can search athletes by name, academy, or email" do
+    first_user = User.create!(name: "First Parent", email: "search-admin-athlete-first@example.test", password: "password123", role: :parent)
+    second_user = User.create!(name: "Second Parent", email: "search-admin-athlete-second@example.test", password: "password123", role: :parent)
+    academy = Academy.create!(name: "Search Admin Academy", city: "Pune", status: :approved)
+    first_user.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    second_user.athletes.create!(first_name: "Vihaan", last_name: "Mehta", date_of_birth: Date.new(2013, 7, 2), gender: "male")
+    super_admin = User.create!(name: "Super Admin", email: "search-super-admin-athletes@example.test", password: "password123", role: :super_admin)
+    sign_in_as super_admin
+
+    get super_admin_athletes_path(q: "aarohi")
+
+    assert_response :success
+    assert_includes response.body, "Aarohi Shah"
+    assert_not_includes response.body, "Vihaan Mehta"
+
+    get super_admin_athletes_path(q: "search admin academy")
+
+    assert_response :success
+    assert_includes response.body, "Aarohi Shah"
+    assert_not_includes response.body, "Vihaan Mehta"
+
+    get super_admin_athletes_path(q: "no-such-athlete")
+
+    assert_response :success
+    assert_includes response.body, "No athletes found"
+  end
+
   test "non super admin cannot see super admin athlete page" do
     user = User.create!(name: "Normal User", email: "normal-admin-athletes@example.test", password: "password123", role: :parent)
     sign_in_as user

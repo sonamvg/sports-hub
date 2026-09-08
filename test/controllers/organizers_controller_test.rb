@@ -142,4 +142,50 @@ class OrganizersControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
     assert_predicate pending.reload, :organizer_pending?
   end
+
+  test "super admin can delete an organizer" do
+    super_admin = User.create!(name: "Super Admin", email: "delete-organizer-admin@example.test", password: "password123", role: :super_admin)
+    organizer = User.create!(name: "Deletable Organizer", email: "deletable-organizer@example.test", password: "password123", role: :organizer, organizer_status: :verified)
+    sign_in_as super_admin
+
+    get organizers_path
+    assert_response :success
+    assert_includes response.body, "Are you sure you want to delete Deletable Organizer?"
+
+    assert_difference("User.count", -1) do
+      delete organizer_path(organizer)
+    end
+
+    assert_redirected_to organizers_path
+    assert_equal "Organizer removed.", flash[:notice]
+    assert_not User.exists?(organizer.id)
+  end
+
+  test "non super admin cannot delete an organizer" do
+    user = User.create!(name: "Organizer", email: "cannot-delete-organizer@example.test", password: "password123", role: :organizer)
+    other_organizer = User.create!(name: "Other Organizer", email: "other-organizer-target@example.test", password: "password123", role: :organizer)
+    sign_in_as user
+
+    assert_no_difference("User.count") do
+      delete organizer_path(other_organizer)
+    end
+
+    assert_response :not_found
+    assert User.exists?(other_organizer.id)
+  end
+
+  test "cannot delete an organizer who still owns tournaments" do
+    super_admin = User.create!(name: "Super Admin", email: "blocked-delete-admin@example.test", password: "password123", role: :super_admin)
+    organizer = User.create!(name: "Busy Organizer", email: "busy-organizer@example.test", password: "password123", role: :organizer, organizer_status: :verified)
+    Tournament.create!(name: "Owned Open", organizer: organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    sign_in_as super_admin
+
+    assert_no_difference("User.count") do
+      delete organizer_path(organizer)
+    end
+
+    assert_redirected_to organizers_path
+    assert_match(/organized tournaments/i, flash[:alert])
+    assert User.exists?(organizer.id)
+  end
 end
