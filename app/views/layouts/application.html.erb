@@ -16,9 +16,16 @@
   <body<%= " #{tag.attributes(data: { session_timeout_seconds: session_timeout_seconds })}".html_safe if current_user %>>
     <div class="mobile-topbar">
       <%= link_to root_path, class: "brand" do %>PODIUM<span>CIRCLE</span><% end %>
-      <button type="button" class="mobile-nav-toggle" data-mobile-nav-toggle aria-label="Open menu" aria-expanded="false">
-        <%= ui_icon("menu") %>
-      </button>
+      <div class="mobile-topbar-actions">
+        <% if current_user %>
+          <%= button_to logout_path, method: :delete, class: "mobile-nav-toggle mobile-topbar-logout", form: { title: "Sign out" }, aria: { label: "Sign out" } do %>
+            <%= ui_icon("log-out") %>
+          <% end %>
+        <% end %>
+        <button type="button" class="mobile-nav-toggle" data-mobile-nav-toggle aria-label="Open menu" aria-expanded="false">
+          <%= ui_icon("menu") %>
+        </button>
+      </div>
     </div>
     <div class="mobile-nav-backdrop" data-mobile-nav-backdrop></div>
     <div class="app-frame">
@@ -68,6 +75,7 @@
                       <%= link_to edit_tournament_path(tournament) do %><%= ui_icon("edit") %><span>Edit</span><% end %>
                       <%= link_to tournament_tournament_referees_path(tournament) do %><%= ui_icon("user") %><span>Add referees</span><% end %>
                       <%= link_to venue_setup_tournament_path(tournament) do %><%= ui_icon("home") %><span>Venue setup</span><% end %>
+                      <%= link_to organizer_registrations_path(tournament_id: tournament.id) do %><%= ui_icon("medal") %><span>Tournament athletes</span><% end %>
                       <%= link_to organizer_tournament_weight_checks_path(tournament) do %><%= ui_icon("search") %><span>Weight check</span><% end %>
                       <%= link_to tournament_tournament_categories_path(tournament) do %><%= ui_icon("filter") %><span>Categories &amp; draws</span><% end %>
                     </div>

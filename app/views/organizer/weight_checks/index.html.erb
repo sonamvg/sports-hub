@@ -76,8 +76,12 @@
                 <%= form.number_field :weight, step: 0.1, min: 1, required: true, autofocus: @registrations.one? %>
                 <%= form.submit "Save", class: "primary-button button-reset" %>
               <% end %>
+            <% elsif registration.weight_verified? %>
+              <div class="attempt-closed">Weight verified</div>
+            <% elsif registration.tournament_category.draw_generated? %>
+              <div class="attempt-closed">Draw already set</div>
             <% else %>
-              <div class="attempt-closed"><%= registration.weight_verified? ? "Weight verified" : "Closed" %></div>
+              <div class="attempt-closed">Closed</div>
             <% end %>
           </article>
         <% end %>

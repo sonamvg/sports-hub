@@ -29,6 +29,29 @@ class BracketGeneratorTest < ActiveSupport::TestCase
     assert_not @category.reload.draw_generated?
   end
 
+  test "refuses to generate a draw while registration is still open" do
+    @tournament.update!(registration_opens_at: 1.day.ago, registration_closes_at: 1.day.from_now)
+    create_weight_verified_registration(tournament: @tournament, category: @category, email: "still-open-one@example.test")
+    create_weight_verified_registration(tournament: @tournament, category: @category, email: "still-open-two@example.test")
+
+    result = BracketGenerator.new(@category).call
+
+    assert_not result.success?
+    assert_match(/registration has closed/i, result.error)
+    assert_not @category.reload.draw_generated?
+  end
+
+  test "allows generating a draw once registration has closed" do
+    @tournament.update!(registration_opens_at: 10.days.ago, registration_closes_at: 1.day.ago)
+    create_weight_verified_registration(tournament: @tournament, category: @category, email: "now-closed-one@example.test")
+    create_weight_verified_registration(tournament: @tournament, category: @category, email: "now-closed-two@example.test")
+
+    result = BracketGenerator.new(@category).call
+
+    assert result.success?
+    assert @category.reload.draw_generated?
+  end
+
   test "refuses to regenerate an already-generated draw" do
     seed_registrations(3)
     BracketGenerator.new(@category).call

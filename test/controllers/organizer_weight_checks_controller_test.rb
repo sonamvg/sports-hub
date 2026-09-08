@@ -70,6 +70,35 @@ class OrganizerWeightChecksControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Vihaan Mehta"
   end
 
+  test "weigh-in closes for a category once its draw has been generated" do
+    organizer = User.create!(name: "Organizer", email: "weigh-draw-lock-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(name: "Draw Lock Open", organizer: organizer, status: :registration_open, registration_opens_at: 10.days.ago, registration_closes_at: 1.day.ago, start_date: 2.days.from_now.to_date, end_date: 3.days.from_now.to_date)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "male", age_min: 18)
+    registration_one = create_weight_verified_registration(tournament: tournament, category: category, email: "weigh-draw-lock-one@example.test")
+    create_weight_verified_registration(tournament: tournament, category: category, email: "weigh-draw-lock-two@example.test")
+
+    # A third, still-approved (not yet weighed in) athlete in the same category
+    parent_three = User.create!(name: "Parent Three", email: "weigh-draw-lock-parent-three@example.test", password: "password123", role: :parent)
+    athlete_three = parent_three.athletes.create!(first_name: "Kabir", last_name: "Rao", date_of_birth: Date.new(1995, 1, 1), gender: "male")
+    registration_three = tournament.registrations.create!(athlete: athlete_three, tournament_category: category, status: :approved, payment_receipt: payment_receipt_upload)
+
+    assert BracketGenerator.new(category).call.success?
+    sign_in_as organizer
+
+    get organizer_tournament_weight_checks_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Draw already set"
+    assert_not registration_one.reload.weight_check_attempts_remaining?
+    assert_not registration_three.reload.weight_check_attempts_remaining?
+
+    assert_no_difference("RegistrationWeightCheck.count") do
+      post organizer_registration_weight_checks_path(registration_three), params: { registration_weight_check: { weight: 70 } }
+    end
+
+    assert_includes flash[:alert].to_s, "locked"
+  end
+
   test "non manager cannot access tournament weight check" do
     organizer = User.create!(name: "Organizer", email: "weigh-owned-organizer@example.test", password: "password123", role: :organizer)
     other_user = User.create!(name: "Other", email: "weigh-other@example.test", password: "password123", role: :organizer)

@@ -41,13 +41,11 @@ class TournamentsController < ApplicationController
 
   def edit; end
 
-  def venue_setup
-    redirect_to @tournament, alert: "Venue setup opens after registration closes." unless @tournament.registration_closed_for_weight_check?
-  end
+  def venue_setup; end
 
   def update_venue_setup
-    unless @tournament.registration_closed_for_weight_check?
-      redirect_to @tournament, alert: "Venue setup opens after registration closes."
+    if @tournament.venue_setup_locked?
+      redirect_to @tournament, alert: "Venue setup is locked because the draw has already been set."
       return
     end
 
@@ -167,7 +165,7 @@ class TournamentsController < ApplicationController
 
   def tournament_params
     permitted = params.require(:tournament).permit(
-      :name, :slug, :description, :venue, :city, :state, :country, :start_date, :end_date,
+      :name, :description, :venue, :city, :state, :country, :start_date, :end_date,
       :registration_opens_at, :registration_closes_at, :status, :website_url,
       :tournament_level, :organizing_organization, :time_zone, :primary_contact_name,
       :primary_contact_email, :primary_contact_phone, :competition_formats,

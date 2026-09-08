@@ -9,23 +9,34 @@
 
     <p class="eyebrow">VENUE SETUP</p>
     <h1 class="page-title">Match-day venue details</h1>
-    <p class="page-copy">Add the court count after athlete entry closes.</p>
 
-    <%= form_with model: @tournament, url: venue_setup_tournament_path(@tournament), method: :patch, class: "form-card" do |form| %>
-      <%= render "shared/errors", record: @tournament %>
-
-      <div class="form-grid">
-        <div>
-          <%= form.label :courts_count, "Number of courts" %>
-          <%= form.number_field :courts_count, min: 1, step: 1, required: true %>
-          <p class="field-hint">Use the actual competition courts available for scheduling matches.</p>
-        </div>
+    <% if @tournament.venue_setup_locked? %>
+      <p class="page-copy">The draw has been set for at least one category, so venue details are now locked and can't be changed.</p>
+      <div class="detail-card">
+        <p><strong>Number of courts:</strong> <%= @tournament.courts_count || "--" %></p>
       </div>
-
       <div class="form-actions">
-        <%= form.submit "Save venue setup", class: "primary-button button-reset" %>
-        <%= link_to "Cancel", tournament_path(@tournament), class: "secondary-button" %>
+        <%= link_to "Back to tournament", tournament_path(@tournament), class: "secondary-button" %>
       </div>
+    <% else %>
+      <p class="page-copy">Editable any time before the draw is set for a category — once a draw is generated, these details lock.</p>
+
+      <%= form_with model: @tournament, url: venue_setup_tournament_path(@tournament), method: :patch, class: "form-card" do |form| %>
+        <%= render "shared/errors", record: @tournament %>
+
+        <div class="form-grid">
+          <div>
+            <%= form.label :courts_count, "Number of courts" %>
+            <%= form.number_field :courts_count, min: 1, step: 1, required: true %>
+            <p class="field-hint">Use the actual competition courts available for scheduling matches.</p>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <%= form.submit "Save venue setup", class: "primary-button button-reset" %>
+          <%= link_to "Cancel", tournament_path(@tournament), class: "secondary-button" %>
+        </div>
+      <% end %>
     <% end %>
   </div>
 </section>

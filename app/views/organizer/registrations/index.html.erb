@@ -1,15 +1,37 @@
 <section class="page-shell organizer-page">
   <div class="container">
+    <% if @tournament %>
+      <%= render "shared/breadcrumbs", items: [
+        { label: "Home", path: root_path },
+        { label: "Tournaments", path: tournaments_path },
+        { label: @tournament.name, path: tournament_path(@tournament) },
+        { label: "Tournament athletes" }
+      ] %>
+    <% end %>
     <p class="eyebrow">ORGANIZER</p>
-    <h1 class="page-title">Registration approvals</h1>
-    <p class="page-copy">Pending registrations appear first. Any organizer assigned to a tournament can view receipts and accept or deny athletes.</p>
+    <h1 class="page-title"><%= @tournament ? "#{@tournament.name} — athletes" : "Registration approvals" %></h1>
+    <p class="page-copy">
+      <% if @tournament %>
+        Every athlete registered for this tournament. Pending registrations need your review first — approve or deny them here, any time up to weigh-in.
+      <% else %>
+        Pending registrations appear first. Any organizer assigned to a tournament can view receipts and accept or deny athletes.
+      <% end %>
+    </p>
 
+    <% if @registrations.none? %>
+      <div class="inline-empty-state">
+        <strong>No athletes registered yet</strong>
+        <p>Registered athletes will appear here for review as soon as they submit an entry.</p>
+      </div>
+    <% else %>
     <div class="approval-table organizer-registration-table">
       <table>
         <thead>
           <tr>
             <th>Athlete</th>
-            <th>Tournament</th>
+            <% unless @tournament %>
+              <th>Tournament</th>
+            <% end %>
             <th>Category</th>
             <th>Status</th>
             <th>Expected amount</th>
@@ -23,7 +45,9 @@
               <td>
                 <strong><%= registration.athlete.full_name %></strong>
               </td>
-              <td><%= registration.tournament.name %></td>
+              <% unless @tournament %>
+                <td><%= registration.tournament.name %></td>
+              <% end %>
               <td><%= registration.tournament_category.name %></td>
               <td>
                 <span class="status-pill status-<%= registration.status %>"><%= registration.status.humanize %></span>
@@ -67,5 +91,6 @@
         </tbody>
       </table>
     </div>
+    <% end %>
   </div>
 </section>

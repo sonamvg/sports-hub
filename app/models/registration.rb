@@ -64,7 +64,7 @@ class Registration < ApplicationRecord
   end
 
   def weight_check_attempts_remaining?
-    approved? && registration_weight_checks.size < 3
+    approved? && registration_weight_checks.size < 3 && !tournament_category.draw_generated?
   end
 
   def weight_within_category?(weight)

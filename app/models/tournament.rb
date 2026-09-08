@@ -91,7 +91,6 @@ class Tournament < ApplicationRecord
 
   validates :name, :start_date, :end_date, presence: true
   validates :name, length: { minimum: 3, maximum: 120 }, allow_blank: true
-  validates :slug, uniqueness: true, allow_blank: true
   validates :website_url, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid http or https URL" }, allow_blank: true
   validates :primary_contact_email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   rejects_placeholder_email :primary_contact_email
@@ -121,6 +120,23 @@ class Tournament < ApplicationRecord
 
   def registration_closed_for_weight_check?(at: Time.current)
     registration_closes_at.present? && registration_closes_at < at
+  end
+
+  # Used to gate draw generation: true only when an explicit close date has
+  # been set and hasn't passed yet. A tournament with no close date at all
+  # isn't treated as "still open" here — there's nothing to wait for — so
+  # this is deliberately not just the inverse of
+  # registration_closed_for_weight_check?.
+  def registration_still_open_for_draw?(at: Time.current)
+    registration_closes_at.present? && registration_closes_at >= at
+  end
+
+  # A generated draw is the point of no return for the event's physical
+  # setup — once athletes are placed in the bracket, the number of courts
+  # etc. shouldn't move under them. Editable at any time before that,
+  # including before registration even opens.
+  def venue_setup_locked?
+    tournament_categories.where.not(draw_generated_at: nil).exists?
   end
 
   def late_registration_allowed_for?(user)
@@ -178,7 +194,6 @@ class Tournament < ApplicationRecord
 
   def normalize_fields
     self.name = name.to_s.squish.presence
-    self.slug = slug.presence
     self.website_url = website_url.to_s.squish.presence
     self.city = city.to_s.squish.presence
     self.state = state.to_s.squish.presence

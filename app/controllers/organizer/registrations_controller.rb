@@ -4,7 +4,9 @@ module Organizer
     before_action :set_registration, only: %i[show approve reject receipt]
 
     def index
+      @tournament = visible_registrations_tournament
       @registrations = visible_registrations
+        .then { |scope| @tournament ? scope.where(tournament_id: @tournament.id) : scope }
         .includes(:athlete, :tournament, :tournament_category, :registration_weight_checks)
         .with_attached_payment_receipt
         .order(status_sort_sql, created_at: :desc)
@@ -53,13 +55,26 @@ module Organizer
     end
 
     def visible_registrations
-      tournament_ids = Tournament
+      Registration.where(tournament_id: managed_tournament_ids).where.not(status: :draft)
+    end
+
+    # Scopes the index to one tournament when a tournament_id is given (the
+    # per-tournament "Tournament athletes" link) — only resolved if the
+    # current organizer actually manages that tournament, so passing an
+    # arbitrary id just falls back to the unscoped (all-managed-tournaments)
+    # list rather than leaking another organizer's tournament.
+    def visible_registrations_tournament
+      return if params[:tournament_id].blank?
+
+      Tournament.where(id: managed_tournament_ids).find_by(id: params[:tournament_id])
+    end
+
+    def managed_tournament_ids
+      Tournament
         .left_joins(:tournament_organizers)
         .where("tournaments.organizer_id = :user_id OR tournament_organizers.user_id = :user_id", user_id: current_user.id)
         .distinct
         .select(:id)
-
-      Registration.where(tournament_id: tournament_ids).where.not(status: :draft)
     end
 
     def set_registration

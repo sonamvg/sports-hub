@@ -23,6 +23,46 @@ class OrganizerRegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, other_tournament.name
   end
 
+  test "scoping to a tournament id shows only that tournament's athletes" do
+    organizer = User.create!(name: "Demo Parent", email: "scope-parent@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Athlete User", email: "scope-athlete-user@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+
+    tournament_one = Tournament.create!(name: "Scoped One Open", organizer: organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    category_one = tournament_one.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    tournament_one.registrations.create!(athlete: athlete, tournament_category: category_one, payment_receipt: payment_receipt_upload)
+
+    tournament_two = Tournament.create!(name: "Scoped Two Open", organizer: organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    category_two = tournament_two.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    tournament_two.registrations.create!(athlete: athlete, tournament_category: category_two, payment_receipt: payment_receipt_upload)
+    sign_in_as organizer
+
+    get organizer_registrations_path(tournament_id: tournament_one.id)
+
+    assert_response :success
+    content = main_content_html
+    assert_includes content, "Scoped One Open"
+    assert_not_includes content, "Scoped Two Open"
+    assert_not_includes content, "<th>Tournament</th>"
+  end
+
+  test "an unrecognized tournament id falls back to the full list instead of leaking another organizer's tournament" do
+    organizer = User.create!(name: "Demo Parent", email: "scope-fallback-parent@example.test", password: "password123", role: :organizer)
+    other_organizer = User.create!(name: "Other Organizer", email: "scope-fallback-other@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Athlete User", email: "scope-fallback-athlete@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+
+    other_tournament = Tournament.create!(name: "Not Yours Open", organizer: other_organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    other_category = other_tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    other_tournament.registrations.create!(athlete: athlete, tournament_category: other_category, payment_receipt: payment_receipt_upload)
+    sign_in_as organizer
+
+    get organizer_registrations_path(tournament_id: other_tournament.id)
+
+    assert_response :success
+    assert_not_includes response.body, "Not Yours Open"
+  end
+
   test "registrations are ordered pending accepted denied and include receipt review actions" do
     organizer = User.create!(name: "Organizer", email: "ordering-organizer@example.test", password: "password123", role: :organizer)
     athlete_user = User.create!(name: "Athlete User", email: "ordering-athlete@example.test", password: "password123", role: :parent)
@@ -232,5 +272,15 @@ class OrganizerRegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to organizer_registrations_path
     assert_equal "This registration can no longer be reviewed because the tournament has been cancelled.", flash[:alert]
     assert_predicate registration.reload, :pending?
+  end
+
+  private
+
+  # The sidebar always lists every tournament the organizer manages, regardless
+  # of which one the current page is scoped to, so assertions about scoping
+  # need to look only at the main content area and ignore the sidebar.
+  def main_content_html
+    doc = Nokogiri::HTML::Document.parse(response.body)
+    doc.css(".app-content").to_s
   end
 end

@@ -27,6 +27,7 @@ class BracketGenerator
   def call
     return failure("The draw has already been set for this category.") if @category.draw_generated?
     return failure("The draw cannot be set because the tournament has been #{@category.tournament.status}.") if @category.tournament.closed_out?
+    return failure("The draw cannot be set until registration has closed.") if @category.tournament.registration_still_open_for_draw?
 
     registrations = @category.draw_eligible_registrations.to_a
     return failure("At least 2 weight-verified athletes are required to generate a draw.") if registrations.size < 2

@@ -39,7 +39,7 @@ module AuthenticationTestHelper
     parent = User.create!(name: "Parent User", email: email, password: "password123", role: :parent)
     athlete = parent.athletes.create!(
       first_name: "Athlete",
-      last_name: email.split("@").first,
+      last_name: email.split("@").first.gsub(/[^a-zA-Z]/, "").presence || "User",
       date_of_birth: Date.new(1995, 1, 1),
       gender: "male"
     )

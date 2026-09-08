@@ -903,7 +903,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes response.body, "Use athlete name as reference"
   end
 
-  test "public tournament page shows referee count without contact details" do
+  test "public tournament page hides referee count and contact details" do
     tournament = Tournament.create!(
       name: "Pune Invitational",
       organizer: @organizer,
@@ -916,17 +916,56 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     get tournament_path(tournament)
 
     assert_response :success
-    assert_includes response.body, "1 referee"
+    assert_not_includes response.body, "1 referee"
     assert_not_includes response.body, "9876543210"
   end
 
-  test "venue setup opens after registration closes" do
+  test "public tournament page hides capacity and courts, but shows the fee" do
     tournament = Tournament.create!(
-      name: "Closed Venue Open",
+      name: "Pune Invitational",
+      organizer: @organizer,
+      registration_capacity: 200,
+      courts_count: 4,
+      registration_fee: 500,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    delete logout_path
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_not_includes response.body, "Capacity"
+    assert_not_includes response.body, "Courts"
+    assert_includes response.body, "Fee per category"
+  end
+
+  test "organizer tournament page shows capacity, courts, and referee count" do
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      registration_capacity: 200,
+      courts_count: 4,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    tournament.tournament_referees.create!(name: "Meera Rao", phone: "9876543210")
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Capacity"
+    assert_includes response.body, "Courts"
+    assert_includes response.body, "1 referee"
+  end
+
+  test "venue setup is editable even before registration closes" do
+    tournament = Tournament.create!(
+      name: "Open Venue Open",
       organizer: @organizer,
       status: :registration_open,
-      registration_opens_at: 10.days.ago,
-      registration_closes_at: 1.day.ago,
+      registration_opens_at: 1.day.ago,
+      registration_closes_at: 1.day.from_now,
       start_date: 2.days.from_now.to_date,
       end_date: 3.days.from_now.to_date
     )
@@ -941,21 +980,31 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 4, tournament.reload.courts_count
   end
 
-  test "venue setup is blocked before registration closes" do
+  test "venue setup locks once a draw has been set for any category" do
     tournament = Tournament.create!(
-      name: "Open Venue Open",
+      name: "Drawn Venue Open",
       organizer: @organizer,
       status: :registration_open,
-      registration_opens_at: 1.day.ago,
-      registration_closes_at: 1.day.from_now,
+      registration_opens_at: 10.days.ago,
+      registration_closes_at: 1.day.ago,
       start_date: 2.days.from_now.to_date,
-      end_date: 3.days.from_now.to_date
+      end_date: 3.days.from_now.to_date,
+      courts_count: 3
     )
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "male", age_min: 18)
+    2.times { |i| create_weight_verified_registration(tournament: tournament, category: category, email: "venue-lock-#{i}@example.test") }
+    assert BracketGenerator.new(category).call.success?
 
     get venue_setup_tournament_path(tournament)
+    assert_response :success
+    assert_includes response.body, "locked"
+    assert_not_includes response.body, "Save venue setup"
+
+    patch venue_setup_tournament_path(tournament), params: { tournament: { courts_count: 4 } }
 
     assert_redirected_to tournament_path(tournament)
-    assert_equal "Venue setup opens after registration closes.", flash[:alert]
+    assert_equal "Venue setup is locked because the draw has already been set.", flash[:alert]
+    assert_equal 3, tournament.reload.courts_count
   end
 
   test "super admin can delete tournament" do
