@@ -260,3 +260,45 @@ function closeKebabMenusOutside(event) {
     if (!menu.contains(event.target)) menu.removeAttribute("open")
   })
 }
+
+// A kebab panel positioned with plain `position:absolute` gets clipped
+// whenever an ancestor scrolls (e.g. the horizontally-scrolling table
+// wrapper on narrow screens) — that's why it "disappears" on the last row
+// or in a short table. Repositioning it to `position:fixed` with
+// viewport-relative coordinates escapes that clipping entirely, regardless
+// of which scrollable ancestor it lives in.
+function positionKebabMenu(menu) {
+  const summary = menu.querySelector("summary")
+  const panel = menu.querySelector(".kebab-menu-panel")
+  if (!summary || !panel) return
+
+  const summaryRect = summary.getBoundingClientRect()
+  const viewportWidth = document.documentElement.clientWidth
+  const viewportHeight = document.documentElement.clientHeight
+  const panelWidth = panel.offsetWidth
+  const panelHeight = panel.offsetHeight
+
+  let left = summaryRect.right - panelWidth
+  left = Math.min(left, viewportWidth - panelWidth - 8)
+  left = Math.max(left, 8)
+
+  let top = summaryRect.bottom + 6
+  if (top + panelHeight > viewportHeight - 8) top = summaryRect.top - panelHeight - 6
+
+  panel.style.position = "fixed"
+  panel.style.left = `${left}px`
+  panel.style.top = `${top}px`
+  panel.style.right = "auto"
+}
+
+function repositionOpenKebabMenus() {
+  document.querySelectorAll("details.kebab-menu[open]").forEach(positionKebabMenu)
+}
+
+document.addEventListener("toggle", (event) => {
+  if (!(event.target instanceof HTMLElement) || !event.target.matches("details.kebab-menu")) return
+  if (event.target.open) positionKebabMenu(event.target)
+}, true)
+
+window.addEventListener("scroll", repositionOpenKebabMenus, true)
+window.addEventListener("resize", repositionOpenKebabMenus)

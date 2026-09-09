@@ -471,6 +471,37 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "39.5 kg"
   end
 
+  test "tournament manager sees receipt link and review actions on registered athletes" do
+    parent = User.create!(name: "Demo Parent", email: "manager-actions-parent@example.test", password: "password123", role: :parent)
+    athlete = parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Pune Invitational", organizer: @organizer, status: :registration_open, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    registration = tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :pending, payment_receipt: payment_receipt_upload)
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, receipt_organizer_registration_path(registration)
+    assert_includes response.body, approve_organizer_registration_path(registration)
+    assert_includes response.body, reject_organizer_registration_path(registration)
+  end
+
+  test "non manager viewing their own registered athlete does not see review actions" do
+    parent = User.create!(name: "Demo Parent", email: "non-manager-parent@example.test", password: "password123", role: :parent)
+    athlete = parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Pune Invitational", organizer: @organizer, status: :registration_open, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+    registration = tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :pending, payment_receipt: payment_receipt_upload)
+    sign_in_as parent
+
+    get tournament_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Aarohi Shah"
+    assert_not_includes response.body, approve_organizer_registration_path(registration)
+    assert_not_includes response.body, receipt_organizer_registration_path(registration)
+  end
+
   test "logged out show hides athlete-specific registration sections" do
     tournament = Tournament.create!(
       name: "Pune Invitational",

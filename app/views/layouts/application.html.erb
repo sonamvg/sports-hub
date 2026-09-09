@@ -18,9 +18,11 @@
       <%= link_to root_path, class: "brand" do %>PODIUM<span>CIRCLE</span><% end %>
       <div class="mobile-topbar-actions">
         <% if current_user %>
-          <%= button_to logout_path, method: :delete, class: "mobile-nav-toggle mobile-topbar-logout", form: { title: "Sign out" }, aria: { label: "Sign out" } do %>
-            <%= ui_icon("log-out") %>
+          <%= button_to logout_path, method: :delete, class: "mobile-topbar-logout", form: { title: "Sign out" } do %>
+            <%= ui_icon("log-out") %><span>Sign out</span>
           <% end %>
+        <% else %>
+          <%= link_to "Join", new_user_path, class: "mobile-topbar-join" %>
         <% end %>
         <button type="button" class="mobile-nav-toggle" data-mobile-nav-toggle aria-label="Open menu" aria-expanded="false">
           <%= ui_icon("menu") %>
