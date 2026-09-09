@@ -214,7 +214,7 @@ class TournamentsController < ApplicationController
   end
 
   def filtered_tournaments
-    tournaments = Tournament.all
+    tournaments = visible_tournaments
     query = params[:q].to_s.squish.downcase
     if query.present?
       tournaments = tournaments.where(
@@ -226,6 +226,22 @@ class TournamentsController < ApplicationController
     tournaments = tournaments.where("LOWER(country) = ?", params[:country].to_s.squish.downcase) if params[:country].present?
     tournaments = tournaments.where("LOWER(state) = ?", params[:state].to_s.squish.downcase) if params[:state].present?
     tournaments
+  end
+
+  # A draft tournament is still being assembled by its organizer and may hold
+  # incomplete data, so it's excluded from the public listing — except for
+  # the organizer/collaborators who manage it, who can still find it here.
+  def visible_tournaments
+    return Tournament.where.not(status: :draft) unless current_user
+    return Tournament.all if super_admin?
+
+    managed_ids = Tournament
+      .left_joins(:tournament_organizers)
+      .where("tournaments.organizer_id = :user_id OR tournament_organizers.user_id = :user_id", user_id: current_user.id)
+      .distinct
+      .select(:id)
+
+    Tournament.where.not(status: :draft).or(Tournament.where(id: managed_ids))
   end
 
   def set_filter_options

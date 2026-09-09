@@ -711,6 +711,47 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Register"
   end
 
+  test "draft tournaments are hidden from the public index" do
+    other_organizer = User.create!(name: "Other Organizer", email: "draft-hidden-organizer@example.test", password: "password123", role: :organizer)
+    draft = Tournament.create!(name: "Unpublished Draft Cup", organizer: other_organizer, status: :draft, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+
+    get tournaments_path
+    assert_response :success
+    assert_not_includes response.body, draft.name
+
+    athlete_user = User.create!(name: "Athlete User", email: "draft-hidden-athlete@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    sign_in_as athlete_user
+
+    get tournaments_path
+    assert_response :success
+    assert_not_includes response.body, draft.name
+  end
+
+  test "organizer sees their own draft tournament on the public index but not another organizer's" do
+    other_organizer = User.create!(name: "Other Organizer", email: "draft-visible-other@example.test", password: "password123", role: :organizer)
+    own_draft = Tournament.create!(name: "My Own Draft Cup", organizer: @organizer, status: :draft, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    other_draft = Tournament.create!(name: "Someone Elses Draft Cup", organizer: other_organizer, status: :draft, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    sign_in_as @organizer
+
+    get tournaments_path
+
+    assert_response :success
+    assert_includes response.body, own_draft.name
+    assert_not_includes response.body, other_draft.name
+  end
+
+  test "super admin sees draft tournaments on the public index" do
+    super_admin = User.create!(name: "Super Admin", email: "draft-visible-super-admin@example.test", password: "password123", role: :super_admin)
+    draft = Tournament.create!(name: "Admin Visible Draft Cup", organizer: @organizer, status: :draft, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    sign_in_as super_admin
+
+    get tournaments_path
+
+    assert_response :success
+    assert_includes response.body, draft.name
+  end
+
   test "athlete sees register link on open tournament detail" do
     athlete_user = User.create!(name: "Athlete User", email: "register-show-athlete@example.test", phone: "9876543210", password: "password123", role: :athlete)
     athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
