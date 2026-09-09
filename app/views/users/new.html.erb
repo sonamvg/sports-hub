@@ -27,16 +27,17 @@
             <%= form.text_field :organizer_designation, required: true, placeholder: "Tournament director, coach, academy owner" %>
             <%= field_error(@user, :organizer_designation) %>
           </div>
-          <div>
-            <%= form.label :organizer_academy_id, "Academy affiliation" %>
-            <%= form.collection_select :organizer_academy_id, @available_academies, :id, :name, include_blank: "No academy affiliation" %>
-            <%= field_error(@user, :organizer_academy_id) %>
+          <div class="full">
+            <%= form.label :profile_photo, "Profile photo" %>
+            <%= form.file_field :profile_photo, accept: "image/png,image/jpeg,image/jpg,.jpg,.jpeg,.png" %>
+            <%= field_error(@user, :profile_photo) %>
+            <p class="field-hint">Optional. .jpg, .jpeg, or .png up to 5 MB. Appears on the public organizer directory after verification.</p>
           </div>
           <div class="full">
-            <%= form.label :profile_photo_url, "Profile photo URL" %>
+            <%= form.label :profile_photo_url, "Profile photo URL (optional)" %>
             <%= form.url_field :profile_photo_url, placeholder: "https://example.com/photo.jpg" %>
             <%= field_error(@user, :profile_photo_url) %>
-            <p class="field-hint">Optional. This appears on the public organizer directory after verification.</p>
+            <p class="field-hint">Only used if no photo is uploaded above.</p>
           </div>
           <div class="full">
             <%= form.label :identity_document, "Identity verification document" %>

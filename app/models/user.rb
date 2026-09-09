@@ -4,6 +4,8 @@ class User < ApplicationRecord
 
   MAX_IDENTITY_DOCUMENT_SIZE = 5.megabytes
   ACCEPTED_IDENTITY_DOCUMENT_TYPES = %w[image/jpeg image/png application/pdf].freeze
+  MAX_PROFILE_PHOTO_SIZE = 5.megabytes
+  ACCEPTED_PROFILE_PHOTO_TYPES = %w[image/jpeg image/png].freeze
 
   has_secure_password
   generates_token_for :password_reset, expires_in: 15.minutes do
@@ -16,8 +18,8 @@ class User < ApplicationRecord
   has_many :tournament_organizers, dependent: :destroy
   has_many :collaborating_tournaments, through: :tournament_organizers, source: :tournament
   belongs_to :organizer_reviewed_by, class_name: "User", optional: true
-  belongs_to :organizer_academy, class_name: "Academy", optional: true
   has_one_attached :identity_document
+  has_one_attached :profile_photo
 
   enum :role, { parent: 0, athlete: 1, coach: 2, organizer: 3, super_admin: 4, academy_owner: 5 }, default: :parent
   enum :organizer_status, { verified: 0, pending: 1, rejected: 2 }, prefix: :organizer
@@ -44,6 +46,7 @@ class User < ApplicationRecord
   validates :password, format: { with: PASSWORD_FORMAT, message: "must include at least one letter and one number, with no spaces" }, allow_blank: true
   validate :identity_document_required_for_pending_organizer
   validate :identity_document_size
+  validate :profile_photo_size
 
   scope :verified_organizers, -> { organizer.organizer_verified }
   scope :pending_organizers, -> { organizer.organizer_pending }
@@ -74,6 +77,14 @@ class User < ApplicationRecord
 
   def send_password_reset_email
     PasswordMailer.with(user: self).reset_instructions.deliver_later
+  end
+
+  # Prefers an uploaded photo (already validated for size/type) and falls
+  # back to the optional external URL when no file has been uploaded.
+  def profile_photo_source
+    return profile_photo if profile_photo.attached?
+
+    profile_photo_url.presence
   end
 
   private
@@ -111,5 +122,12 @@ class User < ApplicationRecord
 
     errors.add(:identity_document, "must be 5 MB or smaller") if identity_document.blob.byte_size > MAX_IDENTITY_DOCUMENT_SIZE
     errors.add(:identity_document, "must be a JPG, PNG, or PDF file") unless attachment_content_type_allowed?(identity_document, ACCEPTED_IDENTITY_DOCUMENT_TYPES)
+  end
+
+  def profile_photo_size
+    return unless profile_photo.attached?
+
+    errors.add(:profile_photo, "must be 5 MB or smaller") if profile_photo.blob.byte_size > MAX_PROFILE_PHOTO_SIZE
+    errors.add(:profile_photo, "must be a JPG or PNG file") unless attachment_content_type_allowed?(profile_photo, ACCEPTED_PROFILE_PHOTO_TYPES)
   end
 end

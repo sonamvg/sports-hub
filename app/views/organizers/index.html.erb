@@ -44,14 +44,14 @@
         <article class="entity-card organizer-card">
           <div class="organizer-photo">
             <%= image_with_placeholder(
-              organizer.profile_photo_url,
+              organizer.profile_photo_source,
               alt: "#{organizer.name} photo",
               placeholder: organizer.initials
             ) %>
           </div>
           <span class="status-pill status-approved">Verified organizer</span>
           <h2><%= organizer.name %></h2>
-          <p><%= [organizer.organizer_designation, organizer.organizer_academy&.name].compact.join(" · ").presence || "Organizer profile verified" %></p>
+          <p><%= organizer.organizer_designation.presence || "Organizer profile verified" %></p>
           <p><%= events.any? ? "#{events.size} event#{'s' unless events.one?} organized" : "No published events yet" %></p>
           <% if events.any? %>
             <div class="entity-meta organizer-events">

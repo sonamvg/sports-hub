@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_08_165356) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_09_115725) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -386,7 +386,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_08_165356) do
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.string "name", null: false
-    t.bigint "organizer_academy_id"
     t.datetime "organizer_approved_at"
     t.string "organizer_designation"
     t.datetime "organizer_rejected_at"
@@ -398,7 +397,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_08_165356) do
     t.integer "role", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
-    t.index ["organizer_academy_id"], name: "index_users_on_organizer_academy_id"
     t.index ["organizer_reviewed_by_id"], name: "index_users_on_organizer_reviewed_by_id"
   end
 
@@ -443,6 +441,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_08_165356) do
   add_foreign_key "tournament_organizers", "users", column: "added_by_id"
   add_foreign_key "tournament_referees", "tournaments"
   add_foreign_key "tournaments", "users", column: "organizer_id"
-  add_foreign_key "users", "academies", column: "organizer_academy_id"
   add_foreign_key "users", "users", column: "organizer_reviewed_by_id"
 end

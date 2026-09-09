@@ -22,7 +22,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'value="organizer"'
     assert_includes response.body, "Mobile number"
     assert_includes response.body, "Designation"
-    assert_includes response.body, "Academy affiliation"
+    assert_not_includes response.body, "Academy affiliation"
     assert_includes response.body, "Identity verification document"
     assert_includes response.body, "Profile photo URL"
   end
@@ -117,6 +117,95 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal user.id, session[:user_id]
     assert_redirected_to organizers_path
     assert_equal "Organizer profile created. Your profile will be reviewed and approved before you can manage tournaments.", flash[:notice]
+  end
+
+  test "organizer signup accepts an uploaded profile photo instead of a URL" do
+    assert_difference("User.count", 1) do
+      post users_path, params: {
+        account_type: "organizer",
+        user: {
+          name: "New Organizer",
+          email: "photo-upload-organizer@example.test",
+          phone: "9876543210",
+          organizer_designation: "Tournament Director",
+          profile_photo: identity_image_upload,
+          identity_document: identity_document_upload,
+          password: "password123",
+          password_confirmation: "password123"
+        }
+      }
+    end
+
+    user = User.order(:created_at).last
+    assert_predicate user.profile_photo, :attached?
+    assert_nil user.profile_photo_url
+    assert_equal user.profile_photo, user.profile_photo_source
+  end
+
+  test "organizer signup rejects an oversized or unsupported profile photo" do
+    assert_no_difference("User.count") do
+      post users_path, params: {
+        account_type: "organizer",
+        user: {
+          name: "New Organizer",
+          email: "bad-photo-organizer@example.test",
+          phone: "9876543210",
+          organizer_designation: "Tournament Director",
+          profile_photo: invalid_text_upload,
+          identity_document: identity_document_upload,
+          password: "password123",
+          password_confirmation: "password123"
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Profile photo must be a JPG or PNG file"
+  end
+
+  test "athlete signup rejects a mismatched password confirmation" do
+    assert_no_difference("User.count") do
+      post users_path, params: {
+        user: {
+          name: "New Athlete",
+          email: "mismatched-confirmation@example.test",
+          phone: "9876543210",
+          password: "password123",
+          password_confirmation: "different456"
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Password confirmation doesn&#39;t match Password"
+  end
+
+  test "athlete signup shows every missing required field together" do
+    assert_no_difference("User.count") do
+      post users_path, params: { user: { name: "", email: "", phone: "", password: "", password_confirmation: "" } }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Name can&#39;t be blank"
+    assert_includes response.body, "Email can&#39;t be blank"
+    assert_includes response.body, "Password can&#39;t be blank"
+  end
+
+  test "athlete signup rejects an invalid email format" do
+    assert_no_difference("User.count") do
+      post users_path, params: {
+        user: {
+          name: "New Athlete",
+          email: "not-an-email",
+          phone: "9876543210",
+          password: "password123",
+          password_confirmation: "password123"
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Email must be a valid email address"
   end
 
   test "organizer signup requires mobile designation and identity document" do
