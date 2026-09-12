@@ -3119,3 +3119,55 @@ This file is the long-lived implementation journal for PodiumCircle. Keep it cur
 - Ran `mise exec -- bin/rails test test/controllers/athlete_flow_security_test.rb`; result: 18 runs, 156 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails test test/controllers/athlete_flow_security_test.rb test/controllers/registrations_controller_test.rb test/models/registration_test.rb test/controllers/athletes_controller_test.rb test/controllers/sessions_controller_test.rb test/controllers/organizer_registrations_controller_test.rb`; result: 105 runs, 777 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `git diff --check`; result: no whitespace errors.
+
+## 2026-09-13 - PodiumCircle QA Pass and Image Variant Dependency
+
+### Reference
+- User requested a full round of testing for Podium Circle and to ignore Abhaaya.
+
+### Change Log
+- Ran local Rails regression coverage and production smoke checks for Podium Circle.
+- Added the `image_processing` gem because production Rails logs showed Active Storage image variants were being requested without the required variant-processing dependency.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test` before the dependency change; result: 398 runs, 3058 assertions, 0 failures, 0 errors, 0 skips.
+- Ran production public smoke checks for `/`, `/tournaments`, `/tournaments/3`, `/tournaments/6`, `/academies`, `/organizers`, `/terms`, and `/login`; result: all returned 200 OK and no application-error body.
+- Ran production authenticated athlete smoke check with `prod.flow.001@podiumcircle.test`; result: login redirected to `/athletes/33`, and athlete profile, tournaments, tournament detail, registration form, and academies pages returned 200 OK without application-error bodies.
+- Checked production data counts; result: 117 users, 107 athletes, 0 academies, 4 tournaments, and 203 registrations.
+- Checked recent Fly and Rails production logs; result: no recent 500 trace for the smoke-tested pages, but Rails logged that image variants require `image_processing`.
+- Ran `bundle install`; result: installed and locked `image_processing` 1.14.0 with `mini_magick` 5.4.0 and `ruby-vips` 2.3.0.
+- Ran `git diff --check`; result: no whitespace errors.
+- Re-ran `mise exec -- bin/rails test` after the dependency change; result: 398 runs, 3058 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-12 - Winner-Only Match Decision and Bracket Null-Score Fix
+
+### Reference
+- User requested a way for a referee to record a match winner directly, without entering round points, defaulted in the decision dropdown — matching how `withdrawal` already skips round scoring.
+
+### Change Log
+- Added `winner_only` to `Match#decision` enum (value `5`, additive — no migration, no effect on existing rows).
+- Reordered the decision `<select>` in `_match_score_form.html.erb` so "Select winner (no points)" is first and explicitly marked selected; updated the field hint to match the new default.
+- Added a `winner_only` branch to `match_result_summary` in `ApplicationHelper` for an explicit result string instead of relying on the generic `else`.
+- Fixed `BracketPresenter#opponent_json`: it always set `opponent[:score]` from `score_data["rounds_won"]`, which is empty for any non-points decision (withdrawal, RSC, disqualification, no-show, and now winner-only). The resulting `nil` serialized to JSON `null` and brackets-viewer.js rendered the literal text "null" next to the winner in the draw view. Now `:score` is only set when a points value actually exists.
+- No controller or JS changes were needed — `Organizer::MatchesController#update` already treats any non-`"points"` decision generically, and `updateMatchDecisionFields` in `application.js` already keys off `value === "points"` rather than an enumerated list.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/organizer_matches_controller_test.rb test/controllers/organizer_draws_controller_test.rb test/models/match_test.rb test/services/bracket_presenter_test.rb`; result: all passing.
+- Ran `mise exec -- bin/rails test`; result: 398 runs, 3058 assertions, 0 failures, 0 errors, 0 skips.
+- Manually created 3 athletes and a draw in the local dev environment (Pune Open Taekwondo Championship, Kyorugi Male Age 8-11 U16) and recorded a winner-only result through the browser; confirmed the bracket view shows clean W/L badges with no "null" text.
+- Committed and pushed both changes to `origin/main` (commits `d732f6e`, `75d8faf`).
+
+## 2026-09-13 - Manual QA Pass (Browser) Across Public, Athlete, Academy, and Organizer Flows
+
+### Reference
+- User requested a detailed round of testing for the website (local environment).
+
+### Change Log
+- Fixed a broken client-side `pattern` regex (`[a-zA-Z\s'-]+`) on the name fields in `users/new.html.erb` (signup) and `academies/_form.html.erb` (academy contact name). Recent Chromium versions compile the HTML `pattern` attribute in Unicode-set ("v" flag) mode, under which an unescaped trailing hyphen next to a `\s` class-escape is invalid syntax; the browser threw `Invalid regular expression ... /v: Invalid character in character class` and the pattern constraint silently stopped applying. Escaped the hyphen (`\\-`) in both places, verified valid under the new regex mode via a fresh browser tab (no console error, `checkValidity()` true for a name with a space/hyphen/apostrophe).
+- Fixed `RegistrationsController#create`: `@registration` was built with no attributes, so on a failed submission (e.g. missing payment receipt) the re-rendered form always showed an empty "Current weight" field even though the user had typed one — the typed value was silently discarded before validation. Now `@registration` is built with `registered_weight` from the submitted params so the field round-trips correctly on validation failure. (The actual per-category registrations saved on success were never affected — this only fixed the error-path re-render.)
+
+### Verification Log
+- Ran `mise exec -- bin/rails test`; result: 398 runs, 3058 assertions, 0 failures, 0 errors, 0 skips (both before confirming the bugs and after fixing them).
+- Manually exercised in the browser: homepage, tournament listing/search, tournament detail page, full signup flow (`/users/new` → athlete profile setup → athlete show page), full paid-tournament registration flow (category selection, fee total, weight, payment details, receipt upload, submission), organizer registration approval (kebab menu → Accept), full academy registration flow (`/academies/new` → submission → super-admin approval via kebab menu), an authorization boundary check (`ActiveRecord::RecordNotFound` → 404 when a non-manager opens another organizer's tournament edit page), and a mobile-viewport (375×812) pass on the homepage, tournament listing, and tournament detail page.
+- Confirmed the session-fingerprint security feature correctly force-logs-out a session when the mobile emulation preset changes the browser's user agent mid-session — expected behavior, not a bug.
+- No other functional defects found in this pass; all console errors observed during testing were traced to either the two fixed bugs above or the browser tab's own stale console buffer (confirmed via a fresh tab) or intentionally-triggered 422/404s from the edge-case tests themselves.
