@@ -171,10 +171,26 @@
       <%= field_error(tournament, :payment_ifsc) %>
     </div>
 
+    <div>
+      <%= form.label :payment_upi_id, "UPI ID" %>
+      <%= form.text_field :payment_upi_id, autocomplete: "off", placeholder: "yourname@bank" %>
+      <%= field_error(tournament, :payment_upi_id) %>
+    </div>
+
+    <div class="full">
+      <%= form.label :payment_qr_image, "Payment QR code" %>
+      <%= form.file_field :payment_qr_image, accept: "image/png,image/jpeg,image/webp" %>
+      <%= field_error(tournament, :payment_qr_image) %>
+      <p class="field-hint">Optional. A UPI or other payment QR code image — JPG, PNG, or WebP up to 5 MB.</p>
+      <% if tournament.payment_qr_image.attached? %>
+        <p class="field-hint">Current upload: <%= tournament.payment_qr_image.filename %></p>
+      <% end %>
+    </div>
+
     <div class="full">
       <%= form.label :payment_instructions, "Payment instructions" %>
-      <%= form.text_area :payment_instructions, rows: 3, placeholder: "Mention any UPI ID, reference format, or organizer payment note." %>
-      <p class="field-hint">These details are shown only to signed-in athletes during registration.</p>
+      <%= form.text_area :payment_instructions, rows: 3, placeholder: "Any additional note for registrants, e.g. a payment reference format." %>
+      <p class="field-hint">Bank details, UPI ID, and the QR code above are shown only to signed-in athletes during registration — not on public tournament pages. At least one payment method is required for a paid tournament.</p>
     </div>
 
     <div class="full">

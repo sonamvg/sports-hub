@@ -119,7 +119,7 @@ class TournamentTest < ActiveSupport::TestCase
     assert_equal "•••••••1234", tournament.masked_payment_ifsc
   end
 
-  test "publishing a paid tournament requires payment details" do
+  test "publishing a paid tournament requires at least one payment method" do
     organizer = User.create!(name: "Organizer", email: "missing-payment-organizer@example.test", password: "password123", role: :organizer)
     tournament = Tournament.new(
       name: "Missing Payment Open",
@@ -131,11 +131,8 @@ class TournamentTest < ActiveSupport::TestCase
     )
 
     assert_not tournament.valid?
-    assert_includes tournament.errors[:base].join, "payment details"
-    assert_includes tournament.errors[:payment_account_name], "is required for a tournament that charges a fee"
-    assert_includes tournament.errors[:payment_bank_name], "is required for a tournament that charges a fee"
-    assert_includes tournament.errors[:payment_account_number], "is required for a tournament that charges a fee"
-    assert_includes tournament.errors[:payment_ifsc], "is required for a tournament that charges a fee"
+    assert_includes tournament.errors[:base].join, "at least one payment method"
+    assert_empty tournament.errors[:payment_account_name]
 
     tournament.payment_account_name = "Pune Taekwondo Association"
     tournament.payment_bank_name = "Demo Bank"
@@ -143,6 +140,86 @@ class TournamentTest < ActiveSupport::TestCase
     tournament.payment_ifsc = "DEMO0001234"
 
     assert tournament.valid?
+  end
+
+  test "a UPI ID alone satisfies the payment method requirement" do
+    organizer = User.create!(name: "Organizer", email: "upi-only-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.new(
+      name: "UPI Only Open", organizer: organizer, status: :registration_open, registration_fee: 500,
+      start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19), payment_upi_id: "organizer@okhdfcbank"
+    )
+
+    assert tournament.valid?
+  end
+
+  test "a payment QR code alone satisfies the payment method requirement" do
+    organizer = User.create!(name: "Organizer", email: "qr-only-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.new(
+      name: "QR Only Open", organizer: organizer, status: :registration_open, registration_fee: 500,
+      start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19), payment_qr_image: identity_image_upload
+    )
+
+    assert tournament.valid?
+  end
+
+  test "starting to fill in bank details without finishing them still shows the missing bank fields" do
+    organizer = User.create!(name: "Organizer", email: "partial-bank-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.new(
+      name: "Partial Bank Open", organizer: organizer, status: :registration_open, registration_fee: 500,
+      start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19), payment_account_name: "Pune Taekwondo Association"
+    )
+
+    assert_not tournament.valid?
+    assert_includes tournament.errors[:payment_bank_name], "is required for a tournament that charges a fee"
+    assert_includes tournament.errors[:payment_account_number], "is required for a tournament that charges a fee"
+    assert_includes tournament.errors[:payment_ifsc], "is required for a tournament that charges a fee"
+    assert_empty tournament.errors[:payment_account_name]
+  end
+
+  test "rejects a malformed UPI ID" do
+    tournament = Tournament.new(payment_upi_id: "not a upi id")
+
+    assert_not tournament.valid?
+    assert_includes tournament.errors[:payment_upi_id], "must be a valid UPI ID (e.g. name@bank)"
+
+    tournament.payment_upi_id = "athlete.parent@okaxis"
+    tournament.valid?
+    assert_empty tournament.errors[:payment_upi_id]
+  end
+
+  test "rejects an oversized or unsupported payment QR image" do
+    organizer = User.create!(name: "Organizer", email: "bad-qr-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.new(
+      name: "Bad QR Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19),
+      payment_qr_image: invalid_text_upload
+    )
+
+    assert_not tournament.valid?
+    assert_includes tournament.errors[:payment_qr_image], "must be a JPG, PNG, or WebP file"
+  end
+
+  test "masks the UPI ID, keeping only the last four characters visible" do
+    tournament = Tournament.new(payment_upi_id: "athlete.parent@okaxis")
+
+    assert_equal "•••••••••••••••••axis", tournament.masked_payment_upi_id
+  end
+
+  test "logs an audit entry when the UPI ID or payment QR code changes" do
+    organizer = User.create!(name: "Organizer", email: "upi-qr-audit-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(
+      name: "UPI QR Audit Open", organizer: organizer, updated_by: organizer,
+      start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19),
+      payment_upi_id: "organizer@okhdfcbank", payment_qr_image: identity_image_upload
+    )
+
+    log = tournament.payment_detail_audit_logs.sole
+    assert_includes log.changed_fields, "payment_upi_id"
+    assert_includes log.changed_fields, "payment_qr_image"
+
+    tournament.update!(updated_by: organizer, payment_upi_id: "organizer@okaxis")
+
+    assert_equal 2, tournament.payment_detail_audit_logs.count
+    assert_equal "payment_upi_id", tournament.payment_detail_audit_logs.order(:created_at).last.changed_fields
   end
 
   test "a draft tournament can carry a fee without payment details" do

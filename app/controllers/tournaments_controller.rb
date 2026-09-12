@@ -8,7 +8,7 @@ class TournamentsController < ApplicationController
 
   def index
     set_filter_options
-    @tournaments = filtered_tournaments.order(tournament_sort_sql, start_date: :desc, created_at: :desc)
+    @tournaments = filtered_tournaments.includes(:organizer, logo_image_attachment: :blob).order(tournament_sort_sql, start_date: :desc, created_at: :desc)
     @tournaments, @pagination = paginate(@tournaments)
   end
 
@@ -172,7 +172,7 @@ class TournamentsController < ApplicationController
       :eligibility_summary, :registration_capacity,
       :registration_fee, :currency, :required_documents, :refund_policy,
       :payment_account_name, :payment_bank_name, :payment_account_number,
-      :payment_ifsc, :payment_instructions,
+      :payment_ifsc, :payment_upi_id, :payment_qr_image, :payment_instructions,
       :logo_image, :banner_image, :terms_accepted, :data_sharing_consent,
       competition_format_options: [], competition_format_other: [],
       eligibility_options: [], eligibility_other: [],

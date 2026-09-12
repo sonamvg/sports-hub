@@ -6,6 +6,8 @@ class Tournament < ApplicationRecord
   MAX_IMAGE_SIZE = 5.megabytes
   ACCEPTED_IMAGE_TYPES = %w[image/jpeg image/png image/webp].freeze
   PAYMENT_DETAIL_FIELDS = %w[payment_account_name payment_bank_name payment_account_number payment_ifsc].freeze
+  PAYMENT_AUDIT_FIELDS = PAYMENT_DETAIL_FIELDS + %w[payment_upi_id]
+  UPI_ID_FORMAT = /\A[\w.+-]{2,256}@[a-zA-Z]{2,64}\z/
 
   INDIAN_STATES_AND_UNION_TERRITORIES = [
     "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
@@ -18,7 +20,7 @@ class Tournament < ApplicationRecord
 
   attr_accessor :updated_by
 
-  encrypts :payment_account_name, :payment_bank_name, :payment_account_number, :payment_ifsc
+  encrypts :payment_account_name, :payment_bank_name, :payment_account_number, :payment_ifsc, :payment_upi_id
 
   before_validation :normalize_fields
   before_validation :sync_status_with_registration_window
@@ -33,6 +35,7 @@ class Tournament < ApplicationRecord
   has_many :payment_detail_audit_logs, dependent: :destroy
   has_one_attached :logo_image
   has_one_attached :banner_image
+  has_one_attached :payment_qr_image
 
   DEFAULT_COMPETITION_FORMATS = [
     "Kyorugi",
@@ -98,12 +101,16 @@ class Tournament < ApplicationRecord
   validates :registration_capacity, numericality: { only_integer: true, greater_than: 0 }, allow_blank: true
   validates :registration_fee, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   validates :courts_count, numericality: { only_integer: true, greater_than: 0 }, allow_blank: true
+  validates :payment_upi_id, format: { with: UPI_ID_FORMAT, message: "must be a valid UPI ID (e.g. name@bank)" }, allow_blank: true
   validate :end_date_not_before_start_date
   validate :registration_window_chronology
   validate :logo_image_size
   validate :banner_image_size
+  validate :payment_qr_image_size
   validate :payment_details_present_when_charging_fee
   validate :status_transition_allowed
+
+  before_save :capture_payment_qr_image_change
 
   after_create :add_creator_as_super_organizer
   after_create :assign_default_categories
@@ -174,6 +181,10 @@ class Tournament < ApplicationRecord
     mask_trailing(payment_ifsc)
   end
 
+  def masked_payment_upi_id
+    mask_trailing(payment_upi_id)
+  end
+
   def logo_image_source
     logo_image if logo_image.attached?
   end
@@ -214,6 +225,7 @@ class Tournament < ApplicationRecord
     self.payment_bank_name = payment_bank_name.to_s.squish.presence
     self.payment_account_number = payment_account_number.to_s.squish.presence
     self.payment_ifsc = payment_ifsc.to_s.upcase.squish.presence
+    self.payment_upi_id = payment_upi_id.to_s.downcase.squish.presence
     self.payment_instructions = payment_instructions.to_s.squish.presence
   end
 
@@ -232,16 +244,37 @@ class Tournament < ApplicationRecord
     self.status = registration_window_open? ? "registration_open" : "registration_closed"
   end
 
+  # A registrant needs exactly one working way to pay, not all of them —
+  # full bank transfer details, a UPI ID, and a QR code image are
+  # independent, equally valid payment methods, so any one complete method
+  # is enough to publish a paid tournament.
   def payment_details_present_when_charging_fee
     return if draft?
     return unless registration_fee.present? && registration_fee.to_d.positive?
+    return if any_payment_method_present?
 
-    missing_fields = PAYMENT_DETAIL_FIELDS.select { |field| send(field).blank? }
-    return if missing_fields.empty?
+    errors.add(:base, "add at least one payment method (bank account details, a UPI ID, or a payment QR code image) before a tournament that charges a fee can be published")
 
-    missing_labels = missing_fields.map { |field| field.delete_prefix("payment_").humanize.downcase }.to_sentence
-    errors.add(:base, "payment details (#{missing_labels}) must be provided before a tournament that charges a fee can be published")
-    missing_fields.each { |field| errors.add(field.to_sym, "is required for a tournament that charges a fee") }
+    # Only pile on per-field errors if the organizer clearly started filling
+    # in bank transfer details — otherwise a UPI-only or QR-only organizer
+    # would see four confusing "required" errors for fields they never
+    # intended to use.
+    return unless PAYMENT_DETAIL_FIELDS.any? { |field| send(field).present? }
+
+    PAYMENT_DETAIL_FIELDS.select { |field| send(field).blank? }.each do |field|
+      errors.add(field.to_sym, "is required for a tournament that charges a fee")
+    end
+  end
+
+  def any_payment_method_present?
+    PAYMENT_DETAIL_FIELDS.all? { |field| send(field).present? } || payment_upi_id.present? || payment_qr_image.attached?
+  end
+
+  # Snapshot whether a new QR image was assigned in this save, before the
+  # attachment machinery clears attachment_changes on persist — used by
+  # log_payment_detail_changes below, which runs after_save.
+  def capture_payment_qr_image_change
+    @payment_qr_image_changed = attachment_changes.key?("payment_qr_image")
   end
 
   def status_transition_allowed
@@ -276,7 +309,8 @@ class Tournament < ApplicationRecord
   end
 
   def log_payment_detail_changes
-    changed_fields = PAYMENT_DETAIL_FIELDS & saved_changes.keys
+    changed_fields = PAYMENT_AUDIT_FIELDS & saved_changes.keys
+    changed_fields += ["payment_qr_image"] if @payment_qr_image_changed
     return if changed_fields.empty?
 
     payment_detail_audit_logs.create!(actor: updated_by, changed_fields: changed_fields.join(", "))
@@ -295,6 +329,10 @@ class Tournament < ApplicationRecord
 
   def banner_image_size
     validate_image_upload(banner_image, :banner_image)
+  end
+
+  def payment_qr_image_size
+    validate_image_upload(payment_qr_image, :payment_qr_image)
   end
 
   def validate_image_upload(attachment, attribute)

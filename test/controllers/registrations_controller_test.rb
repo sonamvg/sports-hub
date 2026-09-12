@@ -228,6 +228,24 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "selected=\"selected\" value=\"#{category.id}\""
   end
 
+  test "registration form shows UPI ID and payment QR code when the tournament offers them" do
+    athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", contact_number: "9123456789")
+    tournament = Tournament.create!(
+      name: "UPI QR Open", organizer: @organizer, status: :registration_open, registration_fee: 500, currency: "INR",
+      payment_upi_id: "organizer@okhdfcbank", payment_qr_image: identity_image_upload,
+      start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6),
+      registration_opens_at: 1.day.ago, registration_closes_at: 1.day.from_now
+    )
+    tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 41)
+
+    get new_tournament_registration_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "UPI ID"
+    assert_includes response.body, "organizer@okhdfcbank"
+    assert_includes response.body, "Payment QR code for UPI QR Open"
+  end
+
   test "registration create requires receipt when submitting multiple categories" do
     athlete = @parent.athletes.create!(
       first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female",

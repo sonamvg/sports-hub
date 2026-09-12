@@ -76,14 +76,34 @@
     <% unless @tournament.free? %>
       <div class="full payment-instructions" data-payment-details>
         <h2>Secure payment details</h2>
-        <p class="field-hint">These bank details are shown only in this signed-in registration flow and are not displayed on public tournament pages.</p>
-        <dl>
-          <div><dt>Account holder</dt><dd><%= @tournament.payment_account_name || "--" %></dd></div>
-          <div><dt>Bank</dt><dd><%= @tournament.payment_bank_name || "--" %></dd></div>
-          <div><dt>Account number</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_account_number || "--" %>" data-full="<%= @tournament.payment_account_number %>"><%= @tournament.masked_payment_account_number || "--" %></dd></div>
-          <div><dt>IFSC</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_ifsc || "--" %>" data-full="<%= @tournament.payment_ifsc %>"><%= @tournament.masked_payment_ifsc || "--" %></dd></div>
-        </dl>
-        <button type="button" class="secondary-button button-reset" data-toggle-payment-details>Show full account number and IFSC</button>
+        <p class="field-hint">These payment details are shown only in this signed-in registration flow and are not displayed on public tournament pages.</p>
+
+        <% if @tournament.payment_account_number.present? || @tournament.payment_bank_name.present? %>
+          <dl>
+            <div><dt>Account holder</dt><dd><%= @tournament.payment_account_name || "--" %></dd></div>
+            <div><dt>Bank</dt><dd><%= @tournament.payment_bank_name || "--" %></dd></div>
+            <div><dt>Account number</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_account_number || "--" %>" data-full="<%= @tournament.payment_account_number %>"><%= @tournament.masked_payment_account_number || "--" %></dd></div>
+            <div><dt>IFSC</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_ifsc || "--" %>" data-full="<%= @tournament.payment_ifsc %>"><%= @tournament.masked_payment_ifsc || "--" %></dd></div>
+          </dl>
+        <% end %>
+
+        <% if @tournament.payment_upi_id.present? %>
+          <dl>
+            <div><dt>UPI ID</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_upi_id %>" data-full="<%= @tournament.payment_upi_id %>"><%= @tournament.masked_payment_upi_id %></dd></div>
+          </dl>
+        <% end %>
+
+        <% if @tournament.payment_account_number.present? || @tournament.payment_upi_id.present? %>
+          <button type="button" class="secondary-button button-reset" data-toggle-payment-details>Show full payment details</button>
+        <% end %>
+
+        <% if @tournament.payment_qr_image.attached? %>
+          <div class="payment-qr">
+            <%= image_tag @tournament.payment_qr_image, alt: "Payment QR code for #{@tournament.name}", class: "payment-qr-image" %>
+            <p class="field-hint">Scan with any UPI or payment app to pay.</p>
+          </div>
+        <% end %>
+
         <p><%= @tournament.payment_instructions.presence || "Make the payment using the organizer's shared instructions, then upload the receipt before submitting." %></p>
         <p class="field-hint">Use payment description: <strong><%= "#{@tournament.name} - #{@registration.athlete&.full_name || "Athlete name"}" %></strong></p>
       </div>
@@ -180,7 +200,7 @@
       field.textContent = revealed ? field.dataset.masked : field.dataset.full;
     });
     container.dataset.revealed = revealed ? "false" : "true";
-    button.textContent = revealed ? "Show full account number and IFSC" : "Hide full account number and IFSC";
+    button.textContent = revealed ? "Show full payment details" : "Hide full payment details";
   });
 
   function updateRegistrationTotal(picker) {
