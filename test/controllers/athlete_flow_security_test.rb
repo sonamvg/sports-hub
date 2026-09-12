@@ -220,6 +220,8 @@ class AthleteFlowSecurityTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_not_includes response.body, @tournament.payment_account_number
     assert_not_includes response.body, @tournament.payment_ifsc
+    assert_not_includes response.body, @tournament.payment_upi_id
+    assert_not_includes response.body, rails_blob_path(@tournament.payment_qr_image)
 
     get receipt_organizer_registration_path(registration)
     assert_redirected_to login_path(return_to: receipt_organizer_registration_path(registration))
@@ -329,6 +331,8 @@ class AthleteFlowSecurityTest < ActionDispatch::IntegrationTest
       payment_bank_name: "Security Bank",
       payment_account_number: "1234567890",
       payment_ifsc: "SECU0001234",
+      payment_upi_id: "security-organizer@okhdfcbank",
+      payment_qr_image: identity_image_upload,
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6),
       registration_opens_at: opens_at,

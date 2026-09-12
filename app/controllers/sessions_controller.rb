@@ -22,6 +22,18 @@ class SessionsController < ApplicationController
     redirect_to root_path, notice: "Signed out."
   end
 
+  # Pinged periodically by the client while a signed-in user is actively
+  # filling a long form (typing, scrolling) without triggering a full page
+  # request. enforce_session_timeout (an ApplicationController before_action
+  # that runs ahead of this) already refreshes session[:last_seen_at] on any
+  # authenticated request, so this action itself has nothing left to do
+  # beyond acknowledging the ping — the point is just to BE a request.
+  def keepalive
+    return head :unauthorized unless current_user
+
+    head :no_content
+  end
+
   private
 
   def safe_return_path(path)

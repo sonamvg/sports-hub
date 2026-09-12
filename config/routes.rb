@@ -6,6 +6,7 @@ Rails.application.routes.draw do
   get "login", to: "sessions#new"
   post "login", to: "sessions#create"
   delete "logout", to: "sessions#destroy"
+  post "session/keepalive", to: "sessions#keepalive"
   resource :password_reset, only: %i[new create edit update]
   resources :users, only: %i[new create]
   resources :organizers, only: %i[index destroy] do

@@ -152,17 +152,26 @@ function scheduleAutoDismiss() {
 // waiting for the user's next click.
 const SESSION_TIMEOUT_ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "scroll", "touchstart"]
 
+// Comfortably under the shortest configured idle timeout (30 minutes for
+// most roles) so a keepalive always lands well before the server would
+// otherwise consider the session stale.
+const SESSION_KEEPALIVE_INTERVAL_MS = 4 * 60 * 1000
+
 function initSessionTimeout() {
   const timeoutSeconds = Number.parseInt(document.body.dataset.sessionTimeoutSeconds, 10)
   if (!timeoutSeconds) return
 
   resetSessionTimeoutTimer(timeoutSeconds)
+  window.__sessionLastActivityAt = Date.now()
+  window.clearInterval(window.__sessionKeepaliveInterval)
+  window.__sessionKeepaliveInterval = window.setInterval(sendSessionKeepaliveIfActive, SESSION_KEEPALIVE_INTERVAL_MS)
 
   if (window.__sessionTimeoutListenersAttached) return
   window.__sessionTimeoutListenersAttached = true
 
   SESSION_TIMEOUT_ACTIVITY_EVENTS.forEach((eventName) => {
     document.addEventListener(eventName, () => {
+      window.__sessionLastActivityAt = Date.now()
       const currentTimeoutSeconds = Number.parseInt(document.body.dataset.sessionTimeoutSeconds, 10)
       if (currentTimeoutSeconds) resetSessionTimeoutTimer(currentTimeoutSeconds)
     }, { passive: true })
@@ -172,6 +181,26 @@ function initSessionTimeout() {
 function resetSessionTimeoutTimer(timeoutSeconds) {
   window.clearTimeout(window.__sessionTimeoutTimer)
   window.__sessionTimeoutTimer = window.setTimeout(() => window.location.reload(), timeoutSeconds * 1000)
+}
+
+// Keeps a session alive across a long, uninterrupted form-filling stretch —
+// typing/scrolling never triggers a real request on its own, so without this
+// the server's idle clock would run out mid-form and the submit would land
+// on a logged-out session, losing whatever was typed. Only pings while the
+// tab is visible and activity has actually happened recently, so someone
+// who genuinely walks away still times out on schedule.
+function sendSessionKeepaliveIfActive() {
+  if (document.visibilityState !== "visible") return
+  if (!document.body.dataset.sessionTimeoutSeconds) return
+  if (Date.now() - (window.__sessionLastActivityAt || 0) > SESSION_KEEPALIVE_INTERVAL_MS) return
+
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+
+  fetch("/session/keepalive", {
+    method: "POST",
+    headers: csrfToken ? { "X-CSRF-Token": csrfToken } : {},
+    credentials: "same-origin"
+  }).catch(() => {})
 }
 
 function initMobileNav() {

@@ -9,6 +9,15 @@ class ApplicationController < ActionController::Base
   # inactivity time, not a hard session lifetime.
   SESSION_TIMEOUT = 30.minutes
 
+  # Organizers and super admins routinely work through long tournament-setup
+  # forms and admin review queues in one sitting — a tighter timeout mostly
+  # just interrupts that work, where the athlete/parent-facing side of the
+  # app is quick in-and-out sessions. Role, not organizer_status: an
+  # unverified/pending organizer is still an organizer working through their
+  # own long signup form.
+  EXTENDED_SESSION_TIMEOUT = 2.hours
+  EXTENDED_SESSION_TIMEOUT_ROLES = %w[organizer super_admin].freeze
+
   before_action :enforce_session_timeout
   before_action :enforce_session_fingerprint
   before_action :require_athlete_profile_completion
@@ -25,7 +34,7 @@ class ApplicationController < ActionController::Base
     return if session[:user_id].blank?
 
     last_seen_at = session[:last_seen_at]
-    if last_seen_at.present? && Time.current.to_i - last_seen_at > SESSION_TIMEOUT
+    if last_seen_at.present? && Time.current.to_i - last_seen_at > session_timeout_seconds
       reset_session
       redirect_to login_path, alert: "You've been signed out due to inactivity. Please sign in again."
       return
@@ -35,7 +44,8 @@ class ApplicationController < ActionController::Base
   end
 
   def session_timeout_seconds
-    SESSION_TIMEOUT.to_i
+    role = current_user&.role
+    (EXTENDED_SESSION_TIMEOUT_ROLES.include?(role) ? EXTENDED_SESSION_TIMEOUT : SESSION_TIMEOUT).to_i
   end
 
   # Binds the session to the browser it was issued in. The session cookie
@@ -123,7 +133,7 @@ class ApplicationController < ActionController::Base
     return if current_user.athletes.exists?
     return if controller_name == "athletes" && %w[new create].include?(action_name)
     return if controller_name == "home" && action_name == "terms"
-    return if controller_name == "sessions" && action_name == "destroy"
+    return if controller_name == "sessions" && action_name.in?(%w[destroy keepalive])
     return if controller_name == "users"
 
     redirect_to new_athlete_path(profile_setup: true), alert: "Complete your athlete profile to continue."
