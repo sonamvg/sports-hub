@@ -14,4 +14,8 @@ Rails.application.configure do
   }
   config.active_storage.service = :amazon
   config.active_support.report_deprecations = false
+
+  # Puma doesn't gzip responses on its own; without this every HTML, CSS,
+  # and JS response goes over the wire uncompressed.
+  config.middleware.use Rack::Deflater
 end

@@ -2,7 +2,7 @@ class TournamentCategory < ApplicationRecord
   before_validation :assign_generated_name
   before_validation :assign_category_key
 
-  belongs_to :tournament
+  belongs_to :tournament, counter_cache: true
   # Matches must be destroyed before registrations (a match references its
   # registrations by foreign key) and in ascending round order (a round's
   # next_match_id points forward to the next round, so the referencing row

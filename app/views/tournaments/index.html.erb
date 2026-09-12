@@ -69,7 +69,7 @@
           <div class="entity-meta">
             <span><strong>Starts</strong><%= tournament.start_date.strftime("%d %b %Y") %></span>
             <span><strong>Organizer</strong><%= tournament.organizer.name %></span>
-            <span><strong>Categories</strong><%= tournament.tournament_categories.count %></span>
+            <span><strong>Categories</strong><%= tournament.tournament_categories_count %></span>
           </div>
           <div class="card-links">
             <%= link_to tournament_path(tournament), class: "text-link icon-label" do %><span>View tournament</span><%= ui_icon("arrow-right") %><% end %>

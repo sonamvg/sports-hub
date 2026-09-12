@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_09_115725) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_09_133304) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -361,6 +361,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_115725) do
     t.string "payment_bank_name"
     t.string "payment_ifsc"
     t.text "payment_instructions"
+    t.string "payment_upi_id"
     t.string "primary_contact_email"
     t.string "primary_contact_name"
     t.string "primary_contact_phone"
@@ -375,6 +376,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_115725) do
     t.integer "status", default: 0, null: false
     t.datetime "terms_accepted_at"
     t.string "time_zone"
+    t.integer "tournament_categories_count", default: 0, null: false
     t.string "tournament_level"
     t.datetime "updated_at", null: false
     t.string "venue"

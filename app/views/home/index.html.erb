@@ -17,7 +17,9 @@
         <%= image_with_placeholder(
           "black-belt-dobok.jpg",
           alt: "Close-up of a black belt tied over a white taekwondo uniform",
-          placeholder: "PodiumCircle"
+          placeholder: "PodiumCircle",
+          loading: "eager",
+          fetchpriority: "high"
         ) %>
         <div class="hero-photo-caption">
           <p class="small-label">READY FOR THE MAT</p>
