@@ -17,7 +17,7 @@ class RegistrationsController < ApplicationController
   end
 
   def create
-    @registration = @tournament.registrations.build
+    @registration = @tournament.registrations.build(registered_weight: registration_params[:registered_weight])
     @athlete = manageable_athletes.find_by(id: registration_params[:athlete_id])
     @selected_category_ids = Array(registration_params[:tournament_category_ids]).reject(&:blank?).uniq
 
