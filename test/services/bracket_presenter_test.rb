@@ -40,4 +40,20 @@ class BracketPresenterTest < ActiveSupport::TestCase
     seeded_ids = round_one_matches.flat_map { |m| [ m[:opponent1], m[:opponent2] ] }.compact.map { |o| o[:id] }.compact
     assert_equal @category.draw_eligible_registrations.pluck(:id).sort, seeded_ids.sort
   end
+
+  test "a decision recorded without points omits score instead of rendering null" do
+    2.times { |i| create_weight_verified_registration(tournament: @tournament, category: @category, email: "presenter-no-score-#{i}@example.test") }
+    BracketGenerator.new(@category).call
+    @category.reload
+
+    match = @category.matches.find(&:ready_for_result?)
+    match.record_result!(winner_registration_id: match.registration_one_id, decision: :winner_only, score_data: {})
+
+    data = BracketPresenter.new(@category.reload).as_json
+    completed = data[:matches].find { |m| m[:id] == match.id }
+
+    assert_not completed[:opponent1].key?(:score)
+    assert_not completed[:opponent2].key?(:score)
+    assert_equal "win", completed[:opponent1][:result]
+  end
 end

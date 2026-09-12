@@ -80,7 +80,7 @@ class BracketPresenter
       opponent[:result] = "win"
     elsif match.completed?
       rounds_won = match.score_data["rounds_won"] || {}
-      opponent[:score] = rounds_won[side]
+      opponent[:score] = rounds_won[side] if rounds_won.key?(side)
       opponent[:result] = match.winner_registration_id == registration_id ? "win" : "loss"
     end
 
