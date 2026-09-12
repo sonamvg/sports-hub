@@ -88,6 +88,8 @@ module ApplicationHelper
       "#{winner_name} won by withdrawal"
     when "no_show"
       "#{winner_name} won — opponent did not show"
+    when "winner_only"
+      "#{winner_name} won"
     else
       "#{winner_name} won"
     end

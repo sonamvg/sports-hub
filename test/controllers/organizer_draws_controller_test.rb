@@ -81,6 +81,19 @@ class OrganizerDrawsControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes ready_section, "Round 1 &middot; Match #{real_match.slot_position}"
   end
 
+  test "the decision select defaults to picking a winner without points" do
+    3.times { |i| create_weight_verified_registration(tournament: @tournament, category: @category, email: "draw-decision-default-#{i}@example.test") }
+    BracketGenerator.new(@category).call
+    @category.reload
+
+    get organizer_tournament_tournament_category_draw_path(@tournament, @category)
+
+    assert_response :success
+    select_html = response.body[/<select[^>]*data-match-decision-select[^>]*>.*?<\/select>/m]
+    assert_not_nil select_html
+    assert_match(/<option[^>]*selected="selected"[^>]*value="winner_only"[^>]*>/, select_html)
+  end
+
   test "non manager cannot view the draw" do
     other = User.create!(name: "Other", email: "draw-other@example.test", password: "password123", role: :organizer)
     sign_in_as other

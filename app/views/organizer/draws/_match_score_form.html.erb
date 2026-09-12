@@ -16,13 +16,14 @@
     <div class="form-field">
       <%= label_tag "#{dom_id}_decision", "Decision" %>
       <%= select_tag "match[decision]", options_for_select([
+            [ "Select winner (no points)", "winner_only" ],
             [ "By points", "points" ],
             [ "Referee stops contest (RSC)", "rsc" ],
             [ "Disqualification", "disqualification" ],
             [ "Withdrawal", "withdrawal" ],
             [ "No-show", "no_show" ]
-          ]), id: "#{dom_id}_decision", data: { match_decision_select: true } %>
-      <p class="field-hint">By points auto-picks the winner from rounds won &mdash; switch this only if you need to set the winner directly.</p>
+          ], "winner_only"), id: "#{dom_id}_decision", data: { match_decision_select: true } %>
+      <p class="field-hint">Pick the winner directly &mdash; switch to "By points" only if you want to enter round scores.</p>
     </div>
 
     <div class="match-rounds" data-match-rounds-field>

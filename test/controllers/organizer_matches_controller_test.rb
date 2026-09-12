@@ -57,6 +57,16 @@ class OrganizerMatchesControllerTest < ActionDispatch::IntegrationTest
     assert_equal @match.registration_two_id, @match.winner_registration_id
   end
 
+  test "organizer records a winner-only decision without round scores" do
+    patch organizer_match_path(@match), params: { match: { decision: "winner_only", winner_side: "one" } }
+
+    assert_redirected_to organizer_tournament_tournament_category_draw_path(@tournament, @category)
+    @match.reload
+    assert @match.completed?
+    assert_equal "winner_only", @match.decision
+    assert_equal @match.registration_one_id, @match.winner_registration_id
+  end
+
   test "non manager cannot record a result" do
     other = User.create!(name: "Other", email: "matches-other@example.test", password: "password123", role: :organizer)
     sign_in_as other

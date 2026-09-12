@@ -9,7 +9,7 @@ class Match < ApplicationRecord
 
   enum :status, { pending: 0, bye: 1, completed: 2 }, default: :pending
   enum :medal, { no_medal: 0, gold: 1, silver: 2, bronze: 3 }, default: :no_medal
-  enum :decision, { points: 0, rsc: 1, disqualification: 2, withdrawal: 3, no_show: 4 }, validate: { allow_nil: true }
+  enum :decision, { points: 0, rsc: 1, disqualification: 2, withdrawal: 3, no_show: 4, winner_only: 5 }, validate: { allow_nil: true }
 
   validates :round_number, :slot_position, numericality: { only_integer: true, greater_than: 0 }
   validates :next_match_slot, inclusion: { in: [ 1, 2 ] }, allow_nil: true
