@@ -3171,3 +3171,18 @@ This file is the long-lived implementation journal for PodiumCircle. Keep it cur
 - Manually exercised in the browser: homepage, tournament listing/search, tournament detail page, full signup flow (`/users/new` → athlete profile setup → athlete show page), full paid-tournament registration flow (category selection, fee total, weight, payment details, receipt upload, submission), organizer registration approval (kebab menu → Accept), full academy registration flow (`/academies/new` → submission → super-admin approval via kebab menu), an authorization boundary check (`ActiveRecord::RecordNotFound` → 404 when a non-manager opens another organizer's tournament edit page), and a mobile-viewport (375×812) pass on the homepage, tournament listing, and tournament detail page.
 - Confirmed the session-fingerprint security feature correctly force-logs-out a session when the mobile emulation preset changes the browser's user agent mid-session — expected behavior, not a bug.
 - No other functional defects found in this pass; all console errors observed during testing were traced to either the two fixed bugs above or the browser tab's own stale console buffer (confirmed via a fresh tab) or intentionally-triggered 422/404s from the edge-case tests themselves.
+
+## 2026-09-15 - Full Athlete Registration Flow QA and Validation Gaps
+
+### Reference
+- User requested running the complete athlete registration flow end to end, deliberately trying invalid/adversarial inputs at every step, with results reported in a pass/fail table.
+
+### Change Log
+- Added `Athlete::MAX_AGE_YEARS = 100` and extended `date_of_birth_cannot_be_in_the_future` to also reject a date of birth that would make the athlete over 100 years old (previously only future dates were rejected — a date of birth of 1850 was silently accepted).
+- Added format validation (`User::PHONE_FORMAT`, 10-digit) to `Athlete#contact_number` and `Athlete#emergency_contact_phone` — previously neither field validated format at all, so arbitrary text like `"call-me-maybe"` was accepted and stored.
+
+### Verification Log
+- Manually ran 25 test cases across account signup, athlete profile creation/edit, and tournament registration, deliberately submitting invalid emails, mismatched/weak passwords, malformed phone numbers, names with digits and XSS payloads, a future and a 176-years-ago date of birth, negative/zero/absurd weights, a non-numeric contact number, an XSS payload in emergency contact name, a `.txt` file as a profile photo and a `.exe` as a payment receipt, a category mismatched to the athlete's age/gender, duplicate and already-decided category resubmission, and raw-POST tampering of category IDs (nonexistent, cross-tournament) and athlete ID (another user's athlete). 23 of 25 passed; found and reported the two gaps above (plus a minor, unfixed inconsistency: phone is marked `required` in the athlete signup HTML but not enforced server-side for non-organizer accounts).
+- Ran `mise exec -- bin/rails test test/models/athlete_test.rb`; result: 17 runs, 75 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 400 runs, 3066 assertions, 0 failures, 0 errors, 0 skips.
+- Re-verified live in the browser: resubmitted the same 1850 date of birth and `"call-me-maybe"` contact number against the same athlete record used during the QA pass; both are now rejected with the expected error messages, then restored the profile to valid values.
