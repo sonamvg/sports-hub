@@ -21,6 +21,7 @@ class Athlete < ApplicationRecord
   # Lets an athlete upload both sides of an Aadhaar card, or multiple passport
   # pages, instead of being limited to a single government ID file.
   MAX_IDENTITY_DOCUMENTS = 5
+  MAX_AGE_YEARS = 100
 
   belongs_to :user
   belongs_to :academy, optional: true
@@ -43,6 +44,8 @@ class Athlete < ApplicationRecord
   validates :state, inclusion: { in: Tournament::INDIAN_STATES_AND_UNION_TERRITORIES }, allow_blank: true
   validates :address, length: { maximum: 255 }, allow_blank: true
   validates :emergency_contact_name, format: { with: User::NAME_FORMAT, message: "can only contain letters, spaces, hyphens, and apostrophes" }, allow_blank: true
+  validates :contact_number, format: { with: User::PHONE_FORMAT, message: "must be a 10-digit mobile number" }, allow_blank: true
+  validates :emergency_contact_phone, format: { with: User::PHONE_FORMAT, message: "must be a 10-digit mobile number" }, allow_blank: true
   validates :profile_photo_url, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid http or https URL" }, allow_blank: true
   validate :profile_photo_size
   validate :identity_documents_size
@@ -97,9 +100,11 @@ class Athlete < ApplicationRecord
   end
 
   def date_of_birth_cannot_be_in_the_future
-    return if date_of_birth.blank? || date_of_birth <= Date.current
+    return if date_of_birth.blank?
+    return errors.add(:date_of_birth, "cannot be in the future") if date_of_birth > Date.current
+    return if date_of_birth >= MAX_AGE_YEARS.years.ago.to_date
 
-    errors.add(:date_of_birth, "cannot be in the future")
+    errors.add(:date_of_birth, "must indicate an age of #{MAX_AGE_YEARS} years or less")
   end
 
   def academy_must_be_approved

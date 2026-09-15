@@ -137,6 +137,29 @@ class AthleteTest < ActiveSupport::TestCase
     assert_includes athlete.errors[:date_of_birth], "cannot be in the future"
   end
 
+  test "rejects a date of birth that would make the athlete over 100 years old" do
+    athlete = @user.athletes.build(
+      first_name: "Aarohi",
+      last_name: "Shah",
+      date_of_birth: Date.new(1850, 1, 1),
+      gender: "female"
+    )
+
+    assert_not athlete.valid?
+    assert_includes athlete.errors[:date_of_birth], "must indicate an age of 100 years or less"
+  end
+
+  test "rejects a non-numeric or malformed contact number and emergency contact phone" do
+    athlete = @user.athletes.build(
+      first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female",
+      contact_number: "call-me-maybe", emergency_contact_phone: "12345"
+    )
+
+    assert_not athlete.valid?
+    assert_includes athlete.errors[:contact_number], "must be a 10-digit mobile number"
+    assert_includes athlete.errors[:emergency_contact_phone], "must be a 10-digit mobile number"
+  end
+
   test "rejects unsupported gender and belt values" do
     athlete = @user.athletes.build(
       first_name: "Aarohi",
