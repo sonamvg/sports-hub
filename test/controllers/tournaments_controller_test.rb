@@ -264,6 +264,34 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Organizer profile approval is required before creating tournaments.", flash[:alert]
   end
 
+  test "academy owner cannot create a tournament" do
+    owner = User.create!(name: "Academy Owner", email: "no-organize-owner@example.test", password: "password123", role: :academy_owner)
+    sign_in_as owner
+
+    assert_no_difference("Tournament.count") do
+      post tournaments_path, params: {
+        tournament: {
+          name: "Academy Owner Open",
+          start_date: "2026-12-05",
+          end_date: "2026-12-06"
+        }
+      }
+    end
+
+    assert_redirected_to organizers_path
+    assert_equal "Organizer profile approval is required before creating tournaments.", flash[:alert]
+  end
+
+  test "index hides create tournament button for academy owner" do
+    owner = User.create!(name: "Academy Owner", email: "no-create-button-owner@example.test", password: "password123", role: :academy_owner)
+    sign_in_as owner
+
+    get tournaments_path
+
+    assert_response :success
+    assert_not_includes response.body, "Create tournament"
+  end
+
   test "renders errors when tournament is invalid" do
     assert_no_difference("Tournament.count") do
       post tournaments_path, params: { tournament: { name: "", start_date: "2026-12-06", end_date: "2026-12-05" } }
@@ -891,7 +919,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 1, response.body.scan('class="entity-card tournament-card"').size
     assert_includes response.body, "Find competitions"
     assert_includes response.body, "2 filters active"
-    assert_includes response.body, "Apply"
+    assert_includes response.body, "Search"
     assert_includes response.body, "All countries"
     assert_includes response.body, "All states"
     assert_includes response.body, "Country"
