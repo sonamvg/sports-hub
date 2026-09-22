@@ -12,6 +12,10 @@ class User < ApplicationRecord
   # account can satisfy the same email presence/uniqueness rules as everyone
   # else while having no working sign-in of its own.
   PLACEHOLDER_EMAIL_DOMAIN = "no-email.podiumcircle.internal"
+  # Domain stamped on a deleted account's email once it's deactivated, so the
+  # real address is freed up for reuse and the (now unusable) account still
+  # satisfies the normal email presence/uniqueness rules.
+  DEACTIVATED_EMAIL_DOMAIN = "deleted.podiumcircle.internal"
 
   has_secure_password
   generates_token_for :password_reset, expires_in: 15.minutes do
@@ -55,8 +59,9 @@ class User < ApplicationRecord
   validate :profile_photo_size
   validate :placeholder_email_domain_is_reserved
 
-  scope :verified_organizers, -> { organizer.organizer_verified }
-  scope :pending_organizers, -> { organizer.organizer_pending }
+  scope :active, -> { where(deactivated_at: nil) }
+  scope :verified_organizers, -> { active.organizer.organizer_verified }
+  scope :pending_organizers, -> { active.organizer.organizer_pending }
 
   def self.generate_placeholder_email
     "athlete-#{SecureRandom.uuid}@#{PLACEHOLDER_EMAIL_DOMAIN}"
@@ -70,12 +75,47 @@ class User < ApplicationRecord
     super_admin? || (organizer? && organizer_verified?)
   end
 
+  # Athletes this user can register/manage: their own, plus every athlete
+  # belonging to an academy they own. The single source of truth for this
+  # rule — every controller that needs "which athletes can this user act
+  # for" should call this rather than reimplementing the query.
+  def manageable_athletes
+    Athlete.where(user_id: id).or(Athlete.where(academy_id: owned_academies.approved.select(:id))).distinct
+  end
+
   def verify_organizer!(reviewer:)
     update!(organizer_status: :verified, organizer_approved_at: Time.current, organizer_rejected_at: nil, organizer_reviewed_by: reviewer)
   end
 
   def reject_organizer!(reviewer:)
     update!(organizer_status: :rejected, organizer_rejected_at: Time.current, organizer_reviewed_by: reviewer)
+  end
+
+  def deactivated?
+    deactivated_at.present?
+  end
+
+  # Used instead of a hard delete when the account still has tournaments
+  # that must keep a valid organizer reference (e.g. completed/cancelled/
+  # archived ones) — the row stays, but sign-in is permanently disabled and
+  # personal contact details are cleared. The name is left as-is so those
+  # preserved tournaments keep showing who ran them.
+  #
+  # Goes through update_columns (skips validations/callbacks) rather than
+  # update! — deactivation must succeed regardless of the account's current
+  # validation state (e.g. a pending organizer whose phone becomes required
+  # only while they're pending would otherwise block clearing that same
+  # phone number).
+  def deactivate!
+    unguessable_password = "#{SecureRandom.alphanumeric(10)}#{rand(10)}#{("a".."z").to_a.sample}"
+    self.password = unguessable_password
+
+    update_columns(
+      deactivated_at: Time.current,
+      email: "deleted-user-#{id}@#{DEACTIVATED_EMAIL_DOMAIN}",
+      phone: nil,
+      password_digest: password_digest
+    )
   end
 
   def organizer_event_names

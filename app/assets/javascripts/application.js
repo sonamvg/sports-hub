@@ -331,3 +331,65 @@ document.addEventListener("toggle", (event) => {
 
 window.addEventListener("scroll", repositionOpenKebabMenus, true)
 window.addEventListener("resize", repositionOpenKebabMenus)
+
+// City choices are scoped to the selected state (Academy/Athlete/Tournament
+// address forms) so combinations like "Hyderabad" + "Karnataka" can't be
+// picked — an "Other" option in the city select reveals a free-text field
+// for any city not in the curated list, so this never blocks a legitimate
+// address.
+function rebuildLocationCityOptions(citySelect, cities, selectedCity) {
+  citySelect.innerHTML = ""
+
+  const blank = document.createElement("option")
+  blank.value = ""
+  blank.textContent = "Select city"
+  citySelect.appendChild(blank)
+
+  cities.forEach(function (city) {
+    const option = document.createElement("option")
+    option.value = city
+    option.textContent = city
+    if (city === selectedCity) option.selected = true
+    citySelect.appendChild(option)
+  })
+
+  const other = document.createElement("option")
+  other.value = "Other"
+  other.textContent = "Other"
+  if (selectedCity === "Other") other.selected = true
+  citySelect.appendChild(other)
+}
+
+document.addEventListener("change", function (event) {
+  const stateSelect = event.target.closest("[data-location-state-select]")
+  if (!stateSelect) return
+
+  const scope = stateSelect.closest("form") || document
+  const citySelect = scope.querySelector("[data-location-city-select]")
+  const cityOther = scope.querySelector("[data-location-city-other]")
+  const dataScript = scope.querySelector("[data-location-state-cities]")
+  if (!citySelect || !cityOther || !dataScript) return
+
+  const stateCities = JSON.parse(dataScript.textContent || "{}")
+  rebuildLocationCityOptions(citySelect, stateCities[stateSelect.value] || [], "")
+  cityOther.hidden = true
+  cityOther.value = ""
+})
+
+document.addEventListener("change", function (event) {
+  const citySelect = event.target.closest("[data-location-city-select]")
+  if (!citySelect) return
+
+  const scope = citySelect.closest("form") || document
+  const cityOther = scope.querySelector("[data-location-city-other]")
+  if (!cityOther) return
+
+  if (citySelect.value === "Other") {
+    cityOther.hidden = false
+    cityOther.value = ""
+    cityOther.focus()
+  } else {
+    cityOther.hidden = true
+    cityOther.value = citySelect.value
+  }
+})

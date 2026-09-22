@@ -9,7 +9,7 @@ class AthleteFlowSecurityTest < ActionDispatch::IntegrationTest
     @athlete = create_athlete(@athlete_user, first_name: "Aarohi", gender: "female", weight: 36.5)
     @other_athlete = create_athlete(@other_user, first_name: "Vihaan", gender: "male", weight: 39.5)
     @tournament = create_tournament(@organizer, name: "Security Open")
-    @category = @tournament.tournament_categories.find_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    @category = @tournament.tournament_categories.find_by!(event_type: "kyorugi", gender: "female", age_min: 13, age_max: 15, weight_min: 33, weight_max: 37)
   end
 
   test "signed out users cannot open or submit tournament registrations" do
@@ -19,27 +19,27 @@ class AthleteFlowSecurityTest < ActionDispatch::IntegrationTest
     assert_redirected_to login_path(return_to: new_tournament_registration_path(@tournament))
 
     assert_no_difference("Registration.count") do
-      post tournament_registrations_path(@tournament), params: registration_params(@athlete, @category)
+      post individual_tournament_registrations_path(@tournament), params: individual_params(@athlete, @category)
     end
-    assert_redirected_to login_path(return_to: tournament_registrations_path(@tournament))
+    assert_redirected_to login_path(return_to: individual_tournament_registrations_path(@tournament))
   end
 
   test "athlete id tampering cannot register another user's athlete" do
     sign_in_as @athlete_user
 
     assert_no_difference("Registration.count") do
-      post tournament_registrations_path(@tournament), params: registration_params(@other_athlete, @category)
+      post individual_tournament_registrations_path(@tournament), params: individual_params(@other_athlete, @category)
     end
 
     assert_response :unprocessable_entity
-    assert_includes response.body, "Athlete must be selected"
+    assert_includes response.body, "Choose an athlete and at least one category."
   end
 
   test "organizer cannot post registrations for an unrelated tournament" do
     sign_in_as @other_organizer
 
     assert_no_difference("Registration.count") do
-      post tournament_registrations_path(@tournament), params: registration_params(@athlete, @category)
+      post individual_tournament_registrations_path(@tournament), params: individual_params(@athlete, @category)
     end
 
     assert_redirected_to tournament_path(@tournament)
@@ -48,35 +48,35 @@ class AthleteFlowSecurityTest < ActionDispatch::IntegrationTest
 
   test "category id tampering cannot register category from another tournament" do
     other_tournament = create_tournament(@organizer, name: "Other Security Open")
-    other_category = other_tournament.tournament_categories.find_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    other_category = other_tournament.tournament_categories.find_by!(event_type: "kyorugi", gender: "female", age_min: 13, age_max: 15, weight_min: 33, weight_max: 37)
     sign_in_as @athlete_user
 
     assert_no_difference("Registration.count") do
-      post tournament_registrations_path(@tournament), params: registration_params(@athlete, other_category)
+      post individual_tournament_registrations_path(@tournament), params: individual_params(@athlete, other_category)
     end
 
     assert_response :unprocessable_entity
     assert_includes response.body, "included a category that is no longer available"
   end
 
-  test "replayed duplicate registration request does not create duplicate rows" do
+  test "replayed duplicate registration request does not create duplicate draft rows" do
     sign_in_as @athlete_user
 
     assert_difference("Registration.count", 1) do
-      post tournament_registrations_path(@tournament), params: registration_params(@athlete, @category)
-      post tournament_registrations_path(@tournament), params: registration_params(@athlete, @category)
+      post individual_tournament_registrations_path(@tournament), params: individual_params(@athlete, @category)
+      post individual_tournament_registrations_path(@tournament), params: individual_params(@athlete, @category)
     end
 
     registration = Registration.find_by!(athlete: @athlete, tournament: @tournament, tournament_category: @category)
-    assert_predicate registration, :pending?
+    assert_predicate registration, :draft?
   end
 
   test "client-side fee tampering is ignored and server snapshots tournament fee" do
     sign_in_as @athlete_user
 
     assert_difference("Registration.count", 1) do
-      post tournament_registrations_path(@tournament), params: registration_params(@athlete, @category).deep_merge(
-        registration: { fee_amount: "1", fee_currency: "USD" }
+      post individual_tournament_registrations_path(@tournament), params: individual_params(@athlete, @category).merge(
+        fee_amount: "1", fee_currency: "USD"
       )
     end
 
@@ -87,11 +87,11 @@ class AthleteFlowSecurityTest < ActionDispatch::IntegrationTest
 
   test "future registration window cannot be bypassed by posting directly" do
     future_tournament = create_tournament(@organizer, name: "Future Security Open", opens_at: 1.day.from_now, closes_at: 3.days.from_now)
-    future_category = future_tournament.tournament_categories.find_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    future_category = future_tournament.tournament_categories.find_by!(event_type: "kyorugi", gender: "female", age_min: 13, age_max: 15, weight_min: 33, weight_max: 37)
     sign_in_as @athlete_user
 
     assert_no_difference("Registration.count") do
-      post tournament_registrations_path(future_tournament), params: registration_params(@athlete, future_category)
+      post individual_tournament_registrations_path(future_tournament), params: individual_params(@athlete, future_category)
     end
 
     assert_redirected_to tournament_path(future_tournament)
@@ -100,35 +100,36 @@ class AthleteFlowSecurityTest < ActionDispatch::IntegrationTest
 
   test "closed registration window cannot be bypassed by posting directly" do
     closed_tournament = create_tournament(@organizer, name: "Closed Security Open", opens_at: 3.days.ago, closes_at: 1.day.ago)
-    closed_category = closed_tournament.tournament_categories.find_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    closed_category = closed_tournament.tournament_categories.find_by!(event_type: "kyorugi", gender: "female", age_min: 13, age_max: 15, weight_min: 33, weight_max: 37)
     sign_in_as @athlete_user
 
     assert_no_difference("Registration.count") do
-      post tournament_registrations_path(closed_tournament), params: registration_params(@athlete, closed_category)
+      post individual_tournament_registrations_path(closed_tournament), params: individual_params(@athlete, closed_category)
     end
 
     assert_redirected_to tournament_path(closed_tournament)
     assert_equal "Registration is not open for this tournament.", flash[:alert]
   end
 
-  test "unsafe payment receipt uploads are rejected through the registration controller" do
+  test "unsafe payment receipt uploads are rejected at submit time" do
     sign_in_as @athlete_user
+    post individual_tournament_registrations_path(@tournament), params: individual_params(@athlete, @category)
 
-    assert_no_difference("Registration.count") do
-      post tournament_registrations_path(@tournament), params: registration_params(@athlete, @category, receipt: invalid_text_upload)
+    assert_no_difference("Registration.pending.count") do
+      post payment_tournament_registrations_path(@tournament), params: { payment_receipt: invalid_text_upload }
     end
     assert_response :unprocessable_entity
     assert_includes response.body, "Payment receipt must be a JPG, PNG, WebP, or PDF file"
 
-    assert_no_difference("Registration.count") do
-      post tournament_registrations_path(@tournament), params: registration_params(@athlete, @category, receipt: oversized_upload)
+    assert_no_difference("Registration.pending.count") do
+      post payment_tournament_registrations_path(@tournament), params: { payment_receipt: oversized_upload }
     end
     assert_response :unprocessable_entity
     assert_includes response.body, "Payment receipt must be 5 MB or smaller"
 
     spoofed_upload = Rack::Test::UploadedFile.new(StringIO.new("#!/bin/bash\necho pwned\n"), "image/png", original_filename: "receipt.png")
-    assert_no_difference("Registration.count") do
-      post tournament_registrations_path(@tournament), params: registration_params(@athlete, @category, receipt: spoofed_upload)
+    assert_no_difference("Registration.pending.count") do
+      post payment_tournament_registrations_path(@tournament), params: { payment_receipt: spoofed_upload }
     end
     assert_response :unprocessable_entity
     assert_includes response.body, "Payment receipt must be a JPG, PNG, WebP, or PDF file"
@@ -229,14 +230,14 @@ class AthleteFlowSecurityTest < ActionDispatch::IntegrationTest
 
   test "registration form replay after logout does not create a registration" do
     sign_in_as @athlete_user
-    get new_tournament_registration_path(@tournament)
+    get individual_tournament_registrations_path(@tournament)
     assert_response :success
     delete logout_path
 
     assert_no_difference("Registration.count") do
-      post tournament_registrations_path(@tournament), params: registration_params(@athlete, @category)
+      post individual_tournament_registrations_path(@tournament), params: individual_params(@athlete, @category)
     end
-    assert_redirected_to login_path(return_to: tournament_registrations_path(@tournament))
+    assert_redirected_to login_path(return_to: individual_tournament_registrations_path(@tournament))
   end
 
   test "unsafe login return path is ignored" do
@@ -295,7 +296,7 @@ class AthleteFlowSecurityTest < ActionDispatch::IntegrationTest
     ApplicationController.allow_forgery_protection = true
 
     assert_no_difference("Registration.count") do
-      post tournament_registrations_path(@tournament), params: registration_params(@athlete, @category), headers: { "HTTP_ORIGIN" => "https://evil.example" }
+      post individual_tournament_registrations_path(@tournament), params: individual_params(@athlete, @category), headers: { "HTTP_ORIGIN" => "https://evil.example" }
     end
 
     assert_response :unprocessable_entity
@@ -309,7 +310,7 @@ class AthleteFlowSecurityTest < ActionDispatch::IntegrationTest
     user.athletes.create!(
       first_name: first_name,
       last_name: "Security",
-      date_of_birth: Date.new(2014, 5, 12),
+      date_of_birth: Date.new(2013, 5, 12),
       gender: gender,
       belt: "red",
       weight: weight,
@@ -340,14 +341,11 @@ class AthleteFlowSecurityTest < ActionDispatch::IntegrationTest
     )
   end
 
-  def registration_params(athlete, category, receipt: payment_receipt_upload)
+  def individual_params(athlete, category)
     {
-      registration: {
-        athlete_id: athlete.id,
-        tournament_category_ids: [category.id],
-        registered_weight: athlete.weight,
-        payment_receipt: receipt
-      }
+      athlete_id: athlete.id,
+      tournament_category_ids: [category.id],
+      registered_weight: athlete.weight
     }
   end
 end

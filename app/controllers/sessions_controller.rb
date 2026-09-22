@@ -7,7 +7,7 @@ class SessionsController < ApplicationController
     if params[:email].blank? || params[:password].blank?
       flash.now[:alert] = "Please sign in before continuing."
       render :new, status: :unprocessable_entity
-    elsif user&.placeholder_email?
+    elsif user&.placeholder_email? || user&.deactivated?
       flash.now[:alert] = "Invalid email or password."
       render :new, status: :unprocessable_entity
     elsif user&.authenticate(params[:password])

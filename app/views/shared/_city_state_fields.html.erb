@@ -1,0 +1,38 @@
+<%
+  city_required ||= false
+  state_required ||= false
+  known_cities = IndianLocation.cities_for(record.state)
+  city_is_other = record.city.present? && known_cities.exclude?(record.city)
+%>
+<div>
+  <% if state_required %>
+    <%= form.label :state do %>State<span class="required-marker">*</span><% end %>
+  <% else %>
+    <%= form.label :state %>
+  <% end %>
+  <%= form.select :state, IndianLocation::STATES, { include_blank: "Select state" }, required: state_required, data: { location_state_select: true } %>
+  <%= field_error(record, :state) %>
+</div>
+<div>
+  <% if city_required %>
+    <%= form.label :city do %>City<span class="required-marker">*</span><% end %>
+  <% else %>
+    <%= form.label :city %>
+  <% end %>
+  <select data-location-city-select>
+    <option value="">Select city</option>
+    <% known_cities.each do |city| %>
+      <option value="<%= city %>" <%= "selected" if record.city == city %>><%= city %></option>
+    <% end %>
+    <option value="<%= IndianLocation::OTHER_CITY %>" <%= "selected" if city_is_other %>>Other</option>
+  </select>
+  <%= form.text_field :city, required: city_required, data: { location_city_other: true }, hidden: (true unless city_is_other) %>
+  <%= field_error(record, :city) %>
+  <p class="field-hint">City choices depend on the selected state. Pick "Other" if yours isn't listed.</p>
+</div>
+<div>
+  <%= form.label :pincode, "PIN code" %>
+  <%= form.text_field :pincode, inputmode: "numeric", maxlength: 6, pattern: "[0-9]{6}", placeholder: "e.g. 411001" %>
+  <%= field_error(record, :pincode) %>
+</div>
+<script type="application/json" data-location-state-cities><%= IndianLocation::STATE_CITIES.to_json.html_safe %></script>

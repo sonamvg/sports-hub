@@ -2,6 +2,45 @@
 
 This file is the long-lived implementation journal for PodiumCircle. Keep it current for every code change, product decision, validation rule, test run, and known gap so future maintainers can reconstruct why the app behaves the way it does.
 
+## 2026-09-22 - Fly Deploy Docker Base Image Fix
+
+### Reference
+- User reported production deployment failed and asked to fix the issue and deploy.
+
+### Change Log
+- Updated `Dockerfile` from `ruby:3.2.0-slim` to `ruby:3.3.8-slim-bookworm`, matching the project's `.ruby-version` and moving away from the Debian Bullseye package indexes that were returning 404s during `apt-get install`.
+
+### Verification Log
+- Ran `mise exec -- fly deploy --app taekwondo-hub --build-only`; result: Docker image built successfully with the Bookworm base image and no Debian package 404s.
+- Ran `mise exec -- bin/rails test`; result: 432 runs, 3193 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `git diff --check`; result: no whitespace errors.
+- Ran `mise exec -- fly deploy --app taekwondo-hub`; result: release command `bin/rails db:prepare` completed successfully and Fly release `v11` deployed.
+- Verified production with `mise exec -- fly releases --app taekwondo-hub`; result: `v11` is `complete`.
+- Verified production with `mise exec -- fly status --app taekwondo-hub`; result: both app machines are on version `11` and started.
+- Verified `https://podiumcircle.com/` with `curl -I`; result: `HTTP/2 200`.
+- Verified production schema with Rails runner; result: `Tournament.column_names.include?("group_registration_fee")` returned `true`.
+
+## 2026-09-22 - Visible Super Admin Academy Approval Actions
+
+### Reference
+- User confirmed `sonamvgoyal@gmail.com` is a super admin but could not see where to approve academies.
+
+### Change Log
+- Added visible `Approve academy` and `Reject` actions to pending academy cards for super admins on the academies index.
+- Added a visible pending-approval panel to pending academy detail pages for super admins, so approval is not hidden only inside the three-dot menu.
+- Updated direct academy approve/reject actions to sync related pending super-admin academy notifications as approved/rejected.
+- Added regression coverage for visible super-admin academy approval actions and notification sync.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb test/controllers/super_admin_notifications_controller_test.rb`; result: 40 runs, 537 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 443 runs, 3259 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `git diff --check`; result: no whitespace errors.
+- Ran `mise exec -- fly deploy --app taekwondo-hub`; result: Fly release `v12` deployed successfully and release command completed.
+- Verified production with `mise exec -- fly releases --app taekwondo-hub`; result: `v12` is `complete`.
+- Verified production with `mise exec -- fly status --app taekwondo-hub`; result: both app machines are on version `12` and started.
+- Verified `https://podiumcircle.com/` with `curl -I`; result: `HTTP/2 200`.
+- Verified production pending approval data with Rails runner; result: 4 pending academies and 4 pending academy-submission notifications remain available for review.
+
 ## 2026-08-27 - Organizer Profile Landing Page
 
 ### Reference
@@ -3186,3 +3225,18 @@ This file is the long-lived implementation journal for PodiumCircle. Keep it cur
 - Ran `mise exec -- bin/rails test test/models/athlete_test.rb`; result: 17 runs, 75 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails test`; result: 400 runs, 3066 assertions, 0 failures, 0 errors, 0 skips.
 - Re-verified live in the browser: resubmitted the same 1850 date of birth and `"call-me-maybe"` contact number against the same athlete record used during the QA pass; both are now rejected with the expected error messages, then restored the profile to valid values.
+
+## 2026-09-23 - Pre-GitHub Commit Test Stabilization
+
+### Reference
+- User requested committing the current PodiumCircle code to GitHub after local QA and full test-suite runs.
+
+### Change Log
+- Updated `TournamentsControllerTest` setup for draft tournament visibility so the signed-in athlete has a completed athlete profile. This keeps the test focused on draft visibility instead of triggering the athlete profile-completion redirect.
+- Added a UPI payment method to the public paid-tournament details test fixture. Paid published tournaments now correctly require at least one payment method, so the fixture must satisfy that production validation before asserting public fee visibility.
+
+### Verification Log
+- Initial full-suite run before commit showed 476 runs, 3412 assertions, 1 failure, 1 error.
+- Targeted fixes were made only in test setup; no production behavior was changed by this stabilization.
+- Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb`; result: 59 runs, 551 assertions, 0 failures, 0 errors, 0 skips.
+- Ran `mise exec -- bin/rails test`; result: 476 runs, 3420 assertions, 0 failures, 0 errors, 0 skips.

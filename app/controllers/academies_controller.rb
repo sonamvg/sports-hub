@@ -15,6 +15,7 @@ class AcademiesController < ApplicationController
   end
 
   def show
+    raise ActiveRecord::RecordNotFound if !@academy.approved? && !can_manage_academy?(@academy)
   end
 
   def athletes
@@ -65,12 +66,17 @@ class AcademiesController < ApplicationController
 
   def approve
     @academy.update!(status: :approved, reviewed_at: Time.current, rejection_reason: nil)
-    @academy.owner&.academy_owner!
+    # Only promote a plain parent account (the default, no-role-yet state) —
+    # never downgrade someone who already has a more specific role like
+    # organizer or super_admin by overwriting their single-value role enum.
+    @academy.owner.academy_owner! if @academy.owner&.parent?
+    sync_academy_submission_notifications(:approved)
     redirect_to @academy, notice: "Academy approved."
   end
 
   def reject
     @academy.update!(status: :rejected, reviewed_at: Time.current, rejection_reason: params[:rejection_reason].presence)
+    sync_academy_submission_notifications(:rejected)
     redirect_to @academy, notice: "Academy rejected."
   end
 
@@ -118,9 +124,22 @@ class AcademiesController < ApplicationController
     )
   end
 
+  def sync_academy_submission_notifications(status)
+    SuperAdminNotification
+      .academy_submission
+      .pending
+      .where(notifiable: @academy)
+      .update_all(
+        status: SuperAdminNotification.statuses.fetch(status.to_s),
+        reviewed_by_id: current_user.id,
+        reviewed_at: Time.current,
+        updated_at: Time.current
+      )
+  end
+
   def academy_params
     params.require(:academy).permit(
-      :name, :registration_number, :city, :state, :country,
+      :name, :registration_number, :city, :state, :country, :pincode,
       :contact_name, :phone, :email, :logo_image,
       :terms_accepted, :data_sharing_consent
     )
@@ -132,6 +151,7 @@ class AcademiesController < ApplicationController
 
   def academy_athlete_registrations
     Registration
+      .decided
       .joins(:athlete)
       .includes(:tournament, :tournament_category, :registration_weight_checks, athlete: { profile_photo_attachment: :blob })
       .where(athletes: { academy_id: @academy.id })

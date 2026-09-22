@@ -1,0 +1,13 @@
+<div class="cart-strip">
+  <% grouped_rows.each do |batch_id, rows| %>
+    <div class="cart-strip-row">
+      <div class="cart-strip-row-main">
+        <strong><%= rows.map { |r| r.athlete.full_name }.uniq.join(" & ") %></strong>
+        <span><%= rows.map { |r| r.tournament_category.name }.uniq.join(", ") %></span>
+        <span class="cart-strip-row-age<%= " cart-strip-row-stale" if rows.first.created_at < 24.hours.ago %>">Added <%= time_ago_in_words(rows.first.created_at) %> ago</span>
+      </div>
+      <div class="cart-strip-row-fee"><%= rows.first.tournament_category.free? ? "Free" : rows.first.fee_label %></div>
+      <%= button_to "Remove", tournament_registration_path(@tournament, rows.first), method: :delete, class: "text-link button-reset", form: { style: "display:inline;" } %>
+    </div>
+  <% end %>
+</div>

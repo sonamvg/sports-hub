@@ -7,17 +7,27 @@ class Registration < ApplicationRecord
   belongs_to :tournament
   belongs_to :athlete
   belongs_to :tournament_category
+  belongs_to :moved_from_registration, class_name: "Registration", optional: true
   has_many :registration_action_logs, dependent: :destroy
   has_many :registration_weight_checks, dependent: :destroy
   has_one_attached :payment_receipt
 
   enum :status, { pending: 0, approved: 1, rejected: 2, withdrawn: 3, weight_verified: 4, disqualified: 5, draft: 6 }, default: :pending
 
+  # A `draft` registration is an in-progress cart row the submitter hasn't
+  # finished/paid for yet — it isn't a real registration attempt to anyone
+  # else. Every list/count of "actual" registrations (organizer queues,
+  # public tournament pages, an athlete's own history, an academy's roster)
+  # must use this scope rather than querying Registration directly, so a new
+  # caller can't forget to exclude it.
+  scope :decided, -> { where.not(status: :draft) }
+
   VALID_REVIEW_TRANSITIONS = {
     "approved" => "pending",
     "rejected" => "pending",
     "weight_verified" => "approved",
-    "disqualified" => "approved"
+    "disqualified" => "approved",
+    "withdrawn" => "approved"
   }.freeze
 
   validates :athlete_id, uniqueness: { scope: [:tournament_id, :tournament_category_id] }
@@ -116,8 +126,6 @@ class Registration < ApplicationRecord
       "Weight check is complete. This entry was disqualified."
     elsif approved?
       "Your registration has been accepted by the organiser."
-    elsif pending?
-      "Waiting for organiser review."
     elsif withdrawn?
       "This registration was withdrawn."
     end
@@ -127,6 +135,52 @@ class Registration < ApplicationRecord
     registration_weight_checks.order(:attempt_number).map do |check|
       result = check.passed? ? "passed" : "failed"
       "Attempt #{check.attempt_number}: #{formatted_weight(check.weight)} kg #{result}"
+    end
+  end
+
+  def weight_check_decision_pending?
+    approved? && registration_weight_checks.size == 3 && !registration_weight_checks.order(:attempt_number).last.passed?
+  end
+
+  def eligible_category_change_targets
+    tournament.tournament_categories
+      .where(event_type: tournament_category.event_type, gender: tournament_category.gender,
+             age_min: tournament_category.age_min, age_max: tournament_category.age_max)
+      .where.not(id: tournament_category_id)
+      .order(:weight_min)
+  end
+
+  def recommended_category_change_target
+    last_weight = registration_weight_checks.order(:attempt_number).last&.weight
+    return eligible_category_change_targets.first if last_weight.blank?
+
+    eligible_category_change_targets.min_by do |category|
+      bounds = [category.weight_min, category.weight_max].compact
+      midpoint = bounds.sum / bounds.size.to_f
+      (last_weight.to_d - midpoint).abs
+    end
+  end
+
+  def move_to_category!(category:, actor:)
+    last_weight = registration_weight_checks.order(:attempt_number).last&.weight
+
+    transaction do
+      review!(actor: actor, status: :withdrawn)
+
+      new_registration = tournament.registrations.build(
+        athlete: athlete,
+        tournament_category: category,
+        status: :approved,
+        verified_at: Time.current,
+        registered_weight: last_weight,
+        fee_amount: fee_amount,
+        fee_currency: fee_currency,
+        moved_from_registration: self
+      )
+      new_registration.payment_receipt.attach(payment_receipt.blob) if payment_receipt.attached?
+      new_registration.save!
+      new_registration.registration_action_logs.create!(actor: actor, action: "approved", from_status: nil, to_status: "approved")
+      new_registration
     end
   end
 
@@ -147,7 +201,7 @@ class Registration < ApplicationRecord
   end
 
   def payment_receipt_required
-    return if draft? || tournament&.free?
+    return if draft? || tournament_category&.free?
 
     errors.add(:payment_receipt, "must be uploaded") unless payment_receipt.attached?
   end
@@ -167,7 +221,7 @@ class Registration < ApplicationRecord
   def assign_fee_snapshot
     return if tournament.blank?
 
-    self.fee_amount ||= tournament.registration_fee.presence || 0
+    self.fee_amount ||= tournament_category&.effective_registration_fee || 0
     self.fee_currency ||= tournament.currency.presence || "INR"
   end
 

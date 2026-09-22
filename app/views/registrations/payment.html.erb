@@ -1,0 +1,105 @@
+<section class="page-shell"><div class="container narrow">
+<%= render "shared/breadcrumbs", items: [
+  { label: "Home", path: root_path },
+  { label: "Tournaments", path: tournaments_path },
+  { label: @tournament.name, path: tournament_path(@tournament) },
+  { label: "Register", path: new_tournament_registration_path(@tournament) },
+  { label: "Payment" }
+] %>
+
+<p class="eyebrow">REVIEW &amp; PAY</p>
+<h1 class="page-title">Review and submit</h1>
+<p class="page-copy">Everything you've added across both screens, one payment and one receipt for all of it.</p>
+
+<% if @error %>
+  <div class="inline-notice inline-notice-warning"><%= @error %></div>
+<% end %>
+
+<% if @draft_registrations.empty? %>
+  <div class="inline-empty-state">
+    <strong>Nothing to pay for yet</strong>
+    <p>Add an athlete or a group entry first.</p>
+    <%= link_to "Start registering", new_tournament_registration_path(@tournament), class: "primary-button" %>
+  </div>
+<% else %>
+  <% grouped = @draft_registrations.group_by(&:submission_batch_id) %>
+  <% total = @draft_registrations.sum { |r| r.tournament_category.free? ? 0 : r.fee_amount.to_d } %>
+
+  <%= form_with url: payment_tournament_registrations_path(@tournament), method: :post, class: "form-card", multipart: true do |form| %>
+    <div class="form-grid two-col">
+      <div class="full">
+        <label>In this batch &middot; <%= grouped.size %> <%= "entry".pluralize(grouped.size) %>, <%= @draft_registrations.map(&:athlete_id).uniq.size %> <%= "athlete".pluralize(@draft_registrations.map(&:athlete_id).uniq.size) %></label>
+        <%= render "registrations/draft_cart_rows", grouped_rows: grouped %>
+        <p class="field-hint"><%= link_to "+ Add another athlete or entry", new_tournament_registration_path(@tournament), class: "text-link" %></p>
+      </div>
+
+      <div class="registration-total full">
+        <strong>Total amount to pay</strong>
+        <span><%= @tournament.currency.presence || "INR" %> <%= number_with_delimiter(total.to_i) %></span>
+      </div>
+
+      <% unless total.zero? %>
+        <div class="full payment-instructions" data-payment-details>
+          <h2>Secure payment details</h2>
+          <p class="field-hint">These payment details are shown only in this signed-in registration flow and are not displayed on public tournament pages.</p>
+
+          <% if @tournament.payment_account_number.present? || @tournament.payment_bank_name.present? %>
+            <dl>
+              <div><dt>Account holder</dt><dd><%= @tournament.payment_account_name || "--" %></dd></div>
+              <div><dt>Bank</dt><dd><%= @tournament.payment_bank_name || "--" %></dd></div>
+              <div><dt>Account number</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_account_number || "--" %>" data-full="<%= @tournament.payment_account_number %>"><%= @tournament.masked_payment_account_number || "--" %></dd></div>
+              <div><dt>IFSC</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_ifsc || "--" %>" data-full="<%= @tournament.payment_ifsc %>"><%= @tournament.masked_payment_ifsc || "--" %></dd></div>
+            </dl>
+          <% end %>
+
+          <% if @tournament.payment_upi_id.present? %>
+            <dl>
+              <div><dt>UPI ID</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_upi_id %>" data-full="<%= @tournament.payment_upi_id %>"><%= @tournament.masked_payment_upi_id %></dd></div>
+            </dl>
+          <% end %>
+
+          <% if @tournament.payment_account_number.present? || @tournament.payment_upi_id.present? %>
+            <button type="button" class="secondary-button button-reset" data-toggle-payment-details>Show full payment details</button>
+          <% end %>
+
+          <% if @tournament.payment_qr_image.attached? %>
+            <div class="payment-qr">
+              <%= image_tag @tournament.payment_qr_image, alt: "Payment QR code for #{@tournament.name}", class: "payment-qr-image" %>
+              <p class="field-hint">Scan with any UPI or payment app to pay.</p>
+            </div>
+          <% end %>
+
+          <p><%= @tournament.payment_instructions.presence || "Make the payment using the organizer's shared instructions, then upload the receipt before submitting." %></p>
+        </div>
+        <div class="full">
+          <label for="payment_receipt">Payment receipt</label>
+          <%= file_field_tag :payment_receipt, accept: "image/png,image/jpeg,image/webp,application/pdf" %>
+          <p class="field-hint">Upload a JPG, PNG, WebP, or PDF receipt up to 5 MB &mdash; one receipt covers this whole batch.</p>
+        </div>
+      <% else %>
+        <div class="full inline-notice">Everything in this batch is free to enter. No payment or receipt is required.</div>
+      <% end %>
+    </div>
+
+    <div class="form-actions">
+      <%= form.submit "Submit #{@draft_registrations.size} #{"registration".pluralize(@draft_registrations.size)}", class: "primary-button button-reset" %>
+      <%= link_to "Back", new_tournament_registration_path(@tournament), class: "secondary-button" %>
+    </div>
+  <% end %>
+<% end %>
+</div></section>
+
+<script>
+  document.addEventListener("click", function(event) {
+    const button = event.target.closest("[data-toggle-payment-details]");
+    if (!button) return;
+
+    const container = button.closest("[data-payment-details]");
+    const revealed = container.dataset.revealed === "true";
+    container.querySelectorAll("[data-masked-field]").forEach(function(field) {
+      field.textContent = revealed ? field.dataset.masked : field.dataset.full;
+    });
+    container.dataset.revealed = revealed ? "false" : "true";
+    button.textContent = revealed ? "Show full payment details" : "Hide full payment details";
+  });
+</script>

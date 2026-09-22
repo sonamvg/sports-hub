@@ -79,7 +79,11 @@ module Organizer
       if weight_check.passed?
         "Weight check passed."
       elsif weight_check.attempt_number == 3
-        "Third weight check failed. Athlete disqualified."
+        if weight_check.registration.tournament.allow_category_change_at_weigh_in?
+          "Third weight check failed. Choose to change category or disqualify below."
+        else
+          "Third weight check failed. Athlete disqualified."
+        end
       else
         "Weight check attempt #{weight_check.attempt_number} saved."
       end

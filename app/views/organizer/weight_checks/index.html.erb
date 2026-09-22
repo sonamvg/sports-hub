@@ -44,9 +44,13 @@
         <% registrations.each do |registration| %>
           <% athlete = registration.athlete %>
           <% attempts = registration.registration_weight_checks.sort_by(&:attempt_number) %>
-          <article class="weight-check-row" id="weight-check-registration-<%= registration.id %>" data-weight-check-row data-registration-id="<%= registration.id %>">
+          <article class="weight-check-row<%= " weight-check-row-decision" if registration.weight_check_decision_pending? %>" id="weight-check-registration-<%= registration.id %>" data-weight-check-row data-registration-id="<%= registration.id %>">
             <div class="weight-check-main">
-              <span class="status-pill status-<%= registration.status %>"><%= registration.status.humanize %></span>
+              <% if registration.weight_check_decision_pending? %>
+                <span class="status-pill status-category_review">Decision needed</span>
+              <% else %>
+                <span class="status-pill status-<%= registration.status %>"><%= registration.status.humanize %></span>
+              <% end %>
               <h2><%= athlete.full_name %></h2>
               <p><%= registration.tournament_category.name %> · Target: <%= registration.category_weight_range %></p>
               <p class="muted"><%= athlete.academy&.name || "--" %><%= athlete.association_id.present? ? " · #{athlete.association_id}" : "" %></p>
@@ -68,7 +72,29 @@
               <% end %>
             </div>
 
-            <% if registration.weight_check_attempts_remaining? %>
+            <% if registration.weight_check_decision_pending? %>
+              <div class="decision-panel">
+                <div class="decision-panel-copy">
+                  <strong>3rd attempt failed — <%= registration.registration_weight_checks.order(:attempt_number).last.weight %> kg, outside the <%= registration.category_weight_range %> target.</strong>
+                  <p>This tournament allows category changes at weigh-in. Choose how to proceed instead of an automatic disqualification.</p>
+                </div>
+
+                <% targets = registration.eligible_category_change_targets %>
+                <% if targets.any? %>
+                  <% recommended = registration.recommended_category_change_target %>
+                  <%= form_with url: change_category_organizer_registration_weight_check_decision_path(registration), method: :patch, class: "category-picker-panel" do |form| %>
+                    <%= hidden_field_tag :q, @query %>
+                    <%= hidden_field_tag :category_id, @category_id %>
+                    <%= form.label :tournament_category_id, "Move to category" %>
+                    <%= form.select :tournament_category_id, targets.map { |category| ["#{category.name}#{" — Recommended fit" if category == recommended}", category.id] }, selected: recommended&.id %>
+                    <p class="field-hint">Only categories already in this tournament are offered. The athlete's 3 attempts reset once moved — weigh-in restarts fresh in the new category.</p>
+                    <%= form.submit "Move athlete", class: "primary-button button-reset" %>
+                  <% end %>
+                <% end %>
+
+                <%= button_to "Disqualify", disqualify_organizer_registration_weight_check_decision_path(registration, q: @query, category_id: @category_id), method: :patch, class: "reject-button", form: { class: "decision-disqualify-form" } %>
+              </div>
+            <% elsif registration.weight_check_attempts_remaining? %>
               <%= form_with model: RegistrationWeightCheck.new, url: organizer_registration_weight_checks_path(registration), class: "attempt-form" do |form| %>
                 <%= hidden_field_tag :q, @query %>
                 <%= hidden_field_tag :category_id, @category_id %>

@@ -30,6 +30,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     super_admin = User.create!(name: "Demo Parent", email: "parent@example.test", password: "password123", role: :super_admin)
     owner = User.create!(name: "Academy Owner", email: "owner@example.test", password: "password123", role: :parent)
     academy = Academy.create!(name: "Pending Academy", city: "Pune", owner: owner, status: :pending)
+    notification = SuperAdminNotification.notify!(kind: :academy_submission, notifiable: academy, actor: owner)
     sign_in_as super_admin
 
     patch approve_academy_path(academy)
@@ -39,6 +40,45 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_not_nil academy.reviewed_at
     assert_predicate owner.reload, :academy_owner?
     assert_predicate super_admin, :super_admin?
+    assert_predicate notification.reload, :approved?
+    assert_equal super_admin, notification.reviewed_by
+  end
+
+  test "approving an academy owned by a verified organizer does not overwrite their organizer role" do
+    super_admin = User.create!(name: "Demo Admin", email: "admin-preserve-role@example.test", password: "password123", role: :super_admin)
+    owner = User.create!(name: "Organizer Owner", email: "organizer-owner@example.test", password: "password123", role: :organizer, organizer_status: :verified)
+    academy = Academy.create!(name: "Organizer's Academy", city: "Pune", owner: owner, status: :pending)
+    sign_in_as super_admin
+
+    patch approve_academy_path(academy)
+
+    assert_predicate academy.reload, :approved?
+    assert_predicate owner.reload, :organizer?
+    assert_not owner.academy_owner?
+    assert_predicate owner, :can_organize_tournaments?
+  end
+
+  test "super admin sees visible pending academy approval actions" do
+    super_admin = User.create!(name: "Super Admin", email: "visible-academy-admin@example.test", password: "password123", role: :super_admin)
+    owner = User.create!(name: "Academy Owner", email: "visible-academy-owner@example.test", password: "password123", role: :parent)
+    academy = Academy.create!(name: "Visible Pending Academy", city: "Pune", owner: owner, status: :pending)
+    sign_in_as super_admin
+
+    get academies_path
+
+    assert_response :success
+    assert_includes response.body, "Visible Pending Academy"
+    assert_includes response.body, "Approve academy"
+    assert_includes response.body, approve_academy_path(academy)
+    assert_includes response.body, reject_academy_path(academy)
+
+    get academy_path(academy)
+
+    assert_response :success
+    assert_includes response.body, "Academy approval pending"
+    assert_includes response.body, "Approve academy"
+    assert_includes response.body, approve_academy_path(academy)
+    assert_includes response.body, reject_academy_path(academy)
   end
 
   test "public index hides pending academies from normal users" do

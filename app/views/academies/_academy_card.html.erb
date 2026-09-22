@@ -30,4 +30,10 @@
     </div>
   <% end %>
 
+  <% if super_admin? && academy.pending? %>
+    <div class="academy-card-review-actions" aria-label="Review #{academy.name}">
+      <%= button_to "Approve academy", approve_academy_path(academy), method: :patch, class: "approve-button" %>
+      <%= button_to "Reject", reject_academy_path(academy), method: :patch, class: "reject-button" %>
+    </div>
+  <% end %>
 </article>

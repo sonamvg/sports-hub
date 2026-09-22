@@ -69,6 +69,19 @@ module ApplicationHelper
     user.name.to_s.squish.split.first.presence || user.email.to_s.split("@").first
   end
 
+  ROLE_LABELS = {
+    "parent" => "Parent",
+    "athlete" => "Athlete",
+    "coach" => "Coach",
+    "organizer" => "Organizer",
+    "super_admin" => "Super Admin",
+    "academy_owner" => "Academy Owner"
+  }.freeze
+
+  def role_label(user)
+    ROLE_LABELS.fetch(user.role, user.role.to_s.humanize)
+  end
+
   def match_result_summary(match)
     winner_name = match.winner_registration&.athlete&.full_name || "Winner"
     return "#{winner_name} advanced on a bye" if match.bye?
@@ -116,5 +129,11 @@ module ApplicationHelper
     else
       notification.kind.humanize
     end
+  end
+
+  def organizer_pending_registration_count(tournaments)
+    return 0 if tournaments.blank?
+
+    Registration.where(tournament_id: tournaments.map(&:id), status: :pending).count
   end
 end

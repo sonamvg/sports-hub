@@ -70,6 +70,11 @@
           <% if current_user&.can_organize_tournaments? %>
             <% organizer_tournaments = (current_user.organized_tournaments.to_a + current_user.collaborating_tournaments.to_a).uniq(&:id).sort_by(&:created_at).reverse %>
             <% if organizer_tournaments.any? %>
+              <% pending_registration_count = organizer_pending_registration_count(organizer_tournaments) %>
+              <%= link_to organizer_registrations_path, class: "side-nav-link" do %>
+                <%= ui_icon("medal") %><span>Registration approvals</span>
+                <% if pending_registration_count.positive? %><span class="side-nav-badge"><%= pending_registration_count %></span><% end %>
+              <% end %>
               <div class="side-nav-group">
                 <span>My tournaments</span>
                 <% organizer_tournaments.each do |tournament| %>
@@ -92,7 +97,8 @@
 
         <div class="side-account">
           <% if current_user %>
-            <span class="status-pill"><%= user_first_name(current_user) %></span>
+            <%= link_to user_first_name(current_user), profile_path, class: "status-pill" %>
+            <span class="small-label"><%= role_label(current_user) %></span>
             <%= button_to logout_path, method: :delete, class: "link-button account-action" do %><%= ui_icon("log-out") %><span>Sign out</span><% end %>
           <% else %>
             <%= link_to login_path, class: "side-nav-link" do %><%= ui_icon("user") %><span>Sign in</span><% end %>

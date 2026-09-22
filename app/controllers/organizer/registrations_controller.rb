@@ -55,7 +55,7 @@ module Organizer
     end
 
     def visible_registrations
-      Registration.where(tournament_id: managed_tournament_ids).where.not(status: :draft)
+      Registration.where(tournament_id: managed_tournament_ids).decided
     end
 
     # Scopes the index to one tournament when a tournament_id is given (the

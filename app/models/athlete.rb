@@ -46,6 +46,7 @@ class Athlete < ApplicationRecord
   validates :weight, numericality: { greater_than: 0, less_than_or_equal_to: 999.99 }, allow_nil: true
   validates :city, format: { with: User::NAME_FORMAT, message: "can only contain letters, spaces, hyphens, and apostrophes" }, length: { maximum: 60 }, allow_blank: true
   validates :state, inclusion: { in: Tournament::INDIAN_STATES_AND_UNION_TERRITORIES }, allow_blank: true
+  validates :pincode, format: { with: IndianLocation::PINCODE_FORMAT, message: "must be a valid 6-digit PIN code" }, allow_blank: true
   validates :address, length: { maximum: 255 }, allow_blank: true
   validates :emergency_contact_name, format: { with: User::NAME_FORMAT, message: "can only contain letters, spaces, hyphens, and apostrophes" }, allow_blank: true
   validates :contact_number, format: { with: User::PHONE_FORMAT, message: "must be a 10-digit mobile number" }, allow_blank: true

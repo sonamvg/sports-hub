@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_22_132039) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_205827) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -24,6 +24,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_132039) do
     t.string "name", null: false
     t.bigint "owner_id"
     t.string "phone"
+    t.string "pincode"
     t.string "registration_number"
     t.text "rejection_reason"
     t.datetime "reviewed_at"
@@ -99,6 +100,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_132039) do
     t.string "gender", null: false
     t.string "government_id_document_type"
     t.string "last_name", null: false
+    t.string "pincode"
     t.string "profile_photo_url"
     t.string "state"
     t.datetime "terms_accepted_at"
@@ -176,6 +178,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_132039) do
     t.datetime "created_at", null: false
     t.decimal "fee_amount", precision: 10, scale: 2
     t.string "fee_currency"
+    t.bigint "moved_from_registration_id"
     t.decimal "registered_weight", precision: 5, scale: 2
     t.string "registration_number"
     t.integer "status", default: 0, null: false
@@ -185,6 +188,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_132039) do
     t.datetime "updated_at", null: false
     t.datetime "verified_at"
     t.index ["athlete_id"], name: "index_registrations_on_athlete_id"
+    t.index ["moved_from_registration_id"], name: "index_registrations_on_moved_from_registration_id"
     t.index ["submission_batch_id"], name: "index_registrations_on_submission_batch_id"
     t.index ["tournament_category_id"], name: "index_registrations_on_tournament_category_id"
     t.index ["tournament_id", "athlete_id", "tournament_category_id"], name: "index_registrations_unique_entry", unique: true
@@ -340,6 +344,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_132039) do
   end
 
   create_table "tournaments", force: :cascade do |t|
+    t.boolean "allow_category_change_at_weigh_in", default: false, null: false
     t.string "banner_image_url"
     t.string "category_generation_method"
     t.string "city"
@@ -352,6 +357,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_132039) do
     t.text "description"
     t.text "eligibility_summary"
     t.date "end_date", null: false
+    t.decimal "group_registration_fee", precision: 10, scale: 2
     t.string "logo_url"
     t.string "name", null: false
     t.bigint "organizer_id", null: false
@@ -362,6 +368,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_132039) do
     t.string "payment_ifsc"
     t.text "payment_instructions"
     t.string "payment_upi_id"
+    t.string "pincode"
     t.string "primary_contact_email"
     t.string "primary_contact_name"
     t.string "primary_contact_phone"
@@ -386,6 +393,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_132039) do
 
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.datetime "deactivated_at"
     t.string "email", null: false
     t.string "name", null: false
     t.datetime "organizer_approved_at"
@@ -424,6 +432,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_22_132039) do
   add_foreign_key "registration_weight_checks", "registrations"
   add_foreign_key "registration_weight_checks", "users", column: "checked_by_id"
   add_foreign_key "registrations", "athletes"
+  add_foreign_key "registrations", "registrations", column: "moved_from_registration_id", on_delete: :nullify
   add_foreign_key "registrations", "tournament_categories"
   add_foreign_key "registrations", "tournaments"
   add_foreign_key "super_admin_notifications", "users", column: "actor_id"

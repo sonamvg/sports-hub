@@ -73,17 +73,7 @@
       <%= field_error(tournament, :venue) %>
     </div>
 
-    <div>
-      <%= form.label :city %>
-      <%= form.text_field :city, required: true %>
-      <%= field_error(tournament, :city) %>
-    </div>
-
-    <div>
-      <%= form.label :state %>
-      <%= form.select :state, Tournament::INDIAN_STATES_AND_UNION_TERRITORIES, { include_blank: "Select state" }, required: true %>
-      <%= field_error(tournament, :state) %>
-    </div>
+    <%= render "shared/city_state_fields", form: form, record: tournament, city_required: true, state_required: true %>
 
     <div>
       <%= form.label :country %>
@@ -131,16 +121,49 @@
     </div>
 
     <div>
-      <%= form.label :registration_fee, "Fee per category" %>
+      <%= form.label :registration_fee, "Individual category fee (Kyorugi and Individual Poomsae)" %>
       <%= form.number_field :registration_fee, required: true, min: 0, step: "0.01", placeholder: "0.00" %>
       <%= field_error(tournament, :registration_fee) %>
-      <p class="field-hint">One fee applies to each selected category. Two categories at INR 1000 each means INR 2000 total.</p>
+      <p class="field-hint">Applies to each selected Kyorugi or Individual Poomsae category. Two categories at INR 1000 each means INR 2000 total.</p>
+    </div>
+
+    <div>
+      <%= form.label :group_registration_fee, "Group Poomsae fee (Pair or Team)" %>
+      <%= form.number_field :group_registration_fee, min: 0, step: "0.01", placeholder: "0.00" %>
+      <%= field_error(tournament, :group_registration_fee) %>
+      <p class="field-hint">Charged once per group entry, whether the group has 2 (pair) or 3 (team) athletes.</p>
     </div>
 
     <div>
       <%= form.label :currency %>
       <%= form.text_field :currency, required: true, maxlength: 3, placeholder: "INR" %>
       <%= field_error(tournament, :currency) %>
+    </div>
+
+    <div class="full form-section-heading">
+      <h2>Weigh-in rules</h2>
+    </div>
+
+    <div class="full">
+      <div class="checklist-group">
+        <label class="checkbox-option">
+          <%= form.check_box :allow_category_change_at_weigh_in %>
+          <span>
+            Allow category change at weigh-in
+            <span class="option-hint">If an athlete fails their 3rd (final) weight attempt, don't disqualify them automatically — let the organiser move them into a different category instead, right there at weigh-in.</span>
+          </span>
+        </label>
+      </div>
+      <% if tournament.allow_category_change_at_weigh_in? %>
+        <div class="inline-notice inline-notice-warning">
+          <span>⚠️</span>
+          <span>With this on, a failed 3rd attempt pauses on a decision screen for the organiser instead of auto-disqualifying.</span>
+        </div>
+      <% else %>
+        <div class="inline-notice">
+          Default behaviour: a failed 3rd attempt disqualifies the athlete immediately.
+        </div>
+      <% end %>
     </div>
 
     <div class="full form-section-heading">

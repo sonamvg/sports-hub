@@ -33,6 +33,29 @@
       <% end %>
     <% end %>
 
+    <% if @pending_membership_requests.present? %>
+      <div class="section-compact">
+        <h2 class="section-title">Pending academy requests</h2>
+        <div class="notification-list">
+          <% @pending_membership_requests.each do |membership_request| %>
+            <% athlete = membership_request.athlete %>
+            <article class="notification-card">
+              <div>
+                <span class="status-pill status-pending">Pending</span>
+                <h2><%= link_to athlete.full_name, athlete_path(athlete, return_to: athletes_path), class: "notification-athlete-link" %></h2>
+                <p><%= athlete.full_name %> requested to join <%= membership_request.academy.name %> and is waiting for your approval &mdash; not yet part of your roster.</p>
+                <small>Requested <%= membership_request.created_at.strftime("%d %b %Y") %><% if membership_request.requested_by&.email.present? %> &middot; <%= membership_request.requested_by.email %><% end %></small>
+              </div>
+              <div class="notification-actions">
+                <%= button_to "Accept", approve_academy_academy_membership_request_path(membership_request.academy, membership_request), method: :patch, class: "approve-button" %>
+                <%= button_to "Reject", reject_academy_academy_membership_request_path(membership_request.academy, membership_request), method: :patch, class: "reject-button" %>
+              </div>
+            </article>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
     <div class="list-grid">
       <% @athletes.each do |athlete| %>
         <article class="entity-card">

@@ -9,14 +9,7 @@ class Tournament < ApplicationRecord
   PAYMENT_AUDIT_FIELDS = PAYMENT_DETAIL_FIELDS + %w[payment_upi_id]
   UPI_ID_FORMAT = /\A[\w.+-]{2,256}@[a-zA-Z]{2,64}\z/
 
-  INDIAN_STATES_AND_UNION_TERRITORIES = [
-    "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
-    "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa",
-    "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka",
-    "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya",
-    "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
-    "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
-  ].freeze
+  INDIAN_STATES_AND_UNION_TERRITORIES = IndianLocation::STATES
 
   attr_accessor :updated_by
 
@@ -92,6 +85,11 @@ class Tournament < ApplicationRecord
 
   CLOSED_OUT_STATUSES = %w[cancelled archived].freeze
 
+  # When an organizer deletes their account, only tournaments still "in
+  # play" are removed — anything that already concluded (or was called off)
+  # is kept exactly as-is, since it's now part of the historical record.
+  PRESERVED_ON_ACCOUNT_DELETION_STATUSES = %w[completed cancelled archived].freeze
+
   validates :name, :start_date, :end_date, presence: true
   validates :name, length: { minimum: 3, maximum: 120 }, allow_blank: true
   validates :website_url, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid http or https URL" }, allow_blank: true
@@ -100,8 +98,10 @@ class Tournament < ApplicationRecord
   validates :primary_contact_phone, format: { with: User::PHONE_FORMAT, message: "must be a 10-digit mobile number" }, allow_blank: true
   validates :registration_capacity, numericality: { only_integer: true, greater_than: 0 }, allow_blank: true
   validates :registration_fee, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
+  validates :group_registration_fee, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   validates :courts_count, numericality: { only_integer: true, greater_than: 0 }, allow_blank: true
   validates :payment_upi_id, format: { with: UPI_ID_FORMAT, message: "must be a valid UPI ID (e.g. name@bank)" }, allow_blank: true
+  validates :pincode, format: { with: IndianLocation::PINCODE_FORMAT, message: "must be a valid 6-digit PIN code" }, allow_blank: true
   validate :end_date_not_before_start_date
   validate :registration_window_chronology
   validate :logo_image_size
@@ -157,16 +157,30 @@ class Tournament < ApplicationRecord
     organizer_id == user.id || tournament_organizers.exists?(user_id: user.id)
   end
 
+  # Collaborators can help run the event (approve registrations, weigh-ins,
+  # draws) but not touch financially/organizationally sensitive settings —
+  # only the owner or a super_organizer collaborator can.
+  def managed_by_super_organizer?(user)
+    return false unless user
+
+    organizer_id == user.id || tournament_organizers.super_organizer.exists?(user_id: user.id)
+  end
+
+  # The individual fee is expected on every tournament, so leaving it blank
+  # is treated as "not decided yet" (not free). The group fee only applies
+  # to tournaments that offer pair/team Poomsae at all, so a tournament that
+  # never sets it is simply not charging for group entries, not "undecided".
   def free?
-    registration_fee.present? && registration_fee.to_d.zero?
+    fee_present_and_zero?(registration_fee) && (group_registration_fee.blank? || group_registration_fee.to_d.zero?)
   end
 
   def fee_label
-    return unless registration_fee.present?
+    individual = formatted_fee(registration_fee)
+    group = formatted_fee(group_registration_fee)
+    return "#{individual} individual · #{group} group" if individual && group
+    return individual if individual
 
-    decimal = registration_fee.to_d
-    formatted = decimal.frac.zero? ? decimal.to_i.to_s : format("%.2f", decimal)
-    "#{currency.presence || "INR"} #{formatted}"
+    group
   end
 
   def closed_out?
@@ -202,6 +216,18 @@ class Tournament < ApplicationRecord
   end
 
   private
+
+  def fee_present_and_zero?(fee)
+    fee.present? && fee.to_d.zero?
+  end
+
+  def formatted_fee(fee)
+    return unless fee.present?
+
+    decimal = fee.to_d
+    formatted = decimal.frac.zero? ? decimal.to_i.to_s : format("%.2f", decimal)
+    "#{currency.presence || "INR"} #{formatted}"
+  end
 
   def normalize_fields
     self.name = name.to_s.squish.presence
@@ -250,7 +276,7 @@ class Tournament < ApplicationRecord
   # is enough to publish a paid tournament.
   def payment_details_present_when_charging_fee
     return if draft?
-    return unless registration_fee.present? && registration_fee.to_d.positive?
+    return unless registration_fee.to_d.positive? || group_registration_fee.to_d.positive?
     return if any_payment_method_present?
 
     errors.add(:base, "add at least one payment method (bank account details, a UPI ID, or a payment QR code image) before a tournament that charges a fee can be published")

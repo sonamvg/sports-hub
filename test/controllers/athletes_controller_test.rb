@@ -30,6 +30,60 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, ">Add athlete<"
   end
 
+  test "index keeps another academy's athlete out of the roster grid even with a pending request to this academy" do
+    owner = User.create!(name: "Academy Owner", email: "roster-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Owned Academy", city: "Pune", status: :approved, owner: owner)
+    other_academy = Academy.create!(name: "Other Academy", city: "Mumbai", status: :approved)
+    requester = User.create!(name: "Requesting Parent", email: "requesting-parent@example.test", password: "password123", role: :parent)
+    athlete = requester.athletes.create!(first_name: "Ishaani", last_name: "Patel", date_of_birth: Date.new(2013, 3, 1), gender: "female", academy: other_academy)
+    AcademyMembershipRequest.create!(academy: academy, athlete: athlete, requested_by: requester, status: :pending)
+    sign_in_as owner
+
+    get athletes_path
+
+    assert_response :success
+    assert_includes response.body, "Pending academy requests"
+    assert_includes response.body, "Ishaani Patel"
+    assert_includes response.body, "requested to join Owned Academy"
+    assert_includes response.body, ">Accept<"
+    assert_includes response.body, ">Reject<"
+    # Not shown as a confirmed roster member (which would display her real,
+    # other academy) — only inside the pending-requests section above.
+    assert_not_includes response.body, "Other Academy"
+  end
+
+  test "index roster grid never includes an athlete confirmed at a different academy" do
+    owner = User.create!(name: "Academy Owner", email: "roster-owner-two@example.test", password: "password123", role: :academy_owner)
+    Academy.create!(name: "Owned Academy", city: "Pune", status: :approved, owner: owner)
+    other_owner = User.create!(name: "Other Owner", email: "other-owner@example.test", password: "password123", role: :academy_owner)
+    other_academy = Academy.create!(name: "Other Academy", city: "Mumbai", status: :approved, owner: other_owner)
+    other_owner.athletes.create!(academy: other_academy, first_name: "Vihaan", last_name: "Mehta", date_of_birth: Date.new(2012, 5, 12), gender: "male")
+    sign_in_as owner
+
+    get athletes_path
+
+    assert_response :success
+    assert_not_includes response.body, "Vihaan Mehta"
+  end
+
+  test "accepting a pending request from the athletes index adds the athlete to the roster" do
+    owner = User.create!(name: "Academy Owner", email: "accept-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Owned Academy", city: "Pune", status: :approved, owner: owner)
+    requester = User.create!(name: "Requesting Parent", email: "accept-parent@example.test", password: "password123", role: :parent)
+    athlete = requester.athletes.create!(first_name: "Ishaani", last_name: "Patel", date_of_birth: Date.new(2013, 3, 1), gender: "female")
+    membership_request = AcademyMembershipRequest.create!(academy: academy, athlete: athlete, requested_by: requester, status: :pending)
+    sign_in_as owner
+
+    patch approve_academy_academy_membership_request_path(academy, membership_request)
+
+    assert_predicate membership_request.reload, :approved?
+    assert_equal academy, athlete.reload.academy
+
+    get athletes_path
+    assert_includes response.body, "Ishaani Patel"
+    assert_not_includes response.body, "Pending academy requests"
+  end
+
   test "creates athlete profile for current user" do
     assert_difference("Athlete.count", 1) do
       post athletes_path, params: {
@@ -189,7 +243,6 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Upcoming tournaments"
     assert_includes response.body, "Future Open"
     assert_includes response.body, "Submitted"
-    assert_includes response.body, "Waiting for organiser review."
     assert_includes response.body, "Your registration has been accepted by the organiser."
     assert_not_includes response.body, 'status-approved">Registered'
     assert_includes response.body, "Declined"

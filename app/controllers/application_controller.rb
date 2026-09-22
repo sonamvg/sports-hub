@@ -84,7 +84,7 @@ class ApplicationController < ActionController::Base
   end
 
   def can_manage_academy?(academy)
-    return false unless current_user
+    return false unless current_user && academy
 
     super_admin? || academy.owner_id == current_user.id
   end
@@ -95,9 +95,20 @@ class ApplicationController < ActionController::Base
     super_admin? || tournament.managed_by?(current_user)
   end
 
+  def can_manage_tournament_finances?(tournament)
+    return false unless current_user
+
+    super_admin? || tournament.managed_by_super_organizer?(current_user)
+  end
+
   def can_register_for_tournament?(tournament)
     return false unless current_user
-    return false if current_user.can_organize_tournaments? && !current_user.academy_owner? && !current_user.athlete?
+    # can_organize_tournaments? and academy_owner?/athlete? are mutually
+    # exclusive (role is a single-value enum), so this only lets through a
+    # verified organizer who *also* owns an approved academy (a separate
+    # relationship, via Academy#owner_id) to register that academy's
+    # athletes — a pure organizer with no academy is still blocked.
+    return false if current_user.can_organize_tournaments? && !current_user.owned_academies.approved.exists?
 
     tournament.accepting_registrations?
   end

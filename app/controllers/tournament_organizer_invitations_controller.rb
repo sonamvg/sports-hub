@@ -22,7 +22,7 @@ class TournamentOrganizerInvitationsController < ApplicationController
   end
 
   def require_tournament_manager
-    raise ActiveRecord::RecordNotFound unless can_manage_tournament?(@tournament)
+    raise ActiveRecord::RecordNotFound unless can_manage_tournament_finances?(@tournament)
   end
 
   def invitation_params

@@ -63,11 +63,21 @@ class RegistrationWeightCheck < ApplicationRecord
     end
   end
 
+  # review! can fail without raising (e.g. the tournament closed out in the
+  # instant between this record's own validation and this callback) — if it
+  # does, abort rather than silently recording a "passed"/attempt-3 weight
+  # check whose result never actually took effect on the registration.
   def apply_registration_result
     if passed?
-      registration.review!(actor: checked_by, status: :weight_verified)
-    elsif attempt_number == 3
-      registration.review!(actor: checked_by, status: :disqualified)
+      unless registration.review!(actor: checked_by, status: :weight_verified)
+        errors.add(:base, "could not verify weight check: #{registration.errors[:base].to_sentence}")
+        throw :abort
+      end
+    elsif attempt_number == 3 && !registration.tournament.allow_category_change_at_weigh_in?
+      unless registration.review!(actor: checked_by, status: :disqualified)
+        errors.add(:base, "could not disqualify athlete: #{registration.errors[:base].to_sentence}")
+        throw :abort
+      end
     end
   end
 end

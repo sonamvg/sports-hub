@@ -62,6 +62,18 @@
 
 <div class="detail-card">
   <span class="status-pill status-<%= @academy.status %>"><%= @academy.status.humanize %></span>
+  <% if super_admin? && @academy.pending? %>
+    <section class="academy-review-panel" aria-label="Academy approval">
+      <div>
+        <strong>Academy approval pending</strong>
+        <p>Review this academy and choose whether it should be visible and usable in PodiumCircle.</p>
+      </div>
+      <div class="academy-review-actions">
+        <%= button_to "Approve academy", approve_academy_path(@academy), method: :patch, class: "approve-button" %>
+        <%= button_to "Reject", reject_academy_path(@academy), method: :patch, class: "reject-button" %>
+      </div>
+    </section>
+  <% end %>
   <section class="academy-contact-panel" aria-labelledby="academy-contact-heading">
     <h2 id="academy-contact-heading">Contact details</h2>
     <div class="academy-contact-grid">

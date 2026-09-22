@@ -76,6 +76,37 @@ class UserTest < ActiveSupport::TestCase
     end
   end
 
+  test "deactivate! clears sign-in details but keeps the name and stays queryable" do
+    user = User.create!(name: "Deactivate Me", email: "deactivate-target@example.test", phone: "9876543210", password: "password123", role: :organizer)
+
+    user.deactivate!
+
+    assert_predicate user, :deactivated?
+    assert_not_nil user.deactivated_at
+    assert_equal "deleted-user-#{user.id}@#{User::DEACTIVATED_EMAIL_DOMAIN}", user.email
+    assert_nil user.phone
+    assert_equal "Deactivate Me", user.name
+    assert_not user.authenticate("password123")
+  end
+
+  test "verified_organizers and pending_organizers exclude deactivated accounts" do
+    verified = User.create!(name: "Verified Organizer", email: "active-verified-organizer@example.test", password: "password123", role: :organizer, organizer_status: :verified)
+    pending = User.create!(
+      name: "Pending Organizer", email: "active-pending-organizer@example.test", password: "password123",
+      role: :organizer, organizer_status: :pending, phone: "9876543210", organizer_designation: "Event Director",
+      identity_document: identity_document_upload
+    )
+
+    assert_includes User.verified_organizers, verified
+    assert_includes User.pending_organizers, pending
+
+    verified.deactivate!
+    pending.deactivate!
+
+    assert_not_includes User.verified_organizers, verified
+    assert_not_includes User.pending_organizers, pending
+  end
+
   test "rejects a password shorter than 8 characters" do
     user = User.new(name: "Sritha", email: "short-password@example.test", password: "abc123")
 

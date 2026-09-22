@@ -12,6 +12,49 @@ class TournamentTest < ActiveSupport::TestCase
     assert_nil tournament.fee_label
   end
 
+  test "fee_label combines individual and group fees when both are set" do
+    tournament = Tournament.new(registration_fee: 500, group_registration_fee: 1500, currency: "INR")
+    assert_equal "INR 500 individual · INR 1500 group", tournament.fee_label
+  end
+
+  test "fee_label falls back to just the group fee when individual fee is unset" do
+    tournament = Tournament.new(registration_fee: nil, group_registration_fee: 1500, currency: "INR")
+    assert_equal "INR 1500", tournament.fee_label
+  end
+
+  test "rejects a negative group registration fee" do
+    tournament = Tournament.new(name: "Test", group_registration_fee: -5)
+    assert_not tournament.valid?
+    assert_includes tournament.errors[:group_registration_fee], "must be greater than or equal to 0"
+  end
+
+  test "is free only when the individual fee is zero and the group fee is unset or zero" do
+    tournament = Tournament.new(registration_fee: 0)
+    assert_predicate tournament, :free?
+
+    tournament.group_registration_fee = 0
+    assert_predicate tournament, :free?
+
+    tournament.group_registration_fee = 500
+    assert_not tournament.free?
+  end
+
+  test "blocks publishing a tournament that only charges a group fee without payment details" do
+    tournament = Tournament.new(
+      name: "Group Fee Open",
+      organizer: User.new,
+      status: :registration_open,
+      registration_fee: 0,
+      group_registration_fee: 1500,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+
+    tournament.valid?
+
+    assert_includes tournament.errors[:base], "add at least one payment method (bank account details, a UPI ID, or a payment QR code image) before a tournament that charges a fee can be published"
+  end
+
   test "end date cannot be before start date" do
     tournament = Tournament.new(name: "Test", start_date: Date.new(2026, 10, 2), end_date: Date.new(2026, 10, 1))
     assert_not tournament.valid?

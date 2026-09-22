@@ -14,11 +14,12 @@ class AthletesController < ApplicationController
     @athletes = (@organizer_restricted_index || @academy_owner_needs_academy) ? Athlete.none : filtered_athletes.includes(:academy).order(:first_name, :last_name)
     @athletes = @athletes.includes(:user) if super_admin?
     @athletes, @pagination = paginate(@athletes)
+    @pending_membership_requests = pending_membership_requests_for_owner
   end
 
   def show
     @return_to = safe_return_path(params[:return_to])
-    registrations = @athlete.registrations.includes(:tournament, :tournament_category, :registration_weight_checks)
+    registrations = @athlete.registrations.decided.includes(:tournament, :tournament_category, :registration_weight_checks)
     @upcoming_registrations = registrations.select { |registration| registration.tournament.end_date >= Date.current }.sort_by { |registration| [registration.tournament.start_date, registration.created_at] }
     @previous_registrations = registrations.select { |registration| registration.tournament.end_date < Date.current }.sort_by { |registration| [registration.tournament.start_date, registration.created_at] }.reverse
   end
@@ -158,6 +159,10 @@ class AthletesController < ApplicationController
     raise ActiveRecord::RecordNotFound unless super_admin? || @athlete.user_id == current_user.id
   end
 
+  # Used to authorize viewing/acting on a single athlete (e.g. #show, reached
+  # from a Notifications/pending-request link) — deliberately broader than
+  # #roster_athletes, since an academy owner needs to open the profile of an
+  # athlete who has only *requested* to join, not yet actually on the roster.
   def visible_athletes
     return Athlete.all if super_admin?
 
@@ -170,6 +175,30 @@ class AthletesController < ApplicationController
     Athlete.where(id: athlete_ids.uniq)
   end
 
+  # The Athletes index listing: athletes actually on the roster (or the
+  # viewer's own), never someone who merely has a pending request to join —
+  # those are surfaced separately, with approve/reject, via
+  # #pending_membership_requests_for_owner. Otherwise an academy owner sees
+  # another academy's athlete in their own roster grid, showing that
+  # athlete's real (other) academy — confusing and not actionable from there.
+  def roster_athletes
+    return Athlete.all if super_admin?
+
+    owned_academy_ids = current_user.owned_academies.approved.select(:id)
+    athlete_ids = Athlete.where(user_id: current_user.id).pluck(:id)
+    athlete_ids += Athlete.where(academy_id: owned_academy_ids).pluck(:id)
+    athlete_ids += registered_athletes_for_managed_tournaments.pluck(:id) if current_user.can_organize_tournaments?
+
+    Athlete.where(id: athlete_ids.uniq)
+  end
+
+  def pending_membership_requests_for_owner
+    return AcademyMembershipRequest.none unless current_user.academy_owner? && !super_admin?
+
+    owned_academy_ids = current_user.owned_academies.approved.select(:id)
+    AcademyMembershipRequest.pending.where(academy_id: owned_academy_ids).includes(:athlete, :requested_by, :academy).order(created_at: :desc)
+  end
+
   def registered_athletes_for_managed_tournaments
     managed_tournament_ids = Tournament
       .left_joins(:tournament_organizers)
@@ -180,7 +209,7 @@ class AthletesController < ApplicationController
   end
 
   def filtered_athletes
-    athletes = visible_athletes
+    athletes = roster_athletes
     query = params[:q].to_s.squish.downcase
     if query.present?
       athletes = athletes.left_joins(:academy).where(
@@ -200,7 +229,7 @@ class AthletesController < ApplicationController
   def athlete_params
     permitted = params.require(:athlete).permit(
       :academy_id, :first_name, :last_name, :date_of_birth, :gender,
-      :belt, :weight, :association_id, :city, :state, :country,
+      :belt, :weight, :association_id, :city, :state, :country, :pincode,
       :contact_number, :blood_group, :emergency_contact_name,
       :emergency_contact_phone, :address, :government_id_document_type,
       :external_academy_name, :profile_photo, :profile_photo_url,

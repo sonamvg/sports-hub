@@ -89,6 +89,25 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Athlete account created. Complete your profile to continue.", flash[:notice]
   end
 
+  test "signing up with an already-used email shows a validation error, not a crash" do
+    User.create!(name: "Existing Athlete", email: "duplicate@example.test", password: "password123", role: :athlete)
+
+    assert_no_difference("User.count") do
+      post users_path, params: {
+        user: {
+          name: "New Athlete",
+          email: "duplicate@example.test",
+          phone: "9876543210",
+          password: "password123",
+          password_confirmation: "password123"
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Email has already been taken"
+  end
+
   test "creates pending organizer account and sends it to verification" do
     assert_difference("User.count", 1) do
       post users_path, params: {

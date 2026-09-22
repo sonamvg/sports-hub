@@ -9,6 +9,9 @@ Rails.application.routes.draw do
   post "session/keepalive", to: "sessions#keepalive"
   resource :password_reset, only: %i[new create edit update]
   resources :users, only: %i[new create]
+  resource :profile, only: %i[show update destroy] do
+    patch :update_password
+  end
   resources :organizers, only: %i[index destroy] do
     collection do
       get :profile
@@ -49,7 +52,14 @@ Rails.application.routes.draw do
     resources :tournament_categories, path: "categories", only: %i[index show]
     resources :tournament_organizer_invitations, path: "organizer-invitations", only: %i[create]
     resources :tournament_referees, path: "referees"
-    resources :registrations, only: %i[index new create]
+    resources :registrations, only: %i[index new destroy] do
+      collection do
+        match "individual", action: :individual, via: %i[get post]
+        match "group", action: :group, via: %i[get post]
+        get "payment"
+        post "payment", action: :submit
+      end
+    end
   end
 
   namespace :super_admin do
@@ -77,6 +87,10 @@ Rails.application.routes.draw do
         get :receipt
       end
       resources :weight_checks, only: %i[create]
+      resource :weight_check_decision, only: [] do
+        patch :disqualify
+        patch :change_category
+      end
     end
     resources :matches, only: %i[update]
   end

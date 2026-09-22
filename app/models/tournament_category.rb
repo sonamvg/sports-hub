@@ -12,35 +12,34 @@ class TournamentCategory < ApplicationRecord
   has_many :matches, -> { order(round_number: :asc) }, dependent: :destroy
   has_many :registrations, dependent: :destroy
 
-  # Weight brackets per World Taekwondo age division. Each gender's array is
-  # the ascending list of upper weight bounds (kg); the final bracket is
-  # open-ended above the last bound. Senior Olympic uses the 4-class Olympic
-  # program; Senior World Championships uses the wider 8-class program.
+  # Weight brackets per age division, from the club's official Kyorugi
+  # weight list. Each gender's array is the ascending list of upper weight
+  # bounds (kg); the final bracket is open-ended above the last bound.
   KYORUGI_WEIGHT_BOUNDARIES = {
+    pee_wee: {
+      age_min: nil, age_max: 8,
+      male: [16, 18, 20, 22, 24, 26, 29, 32, 35],
+      female: [16, 18, 20, 22, 24, 26, 29, 32, 35]
+    },
     sub_junior: {
-      age_min: 8, age_max: 11,
-      male: [16, 18, 21, 23, 25, 27, 29, 32, 35],
-      female: [14, 16, 18, 20, 22, 24, 26, 29, 32]
+      age_min: 9, age_max: 12,
+      male: [18, 21, 23, 25, 27, 29, 32, 35, 38, 41, 44, 50],
+      female: [16, 18, 20, 22, 24, 26, 29, 32, 35, 38, 41, 44]
     },
     cadet: {
-      age_min: 12, age_max: 14,
+      age_min: 13, age_max: 15,
       male: [33, 37, 41, 45, 49, 53, 57, 61, 65],
       female: [29, 33, 37, 41, 44, 47, 51, 55, 59]
     },
     junior: {
-      age_min: 15, age_max: 17,
+      age_min: 16, age_max: 18,
       male: [45, 48, 51, 55, 59, 63, 68, 73, 78],
       female: [42, 44, 46, 49, 52, 55, 59, 63, 68]
     },
-    senior_world: {
-      age_min: 17, age_max: nil,
+    senior: {
+      age_min: 19, age_max: nil,
       male: [54, 58, 63, 68, 74, 80, 87],
       female: [46, 49, 53, 57, 62, 67, 73]
-    },
-    senior_olympic: {
-      age_min: 17, age_max: nil,
-      male: [58, 68, 80],
-      female: [49, 57, 67]
     }
   }.freeze
 
@@ -63,6 +62,12 @@ class TournamentCategory < ApplicationRecord
     { key: "under-17", age_min: 12, age_max: 17 },
     { key: "over-17", age_min: 18, age_max: nil }
   ].freeze
+
+  # Charged the tournament's flat group fee once per entry, regardless of
+  # whether the group has 2 (pair) or 3 (team) athletes.
+  GROUP_EVENT_TYPES = %w[pair_poomsae team_poomsae].freeze
+
+  TEAM_SIZES = { "pair_poomsae" => 2, "team_poomsae" => 3 }.freeze
 
   def self.weight_brackets_for(boundaries)
     brackets = []
@@ -164,11 +169,27 @@ class TournamentCategory < ApplicationRecord
   validate :weight_max_not_below_min
 
   def effective_registration_fee
-    tournament.registration_fee.presence || 0
+    tournament_fee.presence || 0
+  end
+
+  # An explicit 0 means "confirmed free". For the individual fee, a blank
+  # value means the organizer hasn't decided yet, treated as not-free so a
+  # receipt is still required until they set one — but the group fee only
+  # applies to tournaments that offer pair/team Poomsae at all, so a blank
+  # group fee means "not charging for group entries," same as
+  # Tournament#free? already treats it.
+  def free?
+    return tournament_fee.blank? || tournament_fee.to_d.zero? if GROUP_EVENT_TYPES.include?(event_type)
+
+    tournament_fee.present? && tournament_fee.to_d.zero?
   end
 
   def fee_label
     "#{tournament.currency.presence || "INR"} #{format_currency(effective_registration_fee)}"
+  end
+
+  def required_athlete_count
+    TEAM_SIZES.fetch(event_type, 1)
   end
 
   def generated_name
@@ -183,6 +204,35 @@ class TournamentCategory < ApplicationRecord
 
   def self.default_template_for(key)
     DEFAULT_CATEGORY_TEMPLATES.find { |template| template[:key] == key.to_s }
+  end
+
+  # Individual (Kyorugi + Individual Poomsae) categories matching an athlete's
+  # gender and age, split by event type, with the closest Kyorugi weight
+  # bracket flagged as the recommended pick. Weight-agnostic — a category
+  # only needs gender/age to be "suggested"; the weight is used purely to
+  # pick which Kyorugi bracket is recommended.
+  def self.suggested_individual_categories(categories, athlete:, as_of:, weight: nil)
+    matches = categories.select { |category| category.eligibility_errors_for(athlete, as_of: as_of, weight: nil).empty? }
+    kyorugi = matches.select { |category| category.event_type == "kyorugi" }
+    individual_poomsae = matches.select { |category| category.event_type == "individual_poomsae" }
+
+    {
+      kyorugi: kyorugi,
+      individual_poomsae: individual_poomsae,
+      recommended: closest_by_weight(kyorugi, weight)
+    }
+  end
+
+  def self.closest_by_weight(kyorugi_categories, weight)
+    return kyorugi_categories.first if weight.blank?
+
+    kyorugi_categories.min_by do |category|
+      bounds = [category.weight_min, category.weight_max].compact
+      next Float::INFINITY if bounds.empty?
+
+      midpoint = bounds.sum / bounds.size.to_f
+      (weight.to_d - midpoint).abs
+    end
   end
 
   def draw_generated?
@@ -255,6 +305,10 @@ class TournamentCategory < ApplicationRecord
   end
 
   private
+
+  def tournament_fee
+    GROUP_EVENT_TYPES.include?(event_type) ? tournament.group_registration_fee : tournament.registration_fee
+  end
 
   def registration_for(registration_id)
     return if registration_id.blank?

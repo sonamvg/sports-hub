@@ -24,7 +24,8 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       "Basic eligibility",
       "Default categories",
       "Registration capacity",
-      "Fee per category",
+      "Individual category fee (Kyorugi and Individual Poomsae)",
+      "Group Poomsae fee (Pair or Team)",
       "Currency",
       "Required documents",
       "Refund policy",
@@ -190,8 +191,8 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
 
     tournament = Tournament.order(:created_at).last
     assert_equal "Default categories", tournament.category_generation_method
-    assert_includes tournament.tournament_categories.pluck(:name), "Kyorugi Female Age 12-14 33-37kg"
-    assert_includes tournament.tournament_categories.pluck(:name), "Kyorugi Male Age 15-17 51-55kg"
+    assert_includes tournament.tournament_categories.pluck(:name), "Kyorugi Female Age 13-15 33-37kg"
+    assert_includes tournament.tournament_categories.pluck(:name), "Kyorugi Male Age 16-18 51-55kg"
   end
 
   test "new tournament form hides category creation controls" do
@@ -349,6 +350,25 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes tournament.organizer_users, collaborator
   end
 
+  test "allow_category_change_at_weigh_in round-trips through update" do
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+
+    assert_not tournament.allow_category_change_at_weigh_in?
+
+    patch tournament_path(tournament), params: { tournament: { allow_category_change_at_weigh_in: "1" } }
+
+    assert_predicate tournament.reload, :allow_category_change_at_weigh_in?
+
+    patch tournament_path(tournament), params: { tournament: { allow_category_change_at_weigh_in: "0" } }
+
+    assert_not tournament.reload.allow_category_change_at_weigh_in?
+  end
+
   test "edit form shows a single save button and does not force draft status" do
     tournament = Tournament.create!(
       name: "Pune Invitational",
@@ -429,7 +449,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
-  test "tournament collaborator can edit tournament" do
+  test "a plain collaborator cannot edit tournament settings or payment details" do
     collaborator = User.create!(name: "Collaborator", email: "collaborator@example.test", password: "password123", role: :organizer)
     tournament = Tournament.create!(
       name: "Pune Invitational",
@@ -437,7 +457,26 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6)
     )
-    tournament.tournament_organizers.create!(user: collaborator, added_by: @organizer)
+    tournament.tournament_organizers.create!(user: collaborator, added_by: @organizer, role: :collaborator)
+    sign_in_as collaborator
+
+    get edit_tournament_path(tournament)
+    assert_response :not_found
+
+    patch tournament_path(tournament), params: { tournament: { name: "Hijacked Name" } }
+    assert_response :not_found
+    assert_equal "Pune Invitational", tournament.reload.name
+  end
+
+  test "a super_organizer collaborator can edit tournament settings" do
+    collaborator = User.create!(name: "Super Collaborator", email: "super-collaborator@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(
+      name: "Pune Invitational",
+      organizer: @organizer,
+      start_date: Date.new(2026, 12, 5),
+      end_date: Date.new(2026, 12, 6)
+    )
+    tournament.tournament_organizers.create!(user: collaborator, added_by: @organizer, role: :super_organizer)
     sign_in_as collaborator
 
     get edit_tournament_path(tournament)
@@ -717,6 +756,21 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, organizer_tournament_weight_checks_path(tournament)
   end
 
+  test "organizer sidebar surfaces a clearly visible registration approvals link with a pending count badge" do
+    tournament = Tournament.create!(name: "Approvals Invitational", organizer: @organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_max: 37)
+    parent = User.create!(name: "Parent", email: "sidebar-approvals-parent@example.test", password: "password123", role: :parent)
+    athlete = parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :pending, payment_receipt: payment_receipt_upload)
+
+    get tournaments_path
+
+    assert_response :success
+    assert_includes response.body, "Registration approvals"
+    assert_includes response.body, organizer_registrations_path
+    assert_includes response.body, '<span class="side-nav-badge">1</span>'
+  end
+
   test "show uses placeholder dashes for missing optional tournament data" do
     tournament = Tournament.create!(
       name: "Pune Invitational",
@@ -736,6 +790,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     tournament = Tournament.create!(
       name: "Pune Invitational",
       organizer: @organizer,
+      status: :registration_open,
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6),
       refund_policy: "Full refund before registration closes, Refund only if event is cancelled",
@@ -823,6 +878,24 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     get tournaments_path
     assert_response :success
     assert_not_includes response.body, draft.name
+  end
+
+  test "a draft tournament's show page 404s for someone who isn't its organizer, but is visible to the organizer" do
+    owner = User.create!(name: "Draft Owner", email: "draft-show-owner@example.test", password: "password123", role: :organizer)
+    other_user = User.create!(name: "Other User", email: "draft-show-other@example.test", password: "password123", role: :athlete)
+    other_user.athletes.create!(first_name: "Other", last_name: "Athlete", date_of_birth: Date.new(2013, 5, 12), gender: "female")
+    draft = Tournament.create!(name: "Unpublished Draft Cup", organizer: owner, status: :draft, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+
+    get tournament_path(draft)
+    assert_response :not_found
+
+    sign_in_as other_user
+    get tournament_path(draft)
+    assert_response :not_found
+
+    sign_in_as owner
+    get tournament_path(draft)
+    assert_response :success
   end
 
   test "organizer sees their own draft tournament on the public index but not another organizer's" do
@@ -1022,6 +1095,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     tournament = Tournament.create!(
       name: "Pune Invitational",
       organizer: @organizer,
+      status: :registration_open,
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6),
       payment_account_name: "Pune Taekwondo Association",
@@ -1045,6 +1119,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     tournament = Tournament.create!(
       name: "Pune Invitational",
       organizer: @organizer,
+      status: :registration_open,
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6)
     )
@@ -1062,9 +1137,11 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     tournament = Tournament.create!(
       name: "Pune Invitational",
       organizer: @organizer,
+      status: :registration_open,
       registration_capacity: 200,
       courts_count: 4,
       registration_fee: 500,
+      payment_upi_id: "puneinvitational@okhdfcbank",
       start_date: Date.new(2026, 12, 5),
       end_date: Date.new(2026, 12, 6)
     )
@@ -1075,7 +1152,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_not_includes response.body, "Capacity"
     assert_not_includes response.body, "Courts"
-    assert_includes response.body, "Fee per category"
+    assert_includes response.body, "Registration fee"
   end
 
   test "organizer tournament page shows capacity, courts, and referee count" do

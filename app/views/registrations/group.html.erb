@@ -1,0 +1,58 @@
+<section class="page-shell"><div class="container narrow">
+<%= render "shared/breadcrumbs", items: [
+  { label: "Home", path: root_path },
+  { label: "Tournaments", path: tournaments_path },
+  { label: @tournament.name, path: tournament_path(@tournament) },
+  { label: "Register", path: new_tournament_registration_path(@tournament) },
+  { label: "Pair / Team Poomsae" }
+] %>
+
+<p class="eyebrow">REGISTER A PAIR OR TEAM POOMSAE ENTRY</p>
+<h1 class="page-title"><%= @tournament.name %></h1>
+<p class="page-copy">Every teammate is chosen up front here, so it's kept separate from individual categories. Add an individual athlete too if you need one, then pay once for everything.</p>
+
+<% if @error %>
+  <div class="inline-notice inline-notice-warning"><%= @error %></div>
+<% end %>
+
+<% if @draft_registrations.any? %>
+  <div class="cart-strip-heading">
+    <strong>Already in this registration &middot; <%= @draft_registrations.map(&:submission_batch_id).uniq.size %></strong>
+  </div>
+  <%= render "registrations/draft_cart_rows", grouped_rows: @draft_registrations.group_by(&:submission_batch_id) %>
+<% end %>
+
+<div class="form-card">
+  <div style="display:flex; gap:12px;">
+    <%= link_to group_tournament_registrations_path(@tournament, team_type: "pair_poomsae"), class: "team-type-option #{"selected" if @team_type == "pair_poomsae"}" do %>
+      <div><strong>Pair Poomsae</strong><div class="field-hint" style="margin:2px 0 0;">2 athletes, same academy</div></div>
+    <% end %>
+    <%= link_to group_tournament_registrations_path(@tournament, team_type: "team_poomsae"), class: "team-type-option #{"selected" if @team_type == "team_poomsae"}" do %>
+      <div><strong>Team Poomsae</strong><div class="field-hint" style="margin:2px 0 0;">3 athletes, same academy</div></div>
+    <% end %>
+  </div>
+
+  <%= form_with url: group_tournament_registrations_path(@tournament), method: :post, class: "form-grid", style: "margin-top:22px;" do |form| %>
+    <%= hidden_field_tag :team_type, @team_type %>
+
+    <div>
+      <label>Category</label>
+      <%= select_tag :tournament_category_id, options_from_collection_for_select(@group_categories, :id, :name), include_blank: "Choose category" %>
+    </div>
+
+    <% required_count = @team_type == "team_poomsae" ? 3 : 2 %>
+    <div>
+      <label>Teammates (<%= required_count %> required, same academy)</label>
+      <% (1..required_count).each do |slot| %>
+        <%= select_tag "athlete_ids[]", options_from_collection_for_select(@athletes, :id, :full_name), include_blank: "Choose team member #{slot}", style: "margin-bottom:8px;" %>
+      <% end %>
+      <p class="field-hint"><%= link_to "+ Register new athlete", new_athlete_path(return_to: request.fullpath), class: "text-link" %></p>
+    </div>
+
+    <div class="form-actions full" style="justify-content:space-between;">
+      <%= button_tag "+ Add individual athlete", type: "submit", name: "next", value: "individual", class: "secondary-button button-reset" %>
+      <%= button_tag "Proceed to payment", type: "submit", name: "next", value: "payment", class: "primary-button button-reset" %>
+    </div>
+  <% end %>
+</div>
+</div></section>

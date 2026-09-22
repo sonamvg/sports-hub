@@ -63,8 +63,7 @@
       <% end %>
     <div class="form-section-heading full"><h2>Address</h2></div>
     <div class="full"><%= form.label :address, "Address" %><%= form.text_area :address, rows: 3 %><%= field_error(athlete, :address) %></div>
-    <div><%= form.label :city %><%= form.text_field :city %><%= field_error(athlete, :city) %></div>
-    <div><%= form.label :state %><%= form.select :state, Tournament::INDIAN_STATES_AND_UNION_TERRITORIES, { include_blank: "Select state" } %><%= field_error(athlete, :state) %></div>
+    <%= render "shared/city_state_fields", form: form, record: athlete %>
     <div><%= form.label :country %><%= form.text_field :country, value: athlete.country.presence || "India" %><%= field_error(athlete, :country) %></div>
     <div class="form-section-heading full">
       <h2>Emergency and documents</h2>

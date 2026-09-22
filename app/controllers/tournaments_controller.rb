@@ -2,7 +2,8 @@ class TournamentsController < ApplicationController
   before_action :require_user, except: %i[index show]
   before_action :require_verified_organizer, only: %i[new create]
   before_action :set_tournament, only: %i[show edit update destroy venue_setup update_venue_setup]
-  before_action :require_tournament_manager, only: %i[edit update venue_setup update_venue_setup]
+  before_action :require_tournament_finance_manager, only: %i[edit update]
+  before_action :require_tournament_manager, only: %i[venue_setup update_venue_setup]
   before_action :require_super_admin, only: :destroy
   before_action :set_available_organizers, only: %i[new create edit update]
 
@@ -34,9 +35,11 @@ class TournamentsController < ApplicationController
   end
 
   def show
+    raise ActiveRecord::RecordNotFound if @tournament.draft? && !can_manage_tournament?(@tournament)
+
     @categories = @tournament.tournament_categories.order(:name)
     @registrations = visible_tournament_registrations
-    @categories_with_registrations = @tournament.tournament_categories.joins(:registrations).distinct.order(:name) if can_manage_tournament?(@tournament)
+    @categories_with_registrations = @tournament.tournament_categories.joins(:registrations).merge(Registration.decided).distinct.order(:name) if can_manage_tournament?(@tournament)
   end
 
   def edit; end
@@ -85,13 +88,21 @@ class TournamentsController < ApplicationController
     raise ActiveRecord::RecordNotFound unless can_manage_tournament?(@tournament)
   end
 
+  # Editing the tournament (including its encrypted payment/bank details) is
+  # restricted to the owner or a super_organizer collaborator — a plain
+  # collaborator can still approve registrations, run weight checks, and set
+  # draws, but not change tournament settings or payout details.
+  def require_tournament_finance_manager
+    raise ActiveRecord::RecordNotFound unless can_manage_tournament_finances?(@tournament)
+  end
+
   def visible_tournament_registrations
     return Registration.none unless current_user
 
-    registrations = @tournament.registrations.where.not(status: :draft).includes(:tournament_category, athlete: :academy).order(status_sort_sql, created_at: :desc)
+    registrations = @tournament.registrations.decided.includes(:tournament_category, athlete: :academy).order(status_sort_sql, created_at: :desc)
     return registrations if can_manage_tournament?(@tournament)
 
-    registrations.joins(:athlete).where(athletes: { user_id: current_user.id })
+    registrations.where(athlete: current_user.manageable_athletes)
   end
 
   def status_sort_sql
@@ -165,12 +176,12 @@ class TournamentsController < ApplicationController
 
   def tournament_params
     permitted = params.require(:tournament).permit(
-      :name, :description, :venue, :city, :state, :country, :start_date, :end_date,
+      :name, :description, :venue, :city, :state, :country, :pincode, :start_date, :end_date,
       :registration_opens_at, :registration_closes_at, :status, :website_url,
       :tournament_level, :organizing_organization, :time_zone, :primary_contact_name,
       :primary_contact_email, :primary_contact_phone, :competition_formats,
       :eligibility_summary, :registration_capacity,
-      :registration_fee, :currency, :required_documents, :refund_policy,
+      :registration_fee, :group_registration_fee, :allow_category_change_at_weigh_in, :currency, :required_documents, :refund_policy,
       :payment_account_name, :payment_bank_name, :payment_account_number,
       :payment_ifsc, :payment_upi_id, :payment_qr_image, :payment_instructions,
       :logo_image, :banner_image, :terms_accepted, :data_sharing_consent,
