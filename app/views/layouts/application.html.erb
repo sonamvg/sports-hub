@@ -42,7 +42,9 @@
           <%= link_to tournaments_path, class: "side-nav-link" do %><%= ui_icon("trophy") %><span>Tournaments</span><% end %>
           <%= link_to current_user&.athlete? ? athlete_home_path : athletes_path, class: "side-nav-link" do %><%= ui_icon("medal") %><span>Athletes</span><% end %>
           <%= link_to academies_path, class: "side-nav-link" do %><%= ui_icon("academy") %><span>Academies</span><% end %>
-          <%= link_to current_user&.can_organize_tournaments? ? profile_organizers_path : organizers_path, class: "side-nav-link" do %><%= ui_icon("shield") %><span>Organizer</span><% end %>
+          <% unless current_user&.academy_owner? %>
+            <%= link_to current_user&.can_organize_tournaments? ? profile_organizers_path : organizers_path, class: "side-nav-link" do %><%= ui_icon("shield") %><span>Organizer</span><% end %>
+          <% end %>
           <% if super_admin? %>
             <%= link_to super_admin_athletes_path, class: "side-nav-link" do %><%= ui_icon("medal") %><span>Athlete</span><% end %>
             <%= link_to super_admin_notifications_path, class: "side-nav-link" do %><%= ui_icon("bell") %><span>Notifications</span><% end %>

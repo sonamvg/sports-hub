@@ -6,6 +6,30 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     sign_in_as @parent
   end
 
+  test "index prompts academy owner with no academy to register one" do
+    owner = User.create!(name: "Academy Owner", email: "no-academy-owner@example.test", password: "password123", role: :academy_owner)
+    sign_in_as owner
+
+    get athletes_path
+
+    assert_response :success
+    assert_includes response.body, "Register your academy to add athletes"
+    assert_not_includes response.body, "Athlete search is not available for organisers"
+    assert_not_includes response.body, ">Add athlete<"
+  end
+
+  test "index shows normal add athlete action for academy owner with an academy" do
+    owner = User.create!(name: "Academy Owner", email: "has-academy-owner@example.test", password: "password123", role: :academy_owner)
+    Academy.create!(name: "Owned Academy", city: "Pune", status: :pending, owner: owner)
+    sign_in_as owner
+
+    get athletes_path
+
+    assert_response :success
+    assert_not_includes response.body, "Register your academy to add athletes"
+    assert_includes response.body, ">Add athlete<"
+  end
+
   test "creates athlete profile for current user" do
     assert_difference("Athlete.count", 1) do
       post athletes_path, params: {

@@ -95,7 +95,7 @@ class Tournament < ApplicationRecord
   validates :name, :start_date, :end_date, presence: true
   validates :name, length: { minimum: 3, maximum: 120 }, allow_blank: true
   validates :website_url, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid http or https URL" }, allow_blank: true
-  validates :primary_contact_email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
+  validates :primary_contact_email, format: { with: EmailFormatValidatable::STRICT_EMAIL_REGEXP }, allow_blank: true
   rejects_placeholder_email :primary_contact_email
   validates :primary_contact_phone, format: { with: User::PHONE_FORMAT, message: "must be a 10-digit mobile number" }, allow_blank: true
   validates :registration_capacity, numericality: { only_integer: true, greater_than: 0 }, allow_blank: true

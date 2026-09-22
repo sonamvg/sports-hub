@@ -33,7 +33,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "ACADEMY ACCOUNT"
     assert_includes response.body, "Register academy"
-    assert_includes response.body, "submit your academy"
+    assert_includes response.body, "submit it for approval"
     assert_includes response.body, 'value="academy_owner"'
     assert_not_includes response.body, "Create academy owner account"
   end

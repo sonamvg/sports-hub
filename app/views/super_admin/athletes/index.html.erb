@@ -49,7 +49,7 @@
                 </div>
               </td>
               <td><%= athlete.academy_display_name.presence || "--" %></td>
-              <td><%= athlete.user.email %></td>
+              <td><%= athlete.user.placeholder_email? ? "No personal login" : athlete.user.email %></td>
               <td><%= [athlete.belt&.titleize, athlete.weight ? "#{athlete.weight} kg" : nil].compact_blank.join(" · ").presence || "--" %></td>
               <td class="table-actions-cell">
                 <details class="kebab-menu">

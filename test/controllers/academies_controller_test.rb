@@ -93,7 +93,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'aria-label="Breadcrumb"'
     assert_includes response.body, "Add academy"
     assert_includes response.body, "Add your academy profile"
-    assert_includes response.body, "Once the academy is approved, you can add athletes and manage academy profile."
+    assert_includes response.body, "You can start adding athletes right away."
     assert_includes response.body, "Academy logo"
     assert_includes response.body, "File size should be less than 5 MB and PNG/JPG is accepted."
     assert_includes response.body, "PodiumCircle terms and conditions"
@@ -202,6 +202,18 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, athletes_academy_path(academy)
     assert_not_includes response.body, "Aarohi Shah"
     assert_not_includes response.body, "Red"
+  end
+
+  test "academy owner does not see the organizer nav link or an add athlete gate for a pending academy" do
+    owner = User.create!(name: "Academy Owner", email: "no-organizer-nav-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Pending Nav Academy", city: "Pune", status: :pending, owner: owner)
+    sign_in_as owner
+
+    get academy_path(academy)
+
+    assert_response :success
+    assert_not_includes response.body, ">Organizer<"
+    assert_includes response.body, ">Add athlete<"
   end
 
   test "academy owner sees other academies but not their athletes" do
@@ -460,6 +472,79 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_predicate athlete.user, :athlete?
     assert_redirected_to academy_path(academy)
     assert_equal "Athlete account created and sign-in details sent.", flash[:notice]
+  end
+
+  test "academy owner can add athlete with no email using a placeholder account" do
+    owner = User.create!(name: "Academy Owner", email: "no-email-add-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
+    sign_in_as owner
+
+    assert_no_enqueued_emails do
+      assert_difference("Athlete.count", 1) do
+        assert_difference("User.athlete.count", 1) do
+          post athletes_path, params: {
+            athlete: {
+              first_name: "Aarohi",
+              last_name: "Shah",
+              date_of_birth: Date.new(2014, 5, 12),
+              gender: "female",
+              academy_id: academy.id
+            }.merge(consent_params)
+          }
+        end
+      end
+    end
+
+    athlete = Athlete.order(:created_at).last
+    assert_predicate athlete.user, :placeholder_email?
+    assert_includes athlete.user.email, "@#{User::PLACEHOLDER_EMAIL_DOMAIN}"
+    assert_redirected_to academy_path(academy)
+    assert_equal "Athlete account created. This athlete has no email on file, so they have no sign-in of their own — manage their profile from here.", flash[:notice]
+  end
+
+  test "academy owner can add athlete to their own pending academy" do
+    owner = User.create!(name: "Academy Owner", email: "pending-add-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Pending Academy", city: "Pune", status: :pending, owner: owner)
+    sign_in_as owner
+
+    assert_difference("Athlete.count", 1) do
+      post athletes_path, params: {
+        athlete: {
+          account_email: "pending-academy-athlete@example.test",
+          first_name: "Aarohi",
+          last_name: "Shah",
+          date_of_birth: Date.new(2014, 5, 12),
+          gender: "female",
+          academy_id: academy.id
+        }.merge(consent_params)
+      }
+    end
+
+    athlete = Athlete.order(:created_at).last
+    assert_equal academy, athlete.academy
+    assert_redirected_to academy_path(academy)
+  end
+
+  test "academy owner cannot add athlete to their own rejected academy" do
+    owner = User.create!(name: "Academy Owner", email: "rejected-add-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Rejected Academy", city: "Pune", status: :rejected, owner: owner)
+    sign_in_as owner
+
+    assert_no_difference("Athlete.count") do
+      post athletes_path, params: {
+        athlete: {
+          account_email: "rejected-academy-athlete@example.test",
+          first_name: "Aarohi",
+          last_name: "Shah",
+          date_of_birth: Date.new(2014, 5, 12),
+          gender: "female",
+          academy_id: academy.id
+        }.merge(consent_params)
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Academy must be one of your own academies"
   end
 
   test "academy owner cannot create athlete with email already used by another role" do

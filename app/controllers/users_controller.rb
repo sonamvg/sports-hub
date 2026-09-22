@@ -51,8 +51,9 @@ class UsersController < ApplicationController
   def after_signup_path
     return organizers_path if @account_type == "organizer"
     return new_athlete_path(profile_setup: true, return_to: safe_return_path(params[:return_to])) if @account_type == "athlete"
+    return safe_return_path(params[:return_to]) || new_academy_path if @account_type == "academy_owner"
 
-    safe_return_path(params[:return_to]) || tournaments_path
+    tournaments_path
   end
 
   def signup_notice

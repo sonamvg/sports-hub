@@ -6,13 +6,20 @@
         <h1 class="page-title"><%= super_admin? ? "All athletes" : "My athletes" %></h1>
         <p class="page-copy"><%= super_admin? ? "Review and manage every athlete profile in PodiumCircle." : "Manage eligible athletes and keep competition details ready." %></p>
       </div>
-      <%= link_to new_athlete_path, class: "primary-button icon-label" do %><%= ui_icon("plus") %><span>Add athlete</span><% end %>
+      <% unless @academy_owner_needs_academy %>
+        <%= link_to new_athlete_path, class: "primary-button icon-label" do %><%= ui_icon("plus") %><span>Add athlete</span><% end %>
+      <% end %>
     </div>
 
     <% if @organizer_restricted_index %>
       <div class="inline-empty-state">
         <strong>Athlete search is not available for organisers</strong>
         <p>Open athlete profiles from registrations on tournaments you manage.</p>
+      </div>
+    <% elsif @academy_owner_needs_academy %>
+      <div class="inline-empty-state">
+        <strong>Register your academy to add athletes</strong>
+        <p>Your account isn't linked to an academy yet. <%= link_to "Register your academy", new_academy_path %>, then come back here to add athletes.</p>
       </div>
     <% else %>
       <%= form_with url: athletes_path, method: :get, class: "filter-bar" do |form| %>

@@ -36,6 +36,13 @@ class UserTest < ActiveSupport::TestCase
     assert_includes user.errors[:email], "must be a valid email address"
   end
 
+  test "rejects an email domain with no dot or TLD" do
+    user = User.new(name: "Sritha", email: "sonam@test", password: "password123")
+
+    assert_not user.valid?
+    assert_includes user.errors[:email], "must be a valid email address"
+  end
+
   test "rejects a placeholder or example email domain" do
     user = User.new(name: "Sritha", email: "sritha@example.com", password: "password123")
 
@@ -45,6 +52,28 @@ class UserTest < ActiveSupport::TestCase
     user.email = "test@test.com"
     assert_not user.valid?
     assert_includes user.errors[:email], "must be a real email address, not a placeholder or test domain"
+  end
+
+  test "rejects manually setting an email on the reserved placeholder domain" do
+    user = User.new(name: "Sritha", email: "someone@#{User::PLACEHOLDER_EMAIL_DOMAIN}", password: "password123")
+
+    assert_not user.valid?
+    assert_includes user.errors[:email], "cannot use a reserved address"
+  end
+
+  test "allows a generated placeholder email when placeholder_email is set" do
+    user = User.new(name: "Sritha", email: User.generate_placeholder_email, placeholder_email: true, password: "password123")
+
+    user.valid?
+    assert_empty user.errors[:email]
+  end
+
+  test "does not enqueue a password reset email for placeholder accounts" do
+    user = User.create!(name: "Sritha", email: User.generate_placeholder_email, placeholder_email: true, password: "password123")
+
+    assert_no_enqueued_emails do
+      user.send_password_reset_email
+    end
   end
 
   test "rejects a password shorter than 8 characters" do
@@ -73,6 +102,18 @@ class UserTest < ActiveSupport::TestCase
 
     user.valid?
     assert_empty user.errors[:password]
+  end
+
+  test "academy owner cannot organize tournaments" do
+    user = User.new(name: "Academy Owner", email: "no-organize@example.test", password: "password123", role: :academy_owner)
+
+    assert_not user.can_organize_tournaments?
+  end
+
+  test "verified organizer can organize tournaments" do
+    user = User.new(name: "Verified Organizer", email: "verified-organize@example.test", password: "password123", role: :organizer, organizer_status: :verified)
+
+    assert user.can_organize_tournaments?
   end
 
   test "rejects unsupported organizer identity document upload type" do

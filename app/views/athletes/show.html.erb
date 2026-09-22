@@ -27,6 +27,9 @@
       <div><dt>Blood group</dt><dd><%= @athlete.blood_group || "Not set" %></dd></div>
       <% unless current_user.athlete? %>
         <div><dt>Association ID</dt><dd><%= @athlete.association_id || "Not set" %></dd></div>
+        <% if @athlete.user.placeholder_email? %>
+          <div><dt>Sign-in</dt><dd>No personal login &mdash; this athlete has no email on file, so their profile can only be managed from an academy owner or admin account.</dd></div>
+        <% end %>
       <% end %>
       <div><dt>Contact number</dt><dd><%= @athlete.contact_number || "Not set" %></dd></div>
       <div>

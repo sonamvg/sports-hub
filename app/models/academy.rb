@@ -25,7 +25,7 @@ class Academy < ApplicationRecord
   validates :contact_name, format: { with: User::NAME_FORMAT, message: "can only contain letters, spaces, hyphens, and apostrophes" }, allow_blank: true
   validates :phone, format: { with: User::PHONE_FORMAT, message: "must be a 10-digit mobile number" }, allow_blank: true
   validates :registration_number, length: { maximum: 60 }, allow_blank: true
-  validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
+  validates :email, format: { with: EmailFormatValidatable::STRICT_EMAIL_REGEXP }, allow_blank: true
   rejects_placeholder_email :email
   validate :logo_image_size
 

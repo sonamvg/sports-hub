@@ -6,6 +6,12 @@ class User < ApplicationRecord
   ACCEPTED_IDENTITY_DOCUMENT_TYPES = %w[image/jpeg image/png application/pdf].freeze
   MAX_PROFILE_PHOTO_SIZE = 5.megabytes
   ACCEPTED_PROFILE_PHOTO_TYPES = %w[image/jpeg image/png].freeze
+  # Domain for auto-generated addresses on accounts created for athletes who
+  # have no email of their own (a coach/academy owner registers them instead).
+  # Never deliverable, never shown to a real user — it only exists so the
+  # account can satisfy the same email presence/uniqueness rules as everyone
+  # else while having no working sign-in of its own.
+  PLACEHOLDER_EMAIL_DOMAIN = "no-email.podiumcircle.internal"
 
   has_secure_password
   generates_token_for :password_reset, expires_in: 15.minutes do
@@ -36,7 +42,7 @@ class User < ApplicationRecord
   validates :name, :email, presence: true
   validates :name, format: { with: NAME_FORMAT, message: "can only contain letters, spaces, hyphens, and apostrophes" }, allow_blank: true
   validates :email, uniqueness: true
-  validates :email, format: { with: URI::MailTo::EMAIL_REGEXP, message: "must be a valid email address" }, allow_blank: true
+  validates :email, format: { with: EmailFormatValidatable::STRICT_EMAIL_REGEXP, message: "must be a valid email address" }, allow_blank: true
   rejects_placeholder_email :email
   validates :profile_photo_url, format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid http or https URL" }, allow_blank: true
   validates :phone, presence: true, if: :organizer_registration_pending?
@@ -47,16 +53,21 @@ class User < ApplicationRecord
   validate :identity_document_required_for_pending_organizer
   validate :identity_document_size
   validate :profile_photo_size
+  validate :placeholder_email_domain_is_reserved
 
   scope :verified_organizers, -> { organizer.organizer_verified }
   scope :pending_organizers, -> { organizer.organizer_pending }
+
+  def self.generate_placeholder_email
+    "athlete-#{SecureRandom.uuid}@#{PLACEHOLDER_EMAIL_DOMAIN}"
+  end
 
   def admin?
     super_admin?
   end
 
   def can_organize_tournaments?
-    super_admin? || academy_owner? || (organizer? && organizer_verified?)
+    super_admin? || (organizer? && organizer_verified?)
   end
 
   def verify_organizer!(reviewer:)
@@ -76,6 +87,8 @@ class User < ApplicationRecord
   end
 
   def send_password_reset_email
+    return if placeholder_email?
+
     PasswordMailer.with(user: self).reset_instructions.deliver_later
   end
 
@@ -122,6 +135,13 @@ class User < ApplicationRecord
 
     errors.add(:identity_document, "must be 5 MB or smaller") if identity_document.blob.byte_size > MAX_IDENTITY_DOCUMENT_SIZE
     errors.add(:identity_document, "must be a JPG, PNG, or PDF file") unless attachment_content_type_allowed?(identity_document, ACCEPTED_IDENTITY_DOCUMENT_TYPES)
+  end
+
+  def placeholder_email_domain_is_reserved
+    return if email.blank? || placeholder_email?
+    return unless email.end_with?("@#{PLACEHOLDER_EMAIL_DOMAIN}")
+
+    errors.add(:email, "cannot use a reserved address")
   end
 
   def profile_photo_size

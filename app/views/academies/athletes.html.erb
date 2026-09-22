@@ -23,14 +23,14 @@
     <div class="registered-athlete-list academy-athlete-list">
       <% @athletes.each do |athlete| %>
         <article class="registered-athlete-row">
-          <div><strong><%= athlete.full_name %></strong><span class="muted"><%= athlete.user&.email || "--" %></span></div>
+          <div><strong><%= athlete.full_name %></strong><span class="muted"><%= athlete.user&.placeholder_email? ? "No personal login" : (athlete.user&.email || "--") %></span></div>
           <span><strong>Belt</strong><%= athlete.belt&.titleize || "--" %></span>
           <span><strong>Weight</strong><%= athlete.weight ? "#{athlete.weight} kg" : "--" %></span>
           <span><strong>City</strong><%= athlete.city || "--" %></span>
           <details class="kebab-menu">
             <summary aria-label="Actions for <%= athlete.full_name %>"><%= ui_icon("more-vertical") %></summary>
             <div class="kebab-menu-panel">
-              <% if athlete.user&.email.present? %>
+              <% if athlete.user&.email.present? && !athlete.user.placeholder_email? %>
                 <button type="button" class="kebab-menu-item button-reset" data-copy-text="<%= athlete.user.email %>">
                   <%= ui_icon("copy") %><span>Copy email</span>
                 </button>

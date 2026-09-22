@@ -10,7 +10,8 @@ class AthletesController < ApplicationController
 
   def index
     @organizer_restricted_index = current_user.can_organize_tournaments? && !super_admin? && current_user.owned_academies.none?
-    @athletes = @organizer_restricted_index ? Athlete.none : filtered_athletes.includes(:academy).order(:first_name, :last_name)
+    @academy_owner_needs_academy = current_user.academy_owner? && !super_admin? && current_user.owned_academies.none?
+    @athletes = (@organizer_restricted_index || @academy_owner_needs_academy) ? Athlete.none : filtered_athletes.includes(:academy).order(:first_name, :last_name)
     @athletes = @athletes.includes(:user) if super_admin?
     @athletes, @pagination = paginate(@athletes)
   end
@@ -79,7 +80,7 @@ class AthletesController < ApplicationController
       academy = @athlete.academy
       @athlete.academy_membership_requests.where(academy: academy, status: %i[pending approved]).update_all(status: AcademyMembershipRequest.statuses[:rejected], reviewed_by_id: current_user.id, reviewed_at: Time.current, updated_at: Time.current)
       @athlete.update!(academy: nil, external_academy_name: nil)
-      AthleteAccountMailer.with(athlete: @athlete, academy: academy).academy_removed.deliver_later
+      AthleteAccountMailer.with(athlete: @athlete, academy: academy).academy_removed.deliver_later unless @athlete.user.placeholder_email?
       redirect_to academy_path(academy), notice: "Athlete removed from academy."
     elsif @athlete.user_id == current_user.id
       @athlete.destroy
@@ -95,6 +96,7 @@ class AthletesController < ApplicationController
     @athlete = Athlete.new(athlete_params)
     @athlete.require_consent = true
     @athlete.account_email = athlete_account_email
+    @athlete.skip_academy_approval_check = true
     @return_to = safe_return_path(params[:return_to])
     validate_academy_owned_athlete
 
@@ -108,11 +110,13 @@ class AthletesController < ApplicationController
     # plain alphanumeric string.
     password = "#{SecureRandom.alphanumeric(10)}#{rand(10)}#{("a".."z").to_a.sample}"
     academy = @athlete.academy
+    placeholder_account = @athlete.account_email.blank?
 
     ActiveRecord::Base.transaction do
       user = User.create!(
         name: @athlete.full_name,
-        email: @athlete.account_email,
+        email: placeholder_account ? User.generate_placeholder_email : @athlete.account_email,
+        placeholder_email: placeholder_account,
         role: :athlete,
         phone: @athlete.contact_number,
         password: password,
@@ -122,8 +126,12 @@ class AthletesController < ApplicationController
       @athlete.save!
     end
 
-    AthleteAccountMailer.with(athlete: @athlete, academy: academy, password: password).academy_created_account.deliver_later
-    redirect_to academy_path(academy), notice: "Athlete account created and sign-in details sent."
+    if placeholder_account
+      redirect_to academy_path(academy), notice: "Athlete account created. This athlete has no email on file, so they have no sign-in of their own — manage their profile from here."
+    else
+      AthleteAccountMailer.with(athlete: @athlete, academy: academy, password: password).academy_created_account.deliver_later
+      redirect_to academy_path(academy), notice: "Athlete account created and sign-in details sent."
+    end
   rescue ActiveRecord::RecordInvalid => error
     @athlete.errors.merge!(error.record.errors)
     render :new, status: :unprocessable_entity
@@ -230,7 +238,7 @@ class AthletesController < ApplicationController
 
   def set_available_academies
     @available_academies = if current_user.academy_owner? && !super_admin?
-      current_user.owned_academies.approved.order(:name)
+      current_user.owned_academies.order(:name)
     else
       Academy.approved.order(:name)
     end
@@ -293,9 +301,9 @@ class AthletesController < ApplicationController
 
   def academy_owner_default_academy_id
     academy_id = params[:academy_id].presence
-    return academy_id if current_user.owned_academies.approved.exists?(id: academy_id)
+    return academy_id if current_user.owned_academies.exists?(id: academy_id)
 
-    current_user.owned_academies.approved.order(:name).first&.id
+    current_user.owned_academies.order(:name).first&.id
   end
 
   def athlete_account_email
@@ -303,8 +311,7 @@ class AthletesController < ApplicationController
   end
 
   def validate_academy_owned_athlete
-    @athlete.errors.add(:academy, "must be one of your approved academies") unless @athlete.academy.present? && can_manage_academy?(@athlete.academy) && @athlete.academy.approved?
-    @athlete.errors.add(:account_email, "must be provided for the athlete account") if @athlete.account_email.blank?
+    @athlete.errors.add(:academy, "must be one of your own academies") unless @athlete.academy.present? && can_manage_academy?(@athlete.academy) && !@athlete.academy.rejected?
     @athlete.errors.add(:account_email, "is already used by another account") if @athlete.account_email.present? && User.exists?(email: @athlete.account_email)
   end
 end

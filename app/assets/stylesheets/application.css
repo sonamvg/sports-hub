@@ -586,6 +586,7 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 .form-section-heading:first-child { border-top:0; padding-top:0; margin-top:0; }
 .form-section-heading h2 { font-size:24px; letter-spacing:-.03em; margin:0; }
 .form-grid label { display:block; font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; margin-bottom:8px; }
+.required-marker { color:var(--critical); margin-left:3px; }
 .form-grid input,.form-grid select,.form-grid textarea { width:100%; border:1px solid #cfd0d4; background-color:white; padding:13px 14px; font:inherit; min-height:48px; }
 .form-grid input:focus,.form-grid select:focus { outline:2px solid rgba(169,118,31,.2); border-color:var(--gold); }
 select {

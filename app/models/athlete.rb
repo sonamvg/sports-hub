@@ -3,6 +3,10 @@ class Athlete < ApplicationRecord
   include AttachmentContentTypeValidatable
 
   attr_accessor :account_email
+  # Set by the controller when an academy owner adds an athlete to their own
+  # (not-yet-approved) academy — internal roster management shouldn't wait
+  # on admin approval, which only gates the academy's public visibility.
+  attr_accessor :skip_academy_approval_check
 
   GENDERS = %w[female male].freeze
   BELTS = %w[white yellow green blue red black].freeze
@@ -108,7 +112,7 @@ class Athlete < ApplicationRecord
   end
 
   def academy_must_be_approved
-    return if academy.blank? || academy.approved?
+    return if academy.blank? || academy.approved? || skip_academy_approval_check
 
     errors.add(:academy, "must be approved before athletes can be assigned")
   end

@@ -61,6 +61,20 @@ class AcademyTest < ActiveSupport::TestCase
     assert_includes academy.errors[:email], "must be a real email address, not a placeholder or test domain"
   end
 
+  test "rejects an email domain with no dot or TLD" do
+    academy = Academy.new(name: "Deccan Taekwondo Academy", city: "Pune", email: "contact@test")
+
+    assert_not academy.valid?
+    assert_includes academy.errors[:email], "is invalid"
+  end
+
+  test "accepts an academy name containing numbers" do
+    academy = Academy.new(name: "Team 7 Taekwondo Academy", city: "Pune")
+
+    academy.valid?
+    assert_empty academy.errors[:name]
+  end
+
   test "rejects a name longer than 120 characters" do
     academy = Academy.new(name: "A" * 121, city: "Pune")
 

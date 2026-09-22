@@ -8,7 +8,7 @@ class TournamentOrganizerInvitation < ApplicationRecord
 
   before_validation :normalize_email
 
-  validates :email, presence: true, format: { with: URI::MailTo::EMAIL_REGEXP }
+  validates :email, presence: true, format: { with: EmailFormatValidatable::STRICT_EMAIL_REGEXP }
   validates :email, uniqueness: { scope: :tournament_id }
   rejects_placeholder_email :email
   validate :email_is_not_existing_verified_organizer

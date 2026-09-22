@@ -74,6 +74,16 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'value="admin@example.test"'
   end
 
+  test "placeholder email accounts cannot sign in" do
+    user = User.create!(name: "Coach Managed Athlete", email: User.generate_placeholder_email, placeholder_email: true, password: "password123", role: :athlete)
+
+    post login_path, params: { email: user.email, password: "password123" }
+
+    assert_response :unprocessable_entity
+    assert_nil session[:user_id]
+    assert_includes response.body, "Invalid email or password."
+  end
+
   test "new session page includes a forgot password link" do
     get login_path
 

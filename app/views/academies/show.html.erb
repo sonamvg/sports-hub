@@ -31,7 +31,7 @@
         <%= link_to edit_academy_path(@academy), class: "kebab-menu-item" do %>
           <%= ui_icon("edit") %><span>Edit academy</span>
         <% end %>
-        <% if @academy.approved? %>
+        <% unless @academy.rejected? %>
           <%= link_to new_athlete_path(academy_id: @academy.id), class: "kebab-menu-item" do %>
             <%= ui_icon("medal") %><span>Add athlete</span>
           <% end %>
