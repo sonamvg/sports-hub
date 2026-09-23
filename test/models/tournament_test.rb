@@ -39,7 +39,7 @@ class TournamentTest < ActiveSupport::TestCase
     assert_not tournament.free?
   end
 
-  test "blocks publishing a tournament that only charges a group fee without payment details" do
+  test "allows publishing a tournament that charges a group fee without payment details (cash payment)" do
     tournament = Tournament.new(
       name: "Group Fee Open",
       organizer: User.new,
@@ -50,9 +50,8 @@ class TournamentTest < ActiveSupport::TestCase
       end_date: Date.new(2026, 12, 6)
     )
 
-    tournament.valid?
-
-    assert_includes tournament.errors[:base], "add at least one payment method (bank account details or a UPI ID) before a tournament that charges a fee can be published"
+    assert tournament.valid?
+    assert_not tournament.any_payment_method_present?
   end
 
   test "end date cannot be before start date" do
@@ -162,7 +161,7 @@ class TournamentTest < ActiveSupport::TestCase
     assert_equal "•••••••1234", tournament.masked_payment_ifsc
   end
 
-  test "publishing a paid tournament requires at least one payment method" do
+  test "a paid tournament can publish without any payment method on file (cash payment)" do
     organizer = User.create!(name: "Organizer", email: "missing-payment-organizer@example.test", password: "password123", role: :organizer)
     tournament = Tournament.new(
       name: "Missing Payment Open",
@@ -173,9 +172,8 @@ class TournamentTest < ActiveSupport::TestCase
       end_date: Date.new(2026, 10, 19)
     )
 
-    assert_not tournament.valid?
-    assert_includes tournament.errors[:base].join, "at least one payment method"
-    assert_empty tournament.errors[:payment_account_name]
+    assert tournament.valid?
+    assert_not tournament.any_payment_method_present?
 
     tournament.payment_account_name = "Pune Taekwondo Association"
     tournament.payment_bank_name = "Demo Bank"
@@ -183,6 +181,7 @@ class TournamentTest < ActiveSupport::TestCase
     tournament.payment_ifsc = "DEMO0001234"
 
     assert tournament.valid?
+    assert tournament.any_payment_method_present?
   end
 
   test "a UPI ID alone satisfies the payment method requirement" do
@@ -203,9 +202,9 @@ class TournamentTest < ActiveSupport::TestCase
     )
 
     assert_not tournament.valid?
-    assert_includes tournament.errors[:payment_bank_name], "is required for a tournament that charges a fee"
-    assert_includes tournament.errors[:payment_account_number], "is required for a tournament that charges a fee"
-    assert_includes tournament.errors[:payment_ifsc], "is required for a tournament that charges a fee"
+    assert_includes tournament.errors[:payment_bank_name], "is required once you start adding bank transfer details"
+    assert_includes tournament.errors[:payment_account_number], "is required once you start adding bank transfer details"
+    assert_includes tournament.errors[:payment_ifsc], "is required once you start adding bank transfer details"
     assert_empty tournament.errors[:payment_account_name]
   end
 

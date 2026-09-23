@@ -44,11 +44,11 @@ class TournamentCategory < ApplicationRecord
   }.freeze
 
   INDIVIDUAL_POOMSAE_AGE_DIVISIONS = [
-    { key: "under-9", age_min: nil, age_max: 9 },
-    { key: "under-11", age_min: 10, age_max: 11 },
+    { key: "pee-wee", age_min: nil, age_max: 7 },
+    { key: "sub-junior", age_min: 8, age_max: 11 },
     { key: "cadet", age_min: 12, age_max: 14 },
     { key: "junior", age_min: 15, age_max: 17 },
-    { key: "under-30", age_min: 18, age_max: 30 },
+    { key: "senior", age_min: 18, age_max: 30 },
     { key: "under-40", age_min: 31, age_max: 40 },
     { key: "under-50", age_min: 41, age_max: 50 },
     { key: "under-60", age_min: 51, age_max: 60 },
@@ -56,12 +56,10 @@ class TournamentCategory < ApplicationRecord
     { key: "over-65", age_min: 66, age_max: nil }
   ].freeze
 
-  # Pair (1 male + 1 female) and mixed-team poomsae use two broad age tiers
-  # rather than the finer-grained individual-poomsae age divisions.
-  PAIR_TEAM_POOMSAE_AGE_DIVISIONS = [
-    { key: "under-17", age_min: 12, age_max: 17 },
-    { key: "over-17", age_min: 18, age_max: nil }
-  ].freeze
+  # Pair (1 male + 1 female) and mixed-team poomsae follow the same age
+  # divisions as individual poomsae, except the youngest (Pee Wee) and oldest
+  # (Over 65) tiers, which stay individual-only.
+  PAIR_TEAM_POOMSAE_AGE_DIVISIONS = INDIVIDUAL_POOMSAE_AGE_DIVISIONS.reject { |division| %w[pee-wee over-65].include?(division[:key]) }.freeze
 
   # Charged the tournament's flat group fee once per entry, regardless of
   # whether the group has 2 (pair) or 3 (team) athletes.
@@ -192,6 +190,31 @@ class TournamentCategory < ApplicationRecord
     TEAM_SIZES.fetch(event_type, 1)
   end
 
+  # A full, restorable dump of every tournament category for a super admin
+  # backup/export, paired with Tournament.to_export_csv — a tournament
+  # export alone can't reconstruct its categories, since they're a separate
+  # one-to-many table.
+  def self.to_export_csv
+    columns = %w[
+      id tournament_id tournament_name category_key name event_type gender
+      age_min age_max weight_min weight_max belt_min belt_max registration_fee
+      draw_generated_at created_at updated_at
+    ]
+
+    CSV.generate(headers: true) do |csv|
+      csv << columns
+      includes(:tournament).find_each do |category|
+        csv << [
+          category.id, category.tournament_id, category.tournament&.name,
+          category.category_key, category.name, category.event_type, category.gender,
+          category.age_min, category.age_max, category.weight_min, category.weight_max,
+          category.belt_min, category.belt_max, category.registration_fee,
+          category.draw_generated_at, category.created_at, category.updated_at
+        ]
+      end
+    end
+  end
+
   def generated_name
     [
       event_type.presence&.humanize&.titleize,
@@ -223,8 +246,11 @@ class TournamentCategory < ApplicationRecord
     }
   end
 
+  # No weight to go on at all (no entered weight, no profile weight) means
+  # there's no basis for a "closest" guess — nothing is recommended, rather
+  # than arbitrarily picking the first bracket in the list.
   def self.closest_by_weight(kyorugi_categories, weight)
-    return kyorugi_categories.first if weight.blank?
+    return nil if weight.blank?
 
     kyorugi_categories.min_by do |category|
       bounds = [category.weight_min, category.weight_max].compact

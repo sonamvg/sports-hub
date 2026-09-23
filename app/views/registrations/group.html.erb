@@ -9,17 +9,15 @@
 
 <p class="eyebrow">REGISTER A PAIR OR TEAM POOMSAE ENTRY</p>
 <h1 class="page-title"><%= @tournament.name %></h1>
-<p class="page-copy">Every teammate is chosen up front here, so it's kept separate from individual categories. Add an individual athlete too if you need one, then pay once for everything.</p>
+<p class="page-copy">Every teammate is chosen up front here, so it's kept separate from individual categories. Add each team, then move on to the next one.</p>
+
+<div class="registration-nav-links">
+  <%= link_to individual_tournament_registrations_path(@tournament), class: "text-link icon-label" do %><%= ui_icon("arrow-right", class: "icon-flip") %><span>Back to individual categories</span><% end %>
+  <%= link_to payment_tournament_registrations_path(@tournament), class: "text-link icon-label" do %><span>Proceed to payment</span><%= ui_icon("arrow-right") %><% end %>
+</div>
 
 <% if @error %>
   <div class="inline-notice inline-notice-warning"><%= @error %></div>
-<% end %>
-
-<% if @draft_registrations.any? %>
-  <div class="cart-strip-heading">
-    <strong>Already in this registration &middot; <%= @draft_registrations.map(&:submission_batch_id).uniq.size %></strong>
-  </div>
-  <%= render "registrations/draft_cart_rows", grouped_rows: @draft_registrations.group_by(&:submission_batch_id) %>
 <% end %>
 
 <div class="form-card">
@@ -34,6 +32,7 @@
 
   <%= form_with url: group_tournament_registrations_path(@tournament), method: :post, class: "form-grid", style: "margin-top:22px;" do |form| %>
     <%= hidden_field_tag :team_type, @team_type %>
+    <%= hidden_field_tag :next, "group" %>
 
     <div>
       <label>Category</label>
@@ -49,15 +48,18 @@
       <p class="field-hint"><%= link_to "+ Register new athlete", new_athlete_path(return_to: request.fullpath), class: "text-link" %></p>
     </div>
 
-    <div class="form-actions full" style="justify-content:space-between;">
-      <div style="display:flex; gap:12px;">
-        <%= button_tag "+ Add individual athlete", type: "submit", name: "next", value: "individual", class: "secondary-button button-reset" %>
-        <%= button_tag "+ Add another team", type: "submit", name: "next", value: "group", class: "secondary-button button-reset" %>
-      </div>
-      <%= button_tag "Proceed to payment", type: "submit", name: "next", value: "payment", class: "primary-button button-reset" %>
+    <div class="form-actions full">
+      <%= button_tag "Add to registration", type: "submit", class: "primary-button button-reset" %>
     </div>
   <% end %>
 </div>
+
+<% if @draft_registrations.any? %>
+  <div class="cart-strip-heading" style="margin-top:32px;">
+    <strong>Already in this registration &middot; <%= @draft_registrations.map(&:submission_batch_id).uniq.size %></strong>
+  </div>
+  <%= render "registrations/draft_cart_rows", grouped_rows: @draft_registrations.group_by(&:submission_batch_id) %>
+<% end %>
 </div></section>
 
 <script>

@@ -23,13 +23,7 @@
   </div>
 <% else %>
   <% grouped = @draft_registrations.group_by(&:submission_batch_id) %>
-  <% total = @draft_registrations.sum { |r| r.tournament_category.free? ? 0 : r.fee_amount.to_d } %>
-
-  <div class="form-card">
-    <label>In this batch &middot; <%= grouped.size %> <%= "entry".pluralize(grouped.size) %>, <%= @draft_registrations.map(&:athlete_id).uniq.size %> <%= "athlete".pluralize(@draft_registrations.map(&:athlete_id).uniq.size) %></label>
-    <%= render "registrations/draft_cart_rows", grouped_rows: grouped %>
-    <p class="field-hint"><%= link_to "+ Add another athlete or entry", new_tournament_registration_path(@tournament), class: "text-link" %></p>
-  </div>
+  <% total = Registration.total_fee(@draft_registrations) %>
 
   <%= form_with url: payment_tournament_registrations_path(@tournament), method: :post, class: "form-card", multipart: true do |form| %>
     <div class="form-grid two-col">
@@ -39,43 +33,14 @@
       </div>
 
       <% unless total.zero? %>
-        <div class="full payment-instructions" data-payment-details>
-          <h2>Secure payment details</h2>
-          <p class="field-hint">These payment details are shown only in this signed-in registration flow and are not displayed on public tournament pages.</p>
-
-          <% if @tournament.payment_account_number.present? || @tournament.payment_bank_name.present? %>
-            <dl>
-              <div><dt>Account holder</dt><dd><%= @tournament.payment_account_name || "--" %></dd></div>
-              <div><dt>Bank</dt><dd><%= @tournament.payment_bank_name || "--" %></dd></div>
-              <div><dt>Account number</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_account_number || "--" %>" data-full="<%= @tournament.payment_account_number %>"><%= @tournament.masked_payment_account_number || "--" %></dd></div>
-              <div><dt>IFSC</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_ifsc || "--" %>" data-full="<%= @tournament.payment_ifsc %>"><%= @tournament.masked_payment_ifsc || "--" %></dd></div>
-            </dl>
-          <% end %>
-
-          <% if @tournament.payment_upi_id.present? %>
-            <dl>
-              <div><dt>UPI ID</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_upi_id %>" data-full="<%= @tournament.payment_upi_id %>"><%= @tournament.masked_payment_upi_id %></dd></div>
-            </dl>
-          <% end %>
-
-          <% if @tournament.payment_account_number.present? || @tournament.payment_upi_id.present? %>
-            <button type="button" class="secondary-button button-reset" data-toggle-payment-details>Show full payment details</button>
-          <% end %>
-
-          <% if @tournament.payment_upi_qr_svg.present? %>
-            <div class="payment-qr">
-              <%= @tournament.payment_upi_qr_svg %>
-              <p class="field-hint">Scan with any UPI app to pay.</p>
-            </div>
-          <% end %>
-
-          <p><%= @tournament.payment_instructions.presence || "Make the payment using the organizer's shared instructions, then upload the receipt before submitting." %></p>
-        </div>
-        <div class="full">
-          <label for="payment_receipt">Payment receipt</label>
-          <%= file_field_tag :payment_receipt, accept: "image/png,image/jpeg,image/webp,application/pdf" %>
-          <p class="field-hint">Upload a JPG, PNG, WebP, or PDF receipt up to 5 MB &mdash; one receipt covers this whole batch.</p>
-        </div>
+        <%= render "registrations/payment_details", tournament: @tournament %>
+        <% if @tournament.any_payment_method_present? %>
+          <div class="full" data-receipt-upload>
+            <label for="payment_receipt">Payment receipt</label>
+            <%= file_field_tag :payment_receipt, accept: "image/png,image/jpeg,image/webp,application/pdf" %>
+            <p class="field-hint">Upload a JPG, PNG, WebP, or PDF receipt up to 5 MB &mdash; one receipt covers this whole batch.</p>
+          </div>
+        <% end %>
       <% else %>
         <div class="full inline-notice">Everything in this batch is free to enter. No payment or receipt is required.</div>
       <% end %>
@@ -86,6 +51,12 @@
       <%= link_to "Back", new_tournament_registration_path(@tournament), class: "secondary-button" %>
     </div>
   <% end %>
+
+  <div class="cart-strip-heading" style="margin-top:32px;">
+    <strong>In this batch &middot; <%= grouped.size %> <%= "entry".pluralize(grouped.size) %>, <%= @draft_registrations.map(&:athlete_id).uniq.size %> <%= "athlete".pluralize(@draft_registrations.map(&:athlete_id).uniq.size) %></strong>
+  </div>
+  <%= render "registrations/draft_cart_rows", grouped_rows: grouped %>
+  <p class="field-hint"><%= link_to "+ Add another athlete or entry", new_tournament_registration_path(@tournament), class: "text-link" %></p>
 <% end %>
 </div></section>
 

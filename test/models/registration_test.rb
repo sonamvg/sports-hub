@@ -31,8 +31,45 @@ class RegistrationTest < ActiveSupport::TestCase
     organizer = User.create!(name: "Organizer", email: "unset-fee-organizer@example.test", password: "password123", role: :organizer)
     athlete_user = User.create!(name: "Parent", email: "unset-fee-parent@example.test", password: "password123", role: :parent)
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
-    tournament = Tournament.create!(name: "Unset Fee Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    tournament = Tournament.create!(name: "Unset Fee Open", organizer: organizer, payment_upi_id: "organizer@okhdfcbank", start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
     category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14)
+
+    registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category)
+
+    assert_not registration.valid?
+    assert_includes registration.errors[:payment_receipt], "must be uploaded"
+  end
+
+  test "does not require a payment receipt when the tournament has no payment method on file (cash payment)" do
+    organizer = User.create!(name: "Organizer", email: "cash-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Parent", email: "cash-parent@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Cash Only Open", organizer: organizer, registration_fee: 500, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, registration_fee: 500)
+
+    registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, payment_note: "Paid cash to academy owner")
+
+    assert registration.valid?
+  end
+
+  test "does not require a payment receipt when the registrant chose cash payment on a tournament that allows it" do
+    organizer = User.create!(name: "Organizer", email: "cash-opt-in-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Parent", email: "cash-opt-in-parent@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Cash Opt-in Open", organizer: organizer, registration_fee: 500, payment_upi_id: "organizer@okhdfcbank", allow_cash_payment: true, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, registration_fee: 500)
+
+    registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, paid_by_cash: true, payment_note: "Paid cash to Coach Rahul")
+
+    assert registration.valid?
+  end
+
+  test "still requires a payment receipt when the tournament allows cash payment but this registrant did not choose it" do
+    organizer = User.create!(name: "Organizer", email: "cash-not-chosen-organizer@example.test", password: "password123", role: :organizer)
+    athlete_user = User.create!(name: "Parent", email: "cash-not-chosen-parent@example.test", password: "password123", role: :parent)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Cash Allowed But Unused Open", organizer: organizer, registration_fee: 500, payment_upi_id: "organizer@okhdfcbank", allow_cash_payment: true, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, registration_fee: 500)
 
     registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category)
 
@@ -53,11 +90,49 @@ class RegistrationTest < ActiveSupport::TestCase
     assert_equal 1500, registration.fee_amount
   end
 
+  test "total_fee charges a team's per-athlete group fee once per teammate" do
+    organizer = User.create!(name: "Organizer", email: "total-fee-organizer@example.test", password: "password123", role: :organizer)
+    parent = User.create!(name: "Parent", email: "total-fee-parent@example.test", password: "password123", role: :parent)
+    athlete_one = parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    athlete_two = parent.athletes.create!(first_name: "Ishaani", last_name: "Patel", date_of_birth: Date.new(2013, 3, 1), gender: "female")
+    solo_athlete = parent.athletes.create!(first_name: "Riya", last_name: "Solo", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Total Fee Open", organizer: organizer, registration_fee: 1000, group_registration_fee: 1200, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    team_category = tournament.tournament_categories.find_or_create_by!(event_type: "pair_poomsae", gender: nil, age_min: 12, age_max: 17)
+    solo_category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14)
+    team_batch_id = SecureRandom.uuid
+
+    team_registrations = [athlete_one, athlete_two].map do |athlete|
+      tournament.registrations.create!(athlete: athlete, tournament_category: team_category, status: :draft, submission_batch_id: team_batch_id, fee_amount: 1200, fee_currency: "INR")
+    end
+    solo_registration = tournament.registrations.create!(athlete: solo_athlete, tournament_category: solo_category, status: :draft, submission_batch_id: SecureRandom.uuid, fee_amount: 1000, fee_currency: "INR")
+
+    total = Registration.total_fee(team_registrations + [solo_registration])
+
+    # 1200 x 2 teammates (the Pair Poomsae rate is per-athlete, not flat) + 1000 solo = 3400.
+    assert_equal 3400, total
+  end
+
+  test "total_fee still counts each distinct category when several are submitted together in one batch" do
+    organizer = User.create!(name: "Organizer", email: "total-fee-multi-organizer@example.test", password: "password123", role: :organizer)
+    parent = User.create!(name: "Parent", email: "total-fee-multi-parent@example.test", password: "password123", role: :parent)
+    athlete = parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = Tournament.create!(name: "Total Fee Multi Open", organizer: organizer, registration_fee: 1000, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    category_one = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14)
+    category_two = tournament.tournament_categories.find_or_create_by!(event_type: "individual_poomsae", gender: "female", age_min: 12, age_max: 14)
+    batch_id = SecureRandom.uuid
+
+    registrations = [category_one, category_two].map do |category|
+      tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :draft, submission_batch_id: batch_id, fee_amount: 1000, fee_currency: "INR")
+    end
+
+    assert_equal 2000, Registration.total_fee(registrations)
+  end
+
   test "a free individual fee does not exempt a paid group registration from needing a receipt, and vice versa" do
     organizer = User.create!(name: "Organizer", email: "mixed-fee-organizer@example.test", password: "password123", role: :organizer)
     athlete_user = User.create!(name: "Parent", email: "mixed-fee-parent@example.test", password: "password123", role: :parent)
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
-    tournament = Tournament.create!(name: "Mixed Fee Open", organizer: organizer, registration_fee: 0, group_registration_fee: 1500, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
+    tournament = Tournament.create!(name: "Mixed Fee Open", organizer: organizer, registration_fee: 0, group_registration_fee: 1500, payment_upi_id: "organizer@okhdfcbank", start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19))
     kyorugi_category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14)
     group_category = tournament.tournament_categories.find_or_create_by!(event_type: "pair_poomsae", gender: nil, age_min: 12, age_max: 17)
 
@@ -158,7 +233,7 @@ class RegistrationTest < ActiveSupport::TestCase
     assert_includes registration.errors[:base], "Aarohi Shah's White belt doesn't qualify for #{category.name}"
   end
 
-  test "rejects registration when declared weight does not match category" do
+  test "allows registration even when declared weight does not match the category's weight range" do
     organizer = User.create!(name: "Organizer", email: "declared-weight-organizer@example.test", password: "password123", role: :organizer)
     athlete_user = User.create!(name: "Parent", email: "declared-weight-parent@example.test", password: "password123", role: :parent)
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
@@ -166,8 +241,11 @@ class RegistrationTest < ActiveSupport::TestCase
     category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
     registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, registered_weight: 50, payment_receipt: payment_receipt_upload)
 
-    assert_not registration.valid?
-    assert_includes registration.errors[:base], "Aarohi Shah's weight (50 kg) is outside the range for #{category.name}"
+    # Weight is only an estimate at registration time — it commonly changes
+    # by weigh-in — so a mismatch against the category's weight range must
+    # not block registration; only gender/age/belt are hard blockers here.
+    # The real weight check happens later, at the tournament's weigh-in.
+    assert registration.valid?
   end
 
   test "allows registration without a declared weight even when category has a weight range" do

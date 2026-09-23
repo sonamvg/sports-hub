@@ -88,13 +88,13 @@
     </div>
 
     <div>
-      <%= form.label :registration_opens_at %>
+      <%= form.label :registration_opens_at, "Registration opens at (IST)" %>
       <%= form.datetime_local_field :registration_opens_at, required: true, data: { default_midnight: true } %>
       <%= field_error(tournament, :registration_opens_at) %>
     </div>
 
     <div>
-      <%= form.label :registration_closes_at %>
+      <%= form.label :registration_closes_at, "Registration closes at (IST)" %>
       <%= form.datetime_local_field :registration_closes_at, required: true, data: { default_midnight: true } %>
       <%= field_error(tournament, :registration_closes_at) %>
     </div>
@@ -205,7 +205,19 @@
     <div class="full">
       <%= form.label :payment_instructions, "Payment instructions" %>
       <%= form.text_area :payment_instructions, rows: 3, placeholder: "Any additional note for registrants, e.g. a payment reference format." %>
-      <p class="field-hint">Bank details, UPI ID, and the QR code above are shown only to signed-in athletes during registration — not on public tournament pages. At least one payment method is required for a paid tournament.</p>
+      <p class="field-hint">Bank details, UPI ID, and the QR code above are shown only to signed-in athletes during registration — not on public tournament pages. Leave all of these blank if you'll collect payment in cash instead; registrants will see a simple note asking who they paid, and won't be asked for a receipt.</p>
+    </div>
+
+    <div class="full">
+      <div class="checklist-group">
+        <label class="checkbox-option">
+          <%= form.check_box :allow_cash_payment %>
+          <span>
+            Also allow cash payment
+            <span class="option-hint">Even with bank/UPI details above, some registrants may prefer to pay a coach directly in cash or UPI instead. Turn this on to let them flag that on the payment screen and skip the receipt upload — they'll still see your bank/UPI details as the default option.</span>
+          </span>
+        </label>
+      </div>
     </div>
 
     <div class="full">

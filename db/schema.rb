@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_23_060721) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_23_173010) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -180,6 +180,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_060721) do
     t.decimal "fee_amount", precision: 10, scale: 2
     t.string "fee_currency"
     t.bigint "moved_from_registration_id"
+    t.boolean "paid_by_cash", default: false, null: false
+    t.string "payment_note"
     t.decimal "registered_weight", precision: 5, scale: 2
     t.string "registration_number"
     t.integer "status", default: 0, null: false
@@ -345,6 +347,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_23_060721) do
   end
 
   create_table "tournaments", force: :cascade do |t|
+    t.boolean "allow_cash_payment", default: false, null: false
     t.boolean "allow_category_change_at_weigh_in", default: false, null: false
     t.string "banner_image_url"
     t.string "category_generation_method"

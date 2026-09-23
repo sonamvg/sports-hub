@@ -8,7 +8,8 @@ a { color:inherit; text-decoration:none; }
 .container { width:min(1120px, calc(100% - 40px)); margin:0 auto; }
 .app-frame { min-height:100vh; display:grid; grid-template-columns:248px minmax(0,1fr); background:white; }
 .side-menu { position:sticky; top:0; height:100vh; height:100dvh; overflow-y:auto; -webkit-overflow-scrolling:touch; border-right:1px solid var(--line); background:rgba(255,255,255,.98); padding:28px 22px; display:flex; flex-direction:column; gap:34px; z-index:10; }
-.brand { font-weight:700; letter-spacing:0; font-size:19px; } .brand span { color:var(--gold); }
+.brand { display:inline-flex; align-items:center; gap:9px; font-weight:700; letter-spacing:0; font-size:19px; } .brand span { color:var(--gold); }
+.brand-icon { width:28px; height:28px; flex:0 0 auto; }
 .side-nav,.side-account { display:flex; flex-direction:column; gap:8px; }
 .side-nav-link { display:flex; align-items:center; min-height:42px; padding:11px 12px; color:var(--muted); font-size:14px; font-weight:800; }
 .side-nav-link:hover { color:var(--gold); background:#f7f7f5; }
@@ -98,7 +99,7 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
 .compact-heading { margin-bottom:24px; }
 .page-title { font-size:clamp(42px,6vw,72px); line-height:.95; letter-spacing:-.055em; margin:0 0 18px; }
 .page-copy { color:var(--muted); font-size:18px; line-height:1.6; max-width:700px; margin:0; }
-.section-compact { margin-top:60px; }
+.section-compact { margin-top:60px; margin-bottom:60px; }
 .section-title { font-size:36px; margin-bottom:24px; }
 .list-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
 .entity-card { border:1px solid var(--line); background:white; padding:26px; min-height:230px; display:flex; flex-direction:column; align-items:flex-start; }
@@ -358,6 +359,11 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
   color:var(--muted);
   font-weight:700;
 }
+.notification-dismiss-form {
+  position:absolute;
+  right:12px;
+  top:12px;
+}
 .notification-dismiss {
   align-items:center;
   background:white;
@@ -367,9 +373,6 @@ footer { border-top:1px solid var(--line); padding:26px 0; color:var(--muted); f
   display:flex;
   height:32px;
   justify-content:center;
-  position:absolute;
-  right:12px;
-  top:12px;
   width:32px;
 }
 .notification-dismiss:hover {
@@ -756,9 +759,22 @@ select:disabled { cursor:not-allowed; opacity:.6; }
 .category-picker { border:1px solid #cfd0d4; padding:16px; display:grid; gap:12px; }
 .category-picker-invalid { border-color:var(--critical); background:#fdf5f4; box-shadow:0 0 0 3px rgba(166,54,44,.12); }
 .category-picker-invalid .category-picker-select { border-color:var(--critical); }
-.category-picker-row { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center; }
+.category-picker-row { position:relative; }
 .category-picker-select { width:100%; border:1px solid #cfd0d4; background-color:white; padding:13px 14px; font:inherit; min-height:48px; }
+.category-remove-button {
+  position:absolute; top:-9px; right:-9px; z-index:1;
+  width:26px; height:26px; padding:0; border-radius:999px;
+  border:1px solid var(--line); background:white; color:var(--muted);
+  display:inline-flex; align-items:center; justify-content:center;
+  cursor:pointer; box-shadow:0 2px 5px rgba(16,17,20,.12);
+}
+.category-remove-button:hover { color:white; background:var(--critical); border-color:var(--critical); }
+.category-remove-button .ui-icon { width:13px; height:13px; }
 .category-remove-button[hidden],.add-more-category-option[hidden] { display:none!important; }
+.registration-nav-links { display:flex; flex-wrap:wrap; gap:10px 32px; margin:14px 0 28px; padding-bottom:20px; border-bottom:1px solid var(--line); }
+.registration-nav-links .text-link { font-size:13.5px; }
+.registration-nav-links .ui-icon { width:15px; height:15px; }
+.icon-flip { transform:scaleX(-1); }
 .registration-total { border:1px solid var(--line); padding:16px 18px; background:white; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; }
 .registration-total strong { text-transform:uppercase; letter-spacing:.08em; font-size:11px; }
 .registration-total span { font-size:24px; font-weight:900; }

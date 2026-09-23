@@ -26,6 +26,7 @@ class Tournament < ApplicationRecord
   has_many :tournament_organizer_invitations, dependent: :destroy
   has_many :tournament_referees, dependent: :destroy
   has_many :payment_detail_audit_logs, dependent: :destroy
+  has_many :super_admin_notifications, as: :notifiable, dependent: :destroy
   has_one_attached :logo_image
   has_one_attached :banner_image
 
@@ -100,12 +101,12 @@ class Tournament < ApplicationRecord
   validates :group_registration_fee, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   validates :courts_count, numericality: { only_integer: true, greater_than: 0 }, allow_blank: true
   validates :payment_upi_id, format: { with: UPI_ID_FORMAT, message: "must be a valid UPI ID (e.g. name@bank)" }, allow_blank: true
+  validate :payment_bank_details_complete_if_started
   validates :pincode, format: { with: IndianLocation::PINCODE_FORMAT, message: "must be a valid 6-digit PIN code" }, allow_blank: true
   validate :end_date_not_before_start_date
   validate :registration_window_chronology
   validate :logo_image_size
   validate :banner_image_size
-  validate :payment_details_present_when_charging_fee
   validate :status_transition_allowed
 
   after_create :add_creator_as_super_organizer
@@ -218,11 +219,65 @@ class Tournament < ApplicationRecord
     banner_image if banner_image.attached?
   end
 
+  # Bank transfer and UPI are independent, equally valid payment methods —
+  # either complete one is enough. Neither is required: an organizer who
+  # leaves both blank is assumed to collect payment in cash (or by other
+  # arrangement outside the app), and registrants see a simple cash/UPI note
+  # field instead of bank/UPI details (see the registration payment screen).
+  def any_payment_method_present?
+    PAYMENT_DETAIL_FIELDS.all? { |field| send(field).present? } || payment_upi_id.present?
+  end
+
   def assign_default_categories
     update_column(:category_generation_method, "Default categories") if category_generation_method != "Default categories"
 
     TournamentCategory::DEFAULT_CATEGORY_TEMPLATES.each do |template|
       tournament_categories.find_or_create_by!(template.except(:key))
+    end
+  end
+
+  # A full, restorable dump of every tournament for a super admin
+  # backup/export — every column plus the organizer's name/email for a
+  # human-readable link, since organizer_id alone means nothing outside this
+  # database. Bank/UPI fields are `encrypts`-ed columns, so reading them here
+  # already returns the decrypted plaintext, same as anywhere else in the app.
+  def self.to_export_csv
+    columns = %w[
+      id name status organizer_id organizer_name organizer_email
+      start_date end_date registration_opens_at registration_closes_at
+      registration_capacity tournament_categories_count venue city state
+      country pincode time_zone tournament_level organizing_organization
+      website_url primary_contact_name primary_contact_email primary_contact_phone
+      currency registration_fee group_registration_fee courts_count
+      allow_category_change_at_weigh_in allow_cash_payment
+      payment_account_name payment_bank_name payment_account_number payment_ifsc
+      payment_upi_id payment_instructions competition_formats eligibility_summary
+      required_documents refund_policy description created_at updated_at
+    ]
+
+    CSV.generate(headers: true) do |csv|
+      csv << columns
+      includes(:organizer).find_each do |tournament|
+        csv << [
+          tournament.id, tournament.name, tournament.status,
+          tournament.organizer_id, tournament.organizer&.name, tournament.organizer&.email,
+          tournament.start_date, tournament.end_date,
+          tournament.registration_opens_at, tournament.registration_closes_at,
+          tournament.registration_capacity, tournament.tournament_categories_count,
+          tournament.venue, tournament.city, tournament.state, tournament.country, tournament.pincode,
+          tournament.time_zone, tournament.tournament_level, tournament.organizing_organization,
+          tournament.website_url, tournament.primary_contact_name, tournament.primary_contact_email,
+          tournament.primary_contact_phone, tournament.currency, tournament.registration_fee,
+          tournament.group_registration_fee, tournament.courts_count,
+          tournament.allow_category_change_at_weigh_in, tournament.allow_cash_payment,
+          tournament.payment_account_name, tournament.payment_bank_name,
+          tournament.payment_account_number, tournament.payment_ifsc,
+          tournament.payment_upi_id, tournament.payment_instructions,
+          tournament.competition_formats, tournament.eligibility_summary,
+          tournament.required_documents, tournament.refund_policy, tournament.description,
+          tournament.created_at, tournament.updated_at
+        ]
+      end
     end
   end
 
@@ -281,30 +336,17 @@ class Tournament < ApplicationRecord
     self.status = registration_window_open? ? "registration_open" : "registration_closed"
   end
 
-  # A registrant needs exactly one working way to pay, not both — full bank
-  # transfer details and a UPI ID (which also gets you an auto-generated QR
-  # code, see #payment_upi_qr_svg) are independent, equally valid payment
-  # methods, so either complete method is enough to publish a paid
-  # tournament.
-  def payment_details_present_when_charging_fee
-    return if draft?
-    return unless registration_fee.to_d.positive? || group_registration_fee.to_d.positive?
-    return if any_payment_method_present?
-
-    errors.add(:base, "add at least one payment method (bank account details or a UPI ID) before a tournament that charges a fee can be published")
-
-    # Only pile on per-field errors if the organizer clearly started filling
-    # in bank transfer details — otherwise a UPI-only organizer would see
-    # four confusing "required" errors for fields they never intended to use.
+  # Bank transfer details are optional, but a half-filled set (e.g. an
+  # account number with no IFSC) would silently fail to work as a payment
+  # method for anyone trying to pay — so once an organizer starts filling
+  # these in, all four are required.
+  def payment_bank_details_complete_if_started
     return unless PAYMENT_DETAIL_FIELDS.any? { |field| send(field).present? }
+    return if PAYMENT_DETAIL_FIELDS.all? { |field| send(field).present? }
 
     PAYMENT_DETAIL_FIELDS.select { |field| send(field).blank? }.each do |field|
-      errors.add(field.to_sym, "is required for a tournament that charges a fee")
+      errors.add(field.to_sym, "is required once you start adding bank transfer details")
     end
-  end
-
-  def any_payment_method_present?
-    PAYMENT_DETAIL_FIELDS.all? { |field| send(field).present? } || payment_upi_id.present?
   end
 
   def status_transition_allowed

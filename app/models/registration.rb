@@ -32,6 +32,7 @@ class Registration < ApplicationRecord
 
   validates :athlete_id, uniqueness: { scope: [:tournament_id, :tournament_category_id] }
   validates :registered_weight, numericality: { greater_than: 0, less_than_or_equal_to: 999.99 }, allow_nil: true
+  validates :payment_note, length: { maximum: 500 }, allow_blank: true
   validate :payment_receipt_required
   validate :payment_receipt_size
   validate :category_belongs_to_tournament
@@ -102,6 +103,18 @@ class Registration < ApplicationRecord
 
   def fee_label
     "#{fee_currency.presence || tournament.currency.presence || "INR"} #{formatted_currency(fee_amount || 0)}"
+  end
+
+  # The fee for a batch of registrations (a Pair/Team Poomsae entry, or one
+  # or more individual categories submitted together) sums every row: the
+  # group/Poomsae fee an organizer sets on a tournament is a per-athlete
+  # rate, not a flat per-team price, so a Pair entry (2 rows) is meant to
+  # come to double that rate and a Team entry (3 rows) triple it — matching
+  # each row's own fee_amount, which is already that same per-athlete rate.
+  def self.total_fee(registrations)
+    registrations
+      .reject { |registration| registration.tournament_category.free? }
+      .sum { |registration| registration.fee_amount.to_d }
   end
 
   def athlete_status_label
@@ -191,17 +204,31 @@ class Registration < ApplicationRecord
     errors.add(:tournament_category, "must belong to the selected tournament") if tournament_category.tournament_id != tournament_id
   end
 
+  # Gender, age, and belt are fixed facts that make a category a genuine
+  # mismatch, so they still block registration. Weight is deliberately left
+  # out here: an athlete's weight on registration day is only an estimate —
+  # it commonly shifts by weigh-in — so registering shouldn't lock someone
+  # out of a bracket just because today's number doesn't fit. The real
+  # weight check happens at the tournament's weigh-in (see
+  # RegistrationWeightCheck / #weight_within_category?), which can also move
+  # a registration to a better-fitting category if it's off.
   def athlete_matches_category_eligibility
     return if athlete.blank? || tournament_category.blank?
 
-    measured_weight = registered_weight.presence || athlete.weight
-    tournament_category.eligibility_errors_for(athlete, as_of: tournament&.start_date, weight: measured_weight).each do |message|
+    tournament_category.eligibility_errors_for(athlete, as_of: tournament&.start_date).each do |message|
       errors.add(:base, message)
     end
   end
 
   def payment_receipt_required
     return if draft? || tournament_category&.free?
+    # No bank/UPI details on file means the organizer is collecting payment
+    # in cash (or by other off-platform arrangement) — there's nothing to
+    # attach a formal receipt against, so it's optional (see #payment_note).
+    # Same when this particular registrant chose to pay by cash/UPI directly
+    # (e.g. to a coach) on a tournament that otherwise takes bank/UPI too.
+    return unless tournament&.any_payment_method_present?
+    return if paid_by_cash?
 
     errors.add(:payment_receipt, "must be uploaded") unless payment_receipt.attached?
   end

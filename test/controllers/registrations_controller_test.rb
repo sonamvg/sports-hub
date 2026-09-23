@@ -139,6 +139,21 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "receipt"
   end
 
+  test "athlete direct registration needs no receipt when the tournament has no payment method (cash payment)" do
+    athlete_user = User.create!(name: "Aarohi Shah", email: "athlete-cash@example.test", password: "password123", role: :athlete)
+    athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2013, 5, 12), gender: "female", contact_number: "9876543210")
+    tournament = open_tournament(registration_fee: 500, payment_upi_id: nil)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37, registration_fee: 500)
+    sign_in_as athlete_user
+
+    assert_difference("Registration.count", 1) do
+      post tournament_registrations_path(tournament), params: { tournament_category_ids: [category.id], payment_note: "Handed cash to organizer at the venue" }
+    end
+
+    assert_redirected_to tournament_registrations_path(tournament)
+    assert_equal "Handed cash to organizer at the venue", Registration.last.payment_note
+  end
+
   test "athlete direct registration for an already-decided category shows a clear message instead of doing nothing" do
     athlete_user = User.create!(name: "Aarohi Shah", email: "athlete-dup@example.test", password: "password123", role: :athlete)
     athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2013, 5, 12), gender: "female", contact_number: "9876543210")
@@ -362,17 +377,18 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "exactly 2 team members"
   end
 
-  test "clicking add individual athlete with nothing filled in navigates instead of erroring" do
+  test "submitting the group form with nothing filled in shows the choose-a-category error" do
     owner = User.create!(name: "Owner", email: "owner-empty-group@example.test", password: "password123", role: :academy_owner)
     owner.owned_academies.create!(name: "Pune Champions", city: "Pune", status: :approved)
     tournament = open_tournament
     sign_in_as owner
 
     assert_no_difference("Registration.count") do
-      post group_tournament_registrations_path(tournament), params: { team_type: "pair_poomsae", next: "individual" }
+      post group_tournament_registrations_path(tournament), params: { team_type: "pair_poomsae", next: "group" }
     end
 
-    assert_redirected_to individual_tournament_registrations_path(tournament)
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Choose a Pair or Team Poomsae category."
   end
 
   test "group screen's teammate dropdown excludes athletes with no academy" do
@@ -427,6 +443,30 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "1,000"
   end
 
+  test "payment total charges the group fee per teammate for a team entry" do
+    owner = User.create!(name: "Owner", email: "owner-group-fee-total@example.test", password: "password123", role: :academy_owner)
+    academy = owner.owned_academies.create!(name: "Pune Champions", city: "Pune", status: :approved)
+    athlete_one = owner.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", contact_number: "9876543210")
+    athlete_two = owner.athletes.create!(academy: academy, first_name: "Ishaani", last_name: "Patel", date_of_birth: Date.new(2013, 3, 1), gender: "female", contact_number: "9876543211")
+    tournament = open_tournament(registration_fee: 1000, group_registration_fee: 3000)
+    solo_athlete = owner.athletes.create!(academy: academy, first_name: "Riya", last_name: "Solo", date_of_birth: Date.new(2014, 5, 12), gender: "female", contact_number: "9876543212")
+    solo_category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    team_category = tournament.tournament_categories.find_or_create_by!(event_type: "pair_poomsae", gender: nil, age_min: 12, age_max: 17)
+    batch_id = SecureRandom.uuid
+    [athlete_one, athlete_two].each do |athlete|
+      tournament.registrations.create!(athlete: athlete, tournament_category: team_category, status: :draft, submission_batch_id: batch_id, fee_amount: 3000, fee_currency: "INR")
+    end
+    tournament.registrations.create!(athlete: solo_athlete, tournament_category: solo_category, status: :draft, submission_batch_id: SecureRandom.uuid, fee_amount: 1000, fee_currency: "INR")
+    sign_in_as owner
+
+    get payment_tournament_registrations_path(tournament)
+
+    assert_response :success
+    # 3000 x 2 teammates (the Pair Poomsae rate is per-athlete, not flat) + 1000 solo = 7000.
+    assert_includes response.body, "7,000"
+    assert_not_includes response.body, "4,000"
+  end
+
   test "payment screen never nests the remove-entry form inside the main payment form" do
     athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", contact_number: "9876543210")
     tournament = open_tournament(registration_fee: 1000)
@@ -437,21 +477,104 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     # Nested <form> elements are invalid HTML and get silently mis-parsed by
-    # browsers (the inner form's fields bleed into the outer one) — the
-    # "Remove" form for this draft row must fully close before the payment
-    # form opens, not be rendered inside it.
+    # browsers (the inner form's fields bleed into the outer one) — whichever
+    # of the "Remove" form and the payment form comes first in the markup
+    # must fully close before the other one opens, not contain it.
     remove_form_open = response.body.index("action=\"#{tournament_registration_path(tournament, registration)}\"")
-    remove_form_close = response.body.index("</form>", remove_form_open)
     payment_form_open = response.body.index("action=\"#{payment_tournament_registrations_path(tournament)}\"")
 
     assert remove_form_open, "expected a remove form for the draft registration"
     assert payment_form_open, "expected the payment form"
-    assert remove_form_close < payment_form_open, "the remove form must close before the payment form opens (no nested <form> tags)"
+
+    if payment_form_open < remove_form_open
+      payment_form_close = response.body.index("</form>", payment_form_open)
+      assert payment_form_close < remove_form_open, "the payment form must close before the remove form opens (no nested <form> tags)"
+    else
+      remove_form_close = response.body.index("</form>", remove_form_open)
+      assert remove_form_close < payment_form_open, "the remove form must close before the payment form opens (no nested <form> tags)"
+    end
   end
 
   test "submit requires a receipt when the cart includes a paid category" do
     athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", contact_number: "9876543210")
     tournament = open_tournament(registration_fee: 1000)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :draft, submission_batch_id: SecureRandom.uuid, fee_amount: 1000, fee_currency: "INR")
+
+    assert_no_difference("Registration.pending.count") do
+      post payment_tournament_registrations_path(tournament)
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "receipt"
+  end
+
+  test "payment screen shows a cash note box instead of bank/UPI details when the tournament has no payment method, and submit needs no receipt" do
+    athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", contact_number: "9876543210")
+    tournament = open_tournament(registration_fee: 1000, payment_upi_id: nil)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :draft, submission_batch_id: SecureRandom.uuid, fee_amount: 1000, fee_currency: "INR")
+
+    get payment_tournament_registrations_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Cash/UPI payment done to"
+    assert_not_includes response.body, "Secure payment details"
+
+    assert_difference("Registration.pending.count", 1) do
+      post payment_tournament_registrations_path(tournament), params: { payment_note: "Paid cash to Coach Meera" }
+    end
+
+    assert_redirected_to tournament_registrations_path(tournament)
+    assert_equal "Paid cash to Coach Meera", Registration.last.payment_note
+  end
+
+  test "payment screen does not offer a cash option when the tournament has payment details and does not allow cash" do
+    athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", contact_number: "9876543210")
+    tournament = open_tournament(registration_fee: 1000)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :draft, submission_batch_id: SecureRandom.uuid, fee_amount: 1000, fee_currency: "INR")
+
+    get payment_tournament_registrations_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Secure payment details"
+    assert_not_includes response.body, "Cash/UPI payment done to"
+
+    assert_no_difference("Registration.pending.count") do
+      post payment_tournament_registrations_path(tournament)
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "receipt"
+  end
+
+  test "payment screen offers a cash checkbox alongside bank/UPI details when the tournament allows cash payment, and checking it skips the receipt" do
+    athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", contact_number: "9876543210")
+    tournament = open_tournament(registration_fee: 1000, allow_cash_payment: true)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :draft, submission_batch_id: SecureRandom.uuid, fee_amount: 1000, fee_currency: "INR")
+
+    get payment_tournament_registrations_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Secure payment details"
+    assert_includes response.body, "Cash/UPI payment done to"
+
+    assert_difference("Registration.pending.count", 1) do
+      post payment_tournament_registrations_path(tournament), params: { paid_by_cash: "1", payment_note: "Paid cash to Coach Meera" }
+    end
+
+    assert_redirected_to tournament_registrations_path(tournament)
+    registration = Registration.last
+    assert registration.paid_by_cash?
+    assert_equal "Paid cash to Coach Meera", registration.payment_note
+    assert_not registration.payment_receipt.attached?
+  end
+
+  test "payment screen still requires a receipt when cash payment is allowed but the checkbox is left unchecked" do
+    athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", contact_number: "9876543210")
+    tournament = open_tournament(registration_fee: 1000, allow_cash_payment: true)
     category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
     tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :draft, submission_batch_id: SecureRandom.uuid, fee_amount: 1000, fee_currency: "INR")
 

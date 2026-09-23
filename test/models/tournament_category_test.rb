@@ -127,19 +127,20 @@ class TournamentCategoryTest < ActiveSupport::TestCase
     assert_not_includes result[:kyorugi] + result[:individual_poomsae], group_category
   end
 
-  test "suggested_individual_categories falls back to the first kyorugi match when weight is blank" do
+  test "suggested_individual_categories recommends nothing when weight is blank" do
     organizer = User.create!(name: "Organizer", email: "suggest-noweight-organizer@example.test", password: "password123", role: :organizer)
     parent = User.create!(name: "Parent", email: "suggest-noweight-parent@example.test", password: "password123", role: :parent)
     athlete = parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2013, 5, 12), gender: "female")
     tournament = Tournament.create!(name: "Suggest No Weight Open", organizer: organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
-    # weight_min well below every auto-generated default cadet bracket's
-    # lowest boundary (29kg) so this is unambiguously the lowest match.
-    first_bracket = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 20, weight_max: 25)
+    tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 20, weight_max: 25)
     tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 34.5, weight_max: 36.5)
 
+    # With no entered weight and no profile weight to fall back on, there's
+    # no basis for a "closest" guess — every matching bracket should be
+    # listed with none singled out, rather than an arbitrary first pick.
     categories = tournament.tournament_categories.where.not(event_type: TournamentCategory::GROUP_EVENT_TYPES).order(:weight_min)
     result = TournamentCategory.suggested_individual_categories(categories, athlete: athlete, as_of: tournament.start_date, weight: nil)
 
-    assert_equal first_bracket, result[:recommended]
+    assert_nil result[:recommended]
   end
 end

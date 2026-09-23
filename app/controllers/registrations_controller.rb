@@ -34,6 +34,12 @@ class RegistrationsController < ApplicationController
     @athlete = selected_athlete
     @draft_registrations = draft_registrations
     @selected_category_ids = []
+    # Lets the athlete picker show "N added" next to anyone who already has
+    # a category in this tournament (draft or already-decided), without
+    # disabling them — an academy owner registering 40-50 athletes needs to
+    # see who's done at a glance, but may still want to add that athlete to
+    # another category.
+    @registration_counts_by_athlete = @tournament.registrations.where(athlete_id: @athletes.map(&:id)).group(:athlete_id).count
 
     if request.post?
       create_individual_draft
@@ -73,12 +79,15 @@ class RegistrationsController < ApplicationController
     end
 
     receipt_blob = build_payment_receipt_blob
-    needs_receipt = @draft_registrations.any? { |registration| !registration.tournament_category.free? }
+    paid_by_cash = cash_payment_selected?
+    needs_receipt = @tournament.any_payment_method_present? && !paid_by_cash && @draft_registrations.any? { |registration| !registration.tournament_category.free? }
     if needs_receipt && receipt_blob.blank?
       @error = "Payment receipt must be uploaded"
       render :payment, status: :unprocessable_entity
       return
     end
+
+    payment_note = paid_by_cash ? params[:payment_note].presence : nil
 
     begin
       Registration.transaction do
@@ -91,6 +100,8 @@ class RegistrationsController < ApplicationController
 
         @draft_registrations.each do |registration|
           registration.payment_receipt.attach(receipt_blob) if receipt_blob
+          registration.payment_note = payment_note
+          registration.paid_by_cash = paid_by_cash
           registration.status = :pending
           registration.save!
         end
@@ -153,7 +164,10 @@ class RegistrationsController < ApplicationController
   def next_destination
     case params[:next]
     when "group" then group_tournament_registrations_path(@tournament, team_type: params[:team_type])
-    when "individual" then individual_tournament_registrations_path(@tournament)
+    # Keeps the same athlete selected after "Add to registration," so
+    # adding a second category for them (or seeing the roster to pick
+    # someone else) doesn't require reselecting from scratch.
+    when "individual" then individual_tournament_registrations_path(@tournament, athlete_id: params[:athlete_id])
     else payment_tournament_registrations_path(@tournament)
     end
   end
@@ -190,13 +204,15 @@ class RegistrationsController < ApplicationController
     end
 
     receipt_blob = build_payment_receipt_blob
-    needs_receipt = registrable_categories.any? { |category| !category.free? }
+    paid_by_cash = cash_payment_selected?
+    needs_receipt = @tournament.any_payment_method_present? && !paid_by_cash && registrable_categories.any? { |category| !category.free? }
     if needs_receipt && receipt_blob.blank?
       render_athlete_new_error(athlete, category_ids, "Payment receipt must be uploaded")
       return
     end
 
     weight = params[:registered_weight].presence
+    payment_note = paid_by_cash ? params[:payment_note].presence : nil
     submission_batch_id = SecureRandom.uuid
 
     begin
@@ -219,6 +235,8 @@ class RegistrationsController < ApplicationController
             submission_batch_id: submission_batch_id
           )
           registration.payment_receipt.attach(receipt_blob) if receipt_blob
+          registration.payment_note = payment_note
+          registration.paid_by_cash = paid_by_cash
           registration.save!
         end
       end
@@ -311,16 +329,6 @@ class RegistrationsController < ApplicationController
     athlete_ids = Array(params[:athlete_ids]).reject(&:blank?).uniq
     athletes = manageable_athletes.where(id: athlete_ids)
 
-    # Nothing was actually filled in on this screen — most often someone
-    # switching straight back to "individual" without building a team.
-    # There's nothing to validate or save, so just navigate instead of
-    # bouncing them off a "choose a category" error for a form they never
-    # meant to submit.
-    if params[:tournament_category_id].blank? && athlete_ids.empty?
-      redirect_to next_destination
-      return
-    end
-
     if category.blank? || category.required_athlete_count <= 1
       @error = "Choose a Pair or Team Poomsae category."
       render :group, status: :unprocessable_entity
@@ -370,6 +378,16 @@ class RegistrationsController < ApplicationController
     end
 
     redirect_to next_destination
+  end
+
+  # A registration counts as cash-paid when the tournament has no payment
+  # method configured at all (there's nothing else it could be), or when the
+  # tournament also allows cash payment and this registrant ticked the box
+  # saying they paid a coach directly instead of using the bank/UPI details.
+  def cash_payment_selected?
+    return true unless @tournament.any_payment_method_present?
+
+    @tournament.allow_cash_payment? && ActiveModel::Type::Boolean.new.cast(params[:paid_by_cash])
   end
 
   def build_payment_receipt_blob
