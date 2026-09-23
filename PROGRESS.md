@@ -3551,3 +3551,358 @@ This file is the long-lived implementation journal for PodiumCircle. Keep it cur
 - Ran full suite `mise exec -- bin/rails test`: 502 runs, 3607 assertions, 0 failures, 0 errors, 0 skips.
 - Verified visually against the local dev server while signed out, viewing an academy's public page: "Owner" no longer appears; "City" shows correctly (e.g. "Hyderabad"); "Contact person" still shows the contact/owner name as before.
 - Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Added Logo and Favicon
+
+### Reference
+- User provided a logo image (laurel wreath + podium-bars emblem above a "PODIUMCIRCLE" wordmark, 2000x2000 PNG/WebP) and asked to use it as the site's logo and favicon.
+
+### Change Log
+- Cropped the icon emblem out of the supplied artwork (separately from its wordmark, which the site already renders as styled text) and converted its white background to transparency, so it drops cleanly into both light and dark surfaces.
+- `app/assets/images/logo-icon.png` (256px, for crisp retina rendering at the small size it's actually shown): added next to the existing "PODIUM CIRCLE" text brand in both places it appears (`app/views/layouts/application.html.erb` — the sidebar header and the mobile top bar), via a new `.brand-icon` CSS class (28x28px) and a `display:flex` update to `.brand`.
+- `public/favicon.png` (64px) replaces the old `public/favicon.svg` (deleted) as the browser tab icon; `public/apple-touch-icon.png` (180px, flattened onto white since iOS renders transparent touch icons oddly) added for iOS home-screen/pinned-tab use. Updated the `<link rel="icon">`/added `<link rel="apple-touch-icon">` tags in the layout accordingly.
+
+### Verification Log
+- Ran full suite `mise exec -- bin/rails test`: 502 runs, 3607 assertions, 0 failures, 0 errors, 0 skips (no test referenced the old favicon path).
+- Verified visually against the local dev server: the icon renders crisply next to "PODIUM CIRCLE" in the sidebar and the mobile top bar (checked at a 375px mobile viewport too); loaded `/favicon.png` directly and confirmed the background is genuinely transparent (reads cleanly against both light and dark backgrounds).
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Fixed Misleading "Academy Join Request Sent" Flash on Unrelated Edits
+
+### Reference
+- User reported that updating just their athlete profile's middle name showed "Academy join request sent to the academy owner." — a message that had nothing to do with what they'd actually changed.
+
+### Change Log
+- Root cause: the self-service athlete form's academy `<select>` defaults to whichever academy has a *pending* request (`selected_academy_choice` in `athletes/_form.html.erb`), so it gets resubmitted on every save regardless of what the athlete actually edited. `AthletesController#create_academy_request_if_needed` only skipped re-processing when the athlete was already **confirmed/approved** for that academy (`athlete.academy_id == academy.id`) — it never checked whether a request for that same academy was already pending. So for any athlete with an outstanding pending (not yet approved) request, *every* profile save — no matter which field changed — re-found and re-saved that same request and unconditionally showed "Academy join request sent," burying whatever they'd actually just changed.
+- Fixed `create_academy_request_if_needed` to return `false` (no request actually (re-)sent) when an active pending request for that exact academy already exists, and to return `true` only when something genuinely changed — a first-time request, a switch to a different academy, or reopening a request the owner had previously *dismissed* (an existing, deliberate feature — a dismissed-but-still-pending request should resurface if the athlete reconfirms that academy choice, which is why dismissed requests are excluded from the "already active" check rather than lumped in with it). `AthletesController#create`/`#update` now use that return value (not the raw submitted academy id) to decide whether to show the "join request sent" notice.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/athletes_controller_test.rb`: 40 runs, 0 failures — includes a new test confirming a middle-name-only save with an active pending request shows "Athlete profile updated." and creates no duplicate/extra `AcademyMembershipRequest`, without breaking the existing "reopens dismissed join notification" test (initially broke it, caught by the suite, fixed by excluding dismissed requests from the skip check).
+- Ran full suite `mise exec -- bin/rails test`: 503 runs, 3614 assertions, 0 failures, 0 errors, 0 skips.
+- Verified live against the local dev server: saved a middle-name-only change for an athlete with an active pending academy request — flash correctly read "Athlete profile updated.", and confirmed via the DB that no duplicate request was created and the middle name saved.
+- Note: the local dev database was reseeded at some point since earlier in this session (test accounts like "Sonam Test" and the previous Aarohi Shah/id 3 no longer exist, replaced by different seed data) — not something I did; flagging in case it's unexpected. Used a freshly-created pending request on a current seed athlete for this verification instead.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Academy Registration UX Overhaul: Clear Add/Navigate Separation, Full-Width Categories, Already-Added Indicator
+
+### Reference
+- User reported the academy owner's individual and Pair/Team Poomsae registration screens were confusing and unusable at scale (registering 40-50 athletes in one sitting): the "Delete" button crowded the category dropdown so category names got truncated; the only "buttons" available secretly did double duty (save the current selection *and* navigate away), with no clear way to just add and stay, or to know how to reach the other screens; there was no way to tell at a glance which athletes already had entries without disabling them; and the growing "already added" list sat above the add-form, forcing a scroll past it on every addition.
+
+### Change Log
+- **Individual screen** (`app/views/registrations/individual.html.erb`): reordered so the athlete/category add-form is always at the top and the growing "Already in this registration" list is below it — no more scrolling past an ever-longer list to reach the controls. Removed the "+ Add Pair/Team Poomsae entry" submit button; replaced it and a new payment link with two plain top-of-page navigation links ("Register a Pair/Team Poomsae entry →", "Proceed to payment →") that don't submit anything, so navigating away never silently tries to save an in-progress selection. The one remaining button, "Add to registration," does exactly what it says — saves the current athlete's selected categories and returns to the same athlete (via `next_destination` now preserving `athlete_id`) so adding a second category, or picking the next athlete from the roster, needs no re-navigation.
+- **Roster picker**: each athlete now shows a small "N added" pill (reusing a pre-existing, previously-unused `.roster-row-added-pill` style) when they already have any registration in this tournament — draft or decided — computed via a new `@registration_counts_by_athlete` lookup in `RegistrationsController#individual`. The row stays fully selectable; nothing is disabled, since an academy owner may still want to add that athlete to another category.
+- **Category picker layout**: `.category-picker-row` no longer places the category `<select>` and its "Delete" button side by side (which squeezed the select and truncated long category names) — the select is now full width, with "Delete" on its own line below, right-aligned.
+- **Group (Pair/Team Poomsae) screen** (`app/views/registrations/group.html.erb`): same treatment — form on top, cart list below; replaced the three overlapping buttons ("+ Add individual athlete", "+ Add another team", "Proceed to payment") with one primary "Add to registration" button (saves the team and returns to a fresh group form, ready for the next one) plus two plain top-of-page navigation links, "← Back to individual categories" and "Proceed to payment →" — matching the user's explicit ask for cross-screen navigation to be "mostly not a button."
+- Removed a `create_group_draft` early-return I'd added earlier this session (silently navigating away when the group form was submitted empty) — it existed only to paper over the old dual-purpose buttons; with a single, always-meaningful "Add to registration" button, submitting empty now correctly shows the "Choose a Pair or Team Poomsae category" validation error instead of silently doing nothing.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/registrations_controller_test.rb`: 35 runs, 0 failures — fixed a query bug the new roster-count lookup exposed (`@athletes` carries `.distinct.order(:first_name, :last_name)`; plucking just `:id` from it produced `SELECT DISTINCT id ... ORDER BY first_name` which Postgres rejects since the order columns aren't in the select list — fixed by mapping ids from the already-loaded relation instead of an additional `.pluck`), and replaced the now-obsolete "nothing filled in navigates instead of erroring" test with one asserting the new, correct validation-error behavior.
+- Ran full suite `mise exec -- bin/rails test`: 503 runs, 3614 assertions, 0 failures, 0 errors, 0 skips.
+- Manually walked the full flow against the local dev server as an academy owner with a 26-athlete roster: confirmed the "N added" pills render correctly and don't disable the row; confirmed full category names now display untruncated in the picker; added a second category for an already-registered athlete via "Add to registration" and confirmed it saves, stays on the same athlete, and increments their pill from "2 added" to "3 added"; confirmed the existing "already has a decision for this category" validation still correctly blocks a genuine duplicate; confirmed the add-form-then-growing-list ordering on both screens; and built and added a full Pair Poomsae team via the group screen's single "Add to registration" button, confirming it saves and resets to a fresh form for the next team.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Fixed Weight Category Selection When Weight Has Changed Since Profile Setup
+
+### Reference
+- User asked that an athlete/academy owner be able to select a different weight category at registration time than the auto-suggested one, since the athlete's actual weight may have changed since their profile was last updated — on both the academy owner's individual registration screen and the athlete self-service registration flow.
+
+### Change Log
+- The category dropdown already listed every weight bracket for the athlete's gender/age (not just the auto-recommended "(closest)" one), so picking a different category was already mechanically possible. The actual blocker: the registration's weight-range validation checks `registered_weight`, which silently defaulted to the athlete's (possibly stale) *profile* weight unless the separate "Registration weight (optional)" field was manually filled in — a field presented only as a placeholder hint ("e.g. 73.4"), easy to miss. So picking a bracket that didn't match the stale profile weight failed with "athlete's weight (X kg) is outside the range for ..." and no obvious next step.
+- Fixed by pre-filling "Registration weight" with the athlete's actual profile weight as a real, editable value (not just a placeholder) on both `app/views/registrations/individual.html.erb` and `app/views/registrations/athlete_new.html.erb` — so it's immediately visible and editable in place, WYSIWYG with what actually gets validated. Reworded the field hint to explain the relationship directly: "Defaults to the profile weight (X kg) — update it here if it's changed since, then pick whichever category below actually matches. This is what gets checked against the category you select." Also removed the "(optional)" label suffix and the now-inaccurate "categories update to match what you enter" claim (there's no live re-filtering; the full bracket list was always shown regardless of weight).
+- No validation logic changed — the weight-range check itself is still enforced (a legitimate data-integrity guard), it's just no longer silently checked against an invisible fallback value the user had no clear way to see or override.
+
+### Verification Log
+- Ran full suite `mise exec -- bin/rails test`: 503 runs, 3614 assertions, 0 failures, 0 errors, 0 skips (no test referenced the old label/hint text).
+- Reproduced the exact friction against the local dev server first (selected a non-recommended bracket without touching the weight field — got "outside the range" error, confirming the bug), then verified the fix: the weight field now shows the profile weight as an editable value; updated it to 77kg and selected the matching "74-80kg" bracket, which saved successfully with no error.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Registration Screen Polish + Fixed Group Fee Overcounting Bug
+
+### Reference
+- User asked for several refinements to the individual/group registration screens: remove two lines of now-redundant copy; the "Delete" button under each category select looked bad — replace it with a small cross/× instead; improve the visual styling of the "Register a Pair/Team Poomsae entry →" / "Proceed to payment →" navigation links. Separately, and most importantly: reported that a Pair/Team Poomsae entry's fee was being charged per teammate instead of once for the whole team — e.g. a 3000 group fee for a 2-athlete Pair Poomsae entry should total 3000, not 6000.
+
+### Change Log
+- **Copy removed**: the individual screen's page-copy ("Pick an athlete and their categories...") and the "Every individual category for [athlete]'s gender and age is listed..." field-hint are gone from `app/views/registrations/individual.html.erb` (left the equivalent hint on the athlete self-service flow untouched, since only the academy-flow copy was called out).
+- **Delete button redesigned**: replaced the full-width "Delete" text button below each category select with a small circular × icon button (`ui_icon("x")`) that floats at the top-right corner of the select (`.category-remove-button`, `position:absolute`), on both `individual.html.erb` and `athlete_new.html.erb` (same shared CSS class, updated both for visual consistency).
+- **Nav links restyled**: "Register a Pair/Team Poomsae entry" / "Proceed to payment" (and group screen's "Back to individual categories" / "Proceed to payment") now use the existing `icon-label` pattern with `arrow-right` icons (flipped for "back"), with more breathing room and a bottom-border separator instead of being plain unstyled inline text links.
+- **Fixed the group fee overcounting bug** — the actual bug: `fee_amount` is snapshotted onto *every* teammate's registration row for a Pair/Team Poomsae entry (so a 2-athlete Pair Poomsae shows `fee_amount: 3000` on both rows), and every place that summed a "total to pay" simply summed `fee_amount` across every row, silently multiplying the group fee by team size. Added `Registration.total_fee(registrations)` (`app/models/registration.rb`) — a shared, testable method that counts each distinct `(submission_batch_id, tournament_category_id)` combination once rather than once per row, which correctly handles both cases: a team's N athlete-rows (same batch, same category) collapse to one charge, while an individual submission with several *different* categories in one batch (same submission_batch_id, different tournament_category_id) still gets each of its own fees counted. Used it in `registrations/payment.html.erb`'s total and in `Organizer::RegistrationsController#index`'s per-batch totals (the same bug existed there too, found while investigating — an organizer viewing a team's registrations previously saw an inflated batch total). Also fixed that view's hint text, which unconditionally said "Total for N categories submitted together" even for a same-category team entry (now says "Total for this N-athlete team entry" when the batch is actually one team, not several categories).
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/models/registration_test.rb test/controllers/registrations_controller_test.rb test/controllers/organizer_registrations_controller_test.rb`: 72 runs, 0 failures — added `Registration.total_fee` unit tests (team fee counted once; multiple individual categories in one batch each still counted) and a payment-page integration test reproducing the exact reported scenario (a 2-athlete Pair Poomsae team at a 3000 group fee plus a 1000 individual entry must total 4000, not 7000).
+- Ran full suite `mise exec -- bin/rails test`: 506 runs, 3621 assertions, 0 failures, 0 errors, 0 skips.
+- Verified live against the local dev server: added two Pair Poomsae teams (1800 group fee each) plus two individual Kyorugi entries (1200 each) to one academy owner's cart, and confirmed the payment page's "Total amount to pay" correctly reads INR 6,000 (1800+1800+1200+1200) rather than the previously-buggy INR 9,600 (which would result from doubling each pair's fee across its two rows). Also confirmed the removed copy, the new × delete button, and the restyled nav links render correctly on both the individual and group screens.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Reordered Payment Screen: Controls on Top, Roster Below
+
+### Reference
+- User asked for the "Review and submit" (payment) screen to follow the same layout pattern just applied to the individual/group registration screens — controls (total, payment details, receipt upload, submit) at the top, the list of entries below — so that with 40-50 students in a batch, the submit button doesn't require scrolling to the bottom of the page.
+
+### Change Log
+- `app/views/registrations/payment.html.erb`: swapped the order of the two blocks — the payment `form_with` (total, payment details, receipt upload, "Submit N registrations" button) now renders first, immediately below the page title; the "In this batch" cart list (`_draft_cart_rows` partial, with each entry's "Remove" link) now renders after it, growing downward as more entries are added, matching the individual and group screens' layout from the earlier registration-UX pass.
+- Updated the existing nested-`<form>` regression test (`payment screen never nests the remove-entry form inside the main payment form`) to check the invariant order-agnostically — it previously assumed the "Remove" form came first in the markup and the payment form second; now that the payment form renders first, the test checks whichever form appears first fully closes before the other one opens, still catching the same real bug (a nested `<form>`) regardless of which block is on top.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/registrations_controller_test.rb`: 36 runs, 0 failures.
+- Ran full suite `mise exec -- bin/rails test`: 506 runs, 3621 assertions, 0 failures, 0 errors, 0 skips.
+- Verified visually against the local dev server with a 4-entry/5-athlete batch: "Total amount to pay," payment details, and the "Submit 6 registrations" button all appear immediately after the page title with no scrolling, and the full entry list (with "Remove" links) renders below, growing downward.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Fixed Uneven Spacing Around "Pending Academy Requests"
+
+### Reference
+- User flagged uneven spacing on the athletes index page's "Pending academy requests" section (screenshot).
+
+### Change Log
+- `.section-compact` (`app/assets/stylesheets/application.css`) only had `margin-top:60px`, no `margin-bottom` — so the "Pending academy requests" card sat flush against the athlete grid below it (0px gap) while having a full 60px gap above it. Added `margin-bottom:60px` to match. Confirmed via computed styles in the browser (`sectionCompact.bottom` was exactly equal to `listGrid.top`, i.e. a literal 0px gap, before the fix). Consecutive `.section-compact` sections elsewhere (e.g. an athlete's "Upcoming tournaments"/"Previous competitions") are unaffected — adjacent sibling margins collapse to the larger value in normal CSS flow, so this doesn't double the gap between them.
+
+### Verification Log
+- Ran full suite `mise exec -- bin/rails test`: 506 runs, 3621 assertions, 0 failures, 0 errors, 0 skips.
+- Verified visually against the local dev server: even spacing now appears both above and below the "Pending academy requests" card.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Reverted Group Fee to Per-Athlete Rate (Requirement Correction)
+
+### Reference
+- User corrected the group-fee dedup logic from the previous entry: the actual product requirement is that the Pair/Team Poomsae fee an organizer sets on a tournament is a **per-athlete rate**, not a flat per-team price — e.g. a 1200 group fee means a Pair (2 athletes) totals 2400 and a Team (3 athletes) totals 3600, matching the original pre-dedup behavior.
+
+### Change Log
+- `Registration.total_fee` (`app/models/registration.rb`) reverted from deduping by `(submission_batch_id, tournament_category_id)` back to a plain sum of every row's `fee_amount`, with an updated comment explaining the per-athlete-rate rationale. `_draft_cart_rows.html.erb`, `payment.html.erb`, and `Organizer::RegistrationsController#index` all call this same shared method, so no further changes were needed there — they automatically reflect the corrected semantics.
+- Renamed/updated the corresponding tests to assert the per-athlete total instead of the (now incorrect) deduped total: `test/models/registration_test.rb`'s `total_fee` team test (1200 x2 + 1000 solo = 3400) and `test/controllers/registrations_controller_test.rb`'s payment-page integration test (3000 x2 + 1000 solo = 7000).
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/models/registration_test.rb test/controllers/registrations_controller_test.rb test/controllers/organizer_registrations_controller_test.rb`: 72 runs, 0 failures.
+- Ran full suite `mise exec -- bin/rails test`: 506 runs, 3621 assertions, 0 failures, 0 errors, 0 skips.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Fixed Broken Accept/Reject Buttons on Academy Notifications Page
+
+### Reference
+- User reported the Accept/Reject buttons on an academy's Notifications page ("Pending" join-request card) rendering broken — spilling outside the card, overlapping the page's left sidebar (screenshot from production).
+
+### Change Log
+- Root cause: `app/views/academies/notifications.html.erb`'s dismiss (×) button is built with `button_to ... do ... end`, which wraps the `<button>` in an auto-generated `<form class="button_to">`. The `.notification-dismiss` CSS class (including `position:absolute`) was applied to the `<button>` itself, not to that wrapping `<form>` — but the `<form>` is the actual direct child participating in the card's CSS grid (`grid-template-columns: minmax(0,1fr) auto`). Since the form was never taken out of flow, the card ended up with 3 real grid items instead of the intended 2, so the auto-placement algorithm wrapped the `.notification-actions` (Accept/Reject) div onto an implicit second row in column 1 — squeezed into a near-zero-width column and rendered off to the left of the visible card.
+- Fixed by giving the `button_to` a `form: { class: "notification-dismiss-form" }` option (an existing pattern already used elsewhere, e.g. `organizer/weight_checks/index.html.erb`) and moving the `position:absolute; right:12px; top:12px;` rule in `application.css` onto that new `.notification-dismiss-form` class, so the form itself — the real grid child — is removed from grid flow, restoring the intended 2-column layout.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/models/registration_test.rb test/controllers/registrations_controller_test.rb test/controllers/organizer_registrations_controller_test.rb`: 72 runs, 0 failures (no test covered this view's markup).
+- Ran full suite `mise exec -- bin/rails test`: 506 runs, 3621 assertions, 0 failures, 0 errors, 0 skips.
+- Reproduced the bug against the local dev server first (signed in as an academy owner with a pending join request; confirmed via `getBoundingClientRect`/computed styles that the grid had collapsed to `0px 656px` columns and the actions div had wrapped to an implicit row 1 in the near-zero-width column), then verified the fix: Accept/Reject now render correctly inside the card, right-aligned next to the request details.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Made Tournament Payment Details Optional (Cash Payment Support)
+
+### Reference
+- User reported that some organizers still collect payment in cash, so requiring a UPI ID or bank details to publish a paid tournament was too strict. Requested: (1) organizer flow — payment details become fully optional; a tournament with none configured is assumed to be cash-collected. (2) Academy/athlete registration flow — when a tournament has no payment method on file, hide the bank-details/QR section, still show the total amount due, and instead show an optional "Cash/UPI payment done to" note field so the organizer can later tell who's paid and who hasn't.
+
+### Change Log
+- **`app/models/tournament.rb`**: removed `payment_details_present_when_charging_fee`, the validation that blocked publishing a paid tournament without a complete bank or UPI payment method. Replaced it with a narrower `payment_bank_details_complete_if_started` validation that only fires if an organizer starts filling in bank transfer fields without finishing all four — a real data-quality guard, decoupled from whether the tournament charges a fee. `any_payment_method_present?` (still: all four bank fields present, or a UPI ID present) is now a public method, since the registration flow needs to branch on it.
+- **`app/views/tournaments/_form.html.erb`**: updated the payment-details section hint to explain that leaving everything blank means cash collection, and registrants will see a note field instead of a receipt requirement.
+- **`app/models/registration.rb`**: added a `payment_note` string column (migration `20260923155703_add_payment_note_to_registrations.rb`) with a 500-character cap, and a matching optional field on the registration flow. `payment_receipt_required` now skips entirely when the tournament has no payment method configured (`!tournament&.any_payment_method_present?`) — cash payments have no formal receipt to require, so the receipt upload becomes optional in that case (still allowed, e.g. for a photo of a personal UPI transfer, just not mandatory).
+- **`app/controllers/registrations_controller.rb`**: `submit` (academy owner cart) and `create_athlete_registration` (athlete self-service) both now gate their `needs_receipt` check on `@tournament.any_payment_method_present?` in addition to the existing free-category check, and both persist `params[:payment_note]` onto every registration row created in that submission (mirroring how `fee_amount`/the receipt blob are already applied to every row in a batch).
+- **New shared partial `app/views/registrations/_payment_details.html.erb`**: extracted from the two places that rendered the bank/UPI/QR block identically (`payment.html.erb` and `athlete_new.html.erb`), so both stay in sync automatically. When `tournament.any_payment_method_present?` is false, it renders a "Cash payment" panel instead — total is still shown by the caller, but the bank/UPI/QR `<dl>`s and the "Show full payment details" toggle are replaced with a single optional text field labeled "Cash/UPI payment done to". Both call sites also updated their receipt-upload copy to say "(optional)" and explain it's not required for cash.
+- **Organizer views**: `organizer/registrations/index.html.erb`'s Receipt column and `organizer/registrations/show.html.erb`'s detail page both now show the `payment_note` (prefixed "Cash/UPI:") under/next to the receipt link or "No receipt uploaded" text, when present.
+
+### Verification Log
+- Updated `test/models/tournament_test.rb`: the "blocks publishing without payment details" test now asserts the opposite (tournament is valid, cash payment assumed); the "requires at least one payment method" test renamed to confirm a paid tournament validates fine with no payment method, and still validates once one is added; the partial-bank-fields test's expected error message updated to match the new, fee-independent wording.
+- Updated `test/models/registration_test.rb`: the "still requires a receipt when fee is unset" test now gives the tournament a UPI ID so it still exercises the "blank fee ≠ free" logic it was meant to test; added a new test confirming a registration with no tournament payment method and a `payment_note` set is valid without a receipt; the "free individual fee vs. paid group fee" test given a UPI ID for the same reason.
+- Added two `test/controllers/registrations_controller_test.rb` tests: one confirming the payment screen shows the cash note box (not "Secure payment details") and that submitting with only a `payment_note` (no receipt) succeeds and persists the note onto the created registration; one confirming the athlete self-service flow behaves the same way.
+- Ran `mise exec -- bin/rails test test/models/tournament_test.rb test/models/registration_test.rb test/controllers/registrations_controller_test.rb`: 96 runs, 0 failures.
+- Ran full suite `mise exec -- bin/rails test`: 509 runs, 3637 assertions, 0 failures, 0 errors, 0 skips.
+- Verified live against the local dev server: created a tournament with a registration fee and no payment details via `rails runner` (confirmed `any_payment_method_present?` is false), registered an athlete as an academy owner, and confirmed the payment screen shows "Cash payment" with the total, the optional note field, and an optional receipt upload — no bank/QR block. Submitted with only the note filled in; the registration went to `pending` with no receipt attached and the note persisted. Signed in as the organizer and confirmed "Registration approvals" shows "No receipt uploaded" plus "Cash/UPI: Paid cash to Coach Meera" for that entry. Deleted the test tournament afterward.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Cash Payment Follow-up: Hide Receipt Upload Entirely
+
+### Reference
+- Follow-up to the cash-payment feature above: user confirmed the receipt-upload field should be hidden entirely in cash mode, not merely marked optional.
+
+### Change Log
+- `app/views/registrations/payment.html.erb` and `app/views/registrations/athlete_new.html.erb`: the "Payment receipt" file field block is now only rendered when `@tournament.any_payment_method_present?` — in cash mode, the payment screen shows just the total and the "Cash payment" panel (from `_payment_details.html.erb`), nothing else. No controller change needed — `submit`/`create_athlete_registration` already only required a receipt when a payment method is configured; `build_payment_receipt_blob` simply returns nil when `params[:payment_receipt]` is absent, which it now always is in cash mode.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/registrations_controller_test.rb`: 38 runs, 0 failures (existing tests post params directly rather than asserting on the file input's presence, so none needed updating).
+- Ran full suite `mise exec -- bin/rails test`: 509 runs, 3637 assertions, 0 failures, 0 errors, 0 skips.
+- Verified live against the local dev server: a fresh no-payment-method tournament's payment screen now shows only the total, the "Cash payment" note box, and Submit/Back — no receipt field at all.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Prevent Orphaned Notification Links on Deletes
+
+### Reference
+- User asked to verify deletes generally, after production had an orphaned super-admin notification pointing at a deleted tournament.
+
+### Change Log
+- `app/models/tournament.rb`, `app/models/academy.rb`, and `app/models/athlete.rb`: added explicit `has_many :super_admin_notifications, as: :notifiable, dependent: :destroy` associations. `SuperAdminNotification` is polymorphic, so the database cannot enforce a foreign key for `notifiable`; these model associations now make tournament, academy, and athlete deletes clean up their linked notifications automatically.
+- `app/helpers/application_helper.rb` and `app/views/super_admin/notifications/index.html.erb`: kept the defensive orphan rendering fallback so older bad production data can still be viewed and dismissed instead of crashing the page.
+- `test/models/super_admin_notification_test.rb`: added regression coverage that deleting a tournament, academy, or athlete removes linked super-admin notifications.
+- `test/controllers/super_admin_notifications_controller_test.rb`: added coverage for an already-orphaned notification so the inbox remains usable even if legacy bad data exists.
+- `test/controllers/profiles_controller_test.rb`: updated the athlete-account deletion expectation. If an athlete has no match/history-preserving references and only had a pending super-admin notification tied to that athlete, the notification is now removed with the athlete and the account can be fully deleted safely.
+
+### Verification Log
+- Ran local orphan audit with `rails runner`: `orphaned_super_admin_notifications: []`, `broken_academy_membership_requests: []`.
+- Ran `mise exec -- bin/rails test test/models/super_admin_notification_test.rb test/controllers/super_admin_notifications_controller_test.rb`: 10 runs, 85 assertions, 0 failures.
+- Ran broad delete-path regression suite: `mise exec -- bin/rails test test/models/super_admin_notification_test.rb test/controllers/super_admin_notifications_controller_test.rb test/controllers/tournaments_controller_test.rb test/controllers/academies_controller_test.rb test/controllers/athletes_controller_test.rb test/controllers/super_admin_athletes_controller_test.rb test/controllers/organizers_controller_test.rb test/controllers/profiles_controller_test.rb test/controllers/registrations_controller_test.rb test/models/athlete_test.rb test/models/user_test.rb`: 265 runs, 2126 assertions, 0 failures.
+- Re-ran local orphan audit after tests: `orphaned_super_admin_notifications: []`, `broken_academy_membership_requests: []`.
+- No production deploy was performed.
+
+## 2026-09-23 (cont.) - Cash Payment Follow-up 2: Per-Tournament "Also Allow Cash" Option
+
+### Reference
+- Further follow-up to the cash-payment feature: user pointed out that even when an organizer has UPI/bank details configured, some registrants may still prefer to pay a coach in cash or UPI directly (who then settles with the organizer separately). Requested a tournament-level checkbox to opt into this, with three payment-screen behaviors: (1) no payment method on file → cash-only UI (already built); (2) payment method present, cash not allowed → bank/UPI only, no cash option (already the default); (3) payment method present AND cash allowed → show both bank/UPI details and a checkbox + note field for registrants who choose to pay cash instead.
+
+### Change Log
+- **Migrations**: `20260923173000_add_allow_cash_payment_to_tournaments.rb` adds `tournaments.allow_cash_payment` (boolean, default false); `20260923173010_add_paid_by_cash_to_registrations.rb` adds `registrations.paid_by_cash` (boolean, default false) — a per-registration record of whether *this* registrant chose the cash route, distinct from the tournament-level setting and from the free-text `payment_note`.
+- **`app/models/tournament.rb`**: no validation changes — `allow_cash_payment` is a plain optional flag.
+- **`app/views/tournaments/_form.html.erb`**: added an "Also allow cash payment" checkbox in the Payment details section (same `checkbox-option`/`option-hint` pattern as the existing "Allow category change at weigh-in" toggle), and permitted `:allow_cash_payment` in `TournamentsController#tournament_params`.
+- **`app/models/registration.rb`**: `payment_receipt_required` now also skips when `paid_by_cash?` is true (on top of the existing "no payment method at all" skip) — a registrant who ticked "paying by cash" doesn't need a receipt even if the tournament has bank/UPI details.
+- **`app/controllers/registrations_controller.rb`**: added a private `cash_payment_selected?` helper — true when the tournament has no payment method at all (unchanged from before), or when the tournament `allow_cash_payment?` and the submitted `paid_by_cash` param is truthy. Both `submit` and `create_athlete_registration` now compute this once, use it to decide `needs_receipt`, and persist it onto every created/updated registration alongside `payment_note` (note is cleared to `nil` server-side if cash wasn't actually selected, regardless of what the client sent).
+- **`app/views/registrations/_payment_details.html.erb`**: restructured into three branches. No payment method → unchanged cash-only panel (no checkbox, since it's the only option). Payment method present and `allow_cash_payment?` → bank/UPI panel plus a checkbox ("I'm paying by cash/UPI directly instead") that reveals the note field and hides the "Payment receipt" upload (`data-cash-payment-checkbox` / `data-cash-note-field` / `data-receipt-upload`, toggled via a small inline `change` listener — same delegated-event pattern already used elsewhere in this app, e.g. `tournaments/_form.html.erb`'s organizer-invite toggle). Payment method present, cash not allowed → unchanged bank/UPI-only panel, no checkbox.
+- **Organizer views**: `organizer/registrations/index.html.erb` and `show.html.erb` now show "Cash/UPI payment" (index) / "Cash/UPI payment, no receipt" (show) in place of "No receipt uploaded" when `registration.paid_by_cash?` is true but no receipt exists — distinct from the optional free-text note, since a registrant could tick the box without filling in who they paid.
+
+### Verification Log
+- Added `test/models/registration_test.rb` tests: a `paid_by_cash: true` registration on a tournament with a payment method and `allow_cash_payment: true` is valid without a receipt; the same tournament with `paid_by_cash` left false still requires one.
+- Added `test/controllers/registrations_controller_test.rb` tests: payment screen shows bank/UPI only (no checkbox) and still requires a receipt when `allow_cash_payment` is off (default); shows both the bank/UPI panel and the cash checkbox when it's on, and checking it (submitting `paid_by_cash: "1"`) skips the receipt requirement and persists `paid_by_cash`/`payment_note` correctly with no receipt attached; leaving the checkbox unticked on an `allow_cash_payment: true` tournament still requires a receipt.
+- Added a `test/controllers/tournaments_controller_test.rb` test confirming `allow_cash_payment` round-trips through tournament creation.
+- Ran `mise exec -- bin/rails test test/models/registration_test.rb test/controllers/registrations_controller_test.rb test/controllers/tournaments_controller_test.rb`: all green.
+- Ran full suite `mise exec -- bin/rails test`: 519 runs, 3681 assertions, 0 failures, 0 errors, 0 skips.
+- Verified live against the local dev server across all three tournament configurations (no payment method; payment method with cash off; payment method with cash on). For the third case, confirmed via direct DOM inspection (`FormData` on the actual rendered form) that checking the box correctly submits `paid_by_cash=1`, and — after an initial round of manual browser-click testing produced a false negative from a stale coordinate-click artifact (a known flakiness in this session's browser-automation tool, not an app bug; isolated and confirmed via temporary server-side debug logging before removing it) — a clean JS-driven submission confirmed the full path end-to-end: checkbox ticked → `paid_by_cash: true`, `payment_note` saved, no receipt attached, receipt requirement correctly skipped. Deleted all test tournaments created during verification afterward.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Super Admin CSV Data Export (Academies, Tournaments, Athletes)
+
+### Reference
+- User asked that a super admin be able to download all data from the Academies page, Tournaments page, and (super admin) Athletes tab as Excel/CSV, in a format both human-readable and complete enough to hand back to an AI assistant to reprovision another environment as a backup. Clarified via follow-up questions: CSV only (no new gem needed, since Excel opens CSV natively), a full table export (every record, not just the current filtered/paginated view), and payment bank/UPI details included decrypted (this is a super-admin-only, backup-oriented export).
+
+### Change Log
+- **`config/application.rb`**: added `require "csv"` at boot — Ruby's CSV library needs an explicit require even though it ships with Ruby (no Gemfile/gem addition needed).
+- **Model export methods** (`Academy.to_export_csv`, `Athlete.to_export_csv`, `Tournament.to_export_csv`, `TournamentCategory.to_export_csv`): each is a class method that streams every column via `CSV.generate`, plus the relevant human-readable link columns (owner/organizer/parent name+email, academy/tournament name) since raw foreign-key IDs mean nothing outside the database. `Tournament#payment_account_number`/`payment_ifsc`/`payment_upi_id` are `encrypts`-ed columns, so reading them on the model already returns the decrypted plaintext — no extra decryption code needed. Tournament categories are exported separately from tournaments (`TournamentCategory.to_export_csv`) since they're a distinct one-to-many table an organizer needs to fully reconstruct a tournament's categories/fees/brackets.
+- **Routes**: added `collection { get :export }` to `resources :academies`; `collection { get :export; get :export_categories }` to `resources :tournaments`; `collection { get :export }` inside `super_admin/resources :athletes`. All declared as collection routes so `/academies/export` etc. resolve before the `:id`-based show routes, with no collision.
+- **Controllers**: `AcademiesController#export`, `TournamentsController#export`/`#export_categories`, `SuperAdmin::AthletesController#export` each just call the model method and `send_data` with a dated filename (e.g. `academies-2026-09-23.csv`) and `text/csv` type. All four gated by the existing `require_super_admin` before_action (raises 404 for anyone else, same as the app's other super-admin-only actions).
+- **Views**: added "Export all (CSV)" / "Export tournaments (CSV)" + "Export categories (CSV)" / "Export all (CSV)" links, super-admin-only, to `academies/index.html.erb`, `tournaments/index.html.erb`, and `super_admin/athletes/index.html.erb` respectively — reusing the existing `.page-actions` wrapper class already used elsewhere for a row of header buttons, and a new `download` icon added to `ApplicationHelper::ICON_PATHS`.
+
+### Verification Log
+- Added controller tests in `academies_controller_test.rb`, `tournaments_controller_test.rb`, and `super_admin_athletes_controller_test.rb`: super admin gets a 200 `text/csv` response containing the expected record data (including a tournament's plaintext UPI ID and an academy's owner email) for each export action; a non-super-admin gets `:not_found` for each.
+- Ran the three affected controller test files: 107 runs, 0 failures. Ran full suite: 526 runs, 3715 assertions, 0 failures, 0 errors, 0 skips.
+- Verified via `rails runner` that all four `.to_export_csv` methods produce correct, real-data CSVs (checked header rows and sample rows for academies, athletes, tournaments — including decrypted `payment_upi_id` — and tournament categories).
+- Hit and fixed a stale-server-process issue during live verification: `require "csv"` in `config/application.rb` only takes effect at boot, so the already-running dev server (started earlier in this session, before this change) threw `NameError (uninitialized constant Tournament::CSV)` on the first live request even though `rails runner` (a fresh process) and the test suite (which boots fresh) both worked fine. Restarted the dev server, then confirmed via direct `fetch()` calls (checking status/content-type/content-disposition/row-count) that all four endpoints download correctly.
+- Verified live in the browser as a super admin: "Export all (CSV)" appears on the Academies page, "Export tournaments (CSV)" + "Export categories (CSV)" on the Tournaments page, and "Export all (CSV)" on the super-admin Athletes tab; none of these links appear for non-super-admin roles (not separately screenshotted, but covered by the controller tests' 404 assertions).
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Fixed Bad Scroll-to-Row Behavior on Weight Check Screen
+
+### Reference
+- User reported the scroll behavior on the organizer weight-check screen (`/organizer/tournaments/:id/weight_checks`) was "very bad."
+
+### Change Log
+- Root cause: after saving a weight attempt, the controller redirects back to the weight-check index with `?highlight=<registration_id>`, and a `DOMContentLoaded` script finds that row and calls `row.scrollIntoView({ behavior: "smooth", block: "center" })` to return the organizer to where they were. This page groups and lists **every** accepted registration in the tournament with no pagination, so with even a moderate number of athletes it can run to many thousands of pixels tall (confirmed ~18,600px tall with 50 registrations locally). Two compounding problems: (1) the global CSS rule `html { scroll-behavior: smooth; }` (`app/assets/stylesheets/application.css:4`) doubles up with the JS `behavior: "smooth"` option, and in some browser/tab states (confirmed: a backgrounded/hidden browser tab, a realistic scenario for an organizer multitasking mid-weigh-in) the animated scroll silently never starts at all — `window.scrollY` stayed at `0` indefinitely, stranding the organizer at the very top of the page after every single save; (2) even when the animation does run, smoothly animating across many thousands of pixels after every one of dozens of saves is slow and jarring on its own.
+- Fixed in `app/views/organizer/weight_checks/index.html.erb`: the scroll-to-row call now temporarily sets `document.documentElement.style.scrollBehavior = "auto"` around a plain `scrollIntoView({ block: "center" })` (no `behavior` option), forcing a deterministic instant jump that overrides the global CSS smooth-scroll rule for this one call, then restores the previous inline style. The amber highlight-flash effect on the row (a CSS `transition`, unrelated to scroll timing) is unchanged.
+- No other behavior changed — the `highlight` query param mechanism, its removal via `history.replaceState`, and the controller's redirect are all untouched.
+
+### Verification Log
+- Reproduced the failure directly: loaded the weight-check page for a 50-registration tournament, submitted a weight-check save for a registration roughly a third of the way down (~5,000px into an ~18,600px-tall page), and confirmed `window.scrollY` remained `0` after the redirect with the browser tab in a backgrounded (`document.hidden: true`) state — the exact same condition under which the old `behavior: "smooth"` call was proven to silently no-op (isolated by manually re-running the old vs. new scroll code with `document.hidden` true and sampling `scrollY` over time).
+- Applied the fix and reproduced the same scenario again: `scrollY` correctly landed at `5007` (the row's on-page position) immediately, under the same backgrounded-tab condition where the old code produced `0`.
+- Ran `mise exec -- bin/rails test test/controllers/organizer_weight_checks_controller_test.rb test/controllers/organizer_weight_check_decisions_controller_test.rb`: 10 runs, 0 failures (the `highlight` redirect param itself is server-side and untouched by this view-only JS change).
+- Ran full suite `mise exec -- bin/rails test`: 526 runs, 3715 assertions, 0 failures, 0 errors, 0 skips.
+- Deleted the test weight-check attempt created during reproduction afterward.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Weight No Longer Blocks Category Selection at Registration Time
+
+### Reference
+- User pointed out that weight at account-creation time can differ from weight on tournament day (e.g. profile weight 20kg, actual weight 24kg by registration), and asked that gender and age keep gating category choice but weight be fully flexible — able to pick any matching category regardless of declared weight — across every registration flow (academy owner, athlete self-registration).
+
+### Change Log
+- The category *list* shown to pick from was already unfiltered by weight (`TournamentCategory.suggested_individual_categories` has always passed `weight: nil` when building the option list — weight was only used to pre-select the closest-fitting bracket, never to exclude others). The actual blocker was at **submission time**: `Registration#athlete_matches_category_eligibility` (`app/models/registration.rb`) passed the declared/profile weight into `TournamentCategory#eligibility_errors_for`, which rejects a registration if the selected category's weight range doesn't contain that number — so picking a category the organizer intended but that didn't match today's declared weight failed with "...weight (X kg) is outside the range for...".
+- Removed the `weight:` argument from that call entirely — registration-time eligibility now only checks gender, age, and belt (all fixed facts), never weight. The real weight check still happens at the tournament's weigh-in via the existing `RegistrationWeightCheck` flow (`Registration#weight_within_category?`, the organizer weight-check screen, and its category-move-on-failure path) — none of that was touched.
+- Updated the "Registration weight" field's copy on both `app/views/registrations/individual.html.erb` (academy owner flow) and `app/views/registrations/athlete_new.html.erb` (athlete self-service flow) — relabeled "(optional)" and reworded to explain it's just a reference for organizers, any listed category can be picked regardless of it, and actual weight is confirmed at weigh-in (previously said the opposite: "pick whichever category actually matches... this is what gets checked against the category you select").
+
+### Verification Log
+- Updated `test/models/registration_test.rb`'s `"rejects registration when declared weight does not match category"` test — renamed and flipped to assert the registration is now valid with a declared weight of 50kg against a 33-37kg category, since this is exactly the intended reversal.
+- Ran `mise exec -- bin/rails test test/models/registration_test.rb test/models/tournament_category_test.rb test/controllers/registrations_controller_test.rb`: 77 runs, 0 failures.
+- Ran full suite `mise exec -- bin/rails test`: 526 runs, 3713 assertions, 0 failures, 0 errors, 0 skips.
+- Verified live against the local dev server: created a tournament with only a "Kyorugi Male Age 10-16, 60-70kg" category, signed in as an academy owner, and registered an athlete whose profile weight is 46.1kg (clearly outside that range) into it — confirmed the draft registration was created successfully with no rejection, `registered_weight` correctly stored as 46.1. Deleted the test tournament afterward.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Live "Closest" Category Updates as Weight Changes
+
+### Reference
+- Following the previous change (weight no longer blocks category selection), user asked that the "closest" Kyorugi bracket shown in the category dropdown update live as the entered weight changes, with this preference order: (1) whatever's currently typed in the weight field, (2) the profile weight it defaulted from, (3) no weight at all — in which case no bracket should be singled out, just the full matching list.
+
+### Change Log
+- **`app/models/tournament_category.rb`**: `closest_by_weight` now returns `nil` when no weight is available at all, instead of arbitrarily returning the first bracket — there's no honest "closest" guess with zero weight information, so nothing should be labeled as one.
+- **`app/views/registrations/individual.html.erb`** and **`athlete_new.html.erb`** (the two screens with a weight field + Kyorugi category picker — group/Poomsae categories have no weight brackets):
+  - Each Kyorugi `<option>` now carries `data-base-label`/`data-weight-min`/`data-weight-max`, and the weight input carries `data-profile-weight` — enough for client-side JS to recompute the closest bracket without a server round-trip.
+  - Added an `input` listener on the weight field that recalculates the closest bracket (same preference order and midpoint-distance math as the server-side `closest_by_weight`/`suggested_individual_categories`), live-updates the "(closest)" suffix on every matching option (including inside the "add another category" `<template>`, so newly added rows are correct too), and re-selects the closest bracket in any category `<select>` that hasn't been explicitly chosen by the user.
+  - A `data-user-selected` flag (set on a `<select>` only by a genuine `change` event from direct user interaction, never by the script's own `.value =` assignment) protects a deliberately-picked category from being silently overridden as the weight field keeps changing — matches the prior session's related decision not to clobber explicit choices. Rows re-rendered from a resubmitted form with explicit `tournament_category_ids` are marked user-selected server-side too, for the same reason. Clearing a row back to blank (via the × button) also clears this flag, so it resumes following weight changes.
+  - Updated both fields' hint text to mention the "closest" pick updates live as the number changes.
+
+### Verification Log
+- Updated `test/models/tournament_category_test.rb`'s "falls back to the first kyorugi match when weight is blank" test — renamed and flipped to assert `result[:recommended]` is `nil` in that case, matching the new no-bias behavior.
+- Ran `mise exec -- bin/rails test test/models/tournament_category_test.rb test/models/registration_test.rb test/controllers/registrations_controller_test.rb`: 77 runs, 0 failures. Ran full suite: 526 runs, 3713 assertions, 0 failures, 0 errors, 0 skips.
+- Verified live against the local dev server with a tournament having three Kyorugi brackets (20-30kg, 40-50kg, 60-70kg): loading the individual registration screen for an athlete with profile weight 46.1kg correctly pre-selected and labeled the 40-50kg bracket "(closest)"; changing the weight field to 65 (via a dispatched `input` event, no page reload) live-updated both the label and the row's selected value to the 60-70kg bracket; clearing the weight field entirely removed the "(closest)" label from every option with no forced selection; manually picking the 20-30kg bracket and then changing the weight to 65 again confirmed that manual pick was left untouched rather than being overridden. Deleted the test tournament afterward.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-24 - Fixed Tournament Registration Times Being Interpreted as Server Time Instead of the Organizer's Local (IST) Time
+
+### Reference
+- User reported that when an organizer sets a tournament's registration open/close time (e.g. "24th September 12am"), they mean their own local time, but the app was treating it as server time instead — asked how to fix it.
+
+### Change Log
+- Root cause: Rails' global `Time.zone` was never configured, so it silently defaulted to UTC. The `registration_opens_at`/`registration_closes_at` fields use `datetime_local_field` (a browser-local `datetime-local` input with no UTC offset attached to its value) — every naive datetime string typed by an organizer gets cast by Rails using the app's global `Time.zone`, and every stored time is later displayed the same way. With `Time.zone` at UTC, an organizer typing "24 Sep, 12:00 AM" (meaning midnight in their own IST clock) had it stored as midnight **UTC** instead — 5.5 hours later than intended, so registration would actually open/close 5.5 hours off from what they set relative to real IST wall-clock time. This is a single-app-wide setting, not something per-tournament: the `tournaments.time_zone` string column already in the schema turned out to be entirely decorative — never read anywhere to convert or interpret any datetime, and there was no UI to even set it (it was silently defaulted to `Time.zone.name`, i.e. `"UTC"`, at tournament creation).
+- Since this platform is India-only throughout (INR currency, Indian states/PIN-code/phone formats, "India" the default country, every seeded academy/organizer/athlete based in India), the correct fix is a single global setting rather than building out full per-organizer multi-timezone support: added `config.time_zone = "Kolkata"` to `config/application.rb`. This makes `Time.zone`/`Time.current` and every time-zone-aware attribute (registration times, `created_at`/`updated_at`, etc.) consistently interpreted and displayed in IST app-wide, matching the one time zone every real user is actually in. The database still stores true UTC instants underneath (Rails' recommended `default_timezone: :utc`, untouched) — only the Ruby-level interpretation/display zone changed, so this is a safe, standard Rails pattern for a single-timezone app, not a hack.
+- Added "(IST)" to the "Registration opens at" / "Registration closes at" field labels on the tournament create/edit form (`app/views/tournaments/_form.html.erb`), and an " IST" suffix on their displayed values on the tournament show page (`app/views/tournaments/show.html.erb`), so organizers and athletes see explicitly which time zone these times are in rather than it being implicit/ambiguous.
+- Left the existing (already-dead, unused) `tournaments.time_zone` column as-is — out of scope, since actually wiring up genuine per-tournament/multi-timezone support isn't needed for a single-country platform and would be over-engineering for this bug report.
+- **Caveat**: this fixes the interpretation of times entered going forward. Any tournament's `registration_opens_at`/`registration_closes_at` already saved under the old UTC-default behavior keeps its previously-stored (5.5-hours-off) instant — this change doesn't retroactively correct historical data, since there's no reliable way to distinguish "was already correct" from "was off by the bug" after the fact. Existing tournaments' registration windows should be spot-checked and re-saved by their organizers if the times look wrong.
+
+### Verification Log
+- Ran full suite `mise exec -- bin/rails test`: 526 runs, 3713 assertions, 0 failures, 0 errors, 0 skips (both before and after the config change — no test asserted UTC-specific rendered times).
+- Verified via `rails runner` after restarting the dev server (a `config/application.rb` change only takes effect on process boot): `Time.zone.name` is now `"Kolkata"`; created a tournament with `registration_opens_at: "2026-09-24T00:00"` (simulating what an organizer types intending midnight IST) — the record reads back as `2026-09-24 00:00:00 +0530` (correct), and the raw Postgres value is `2026-09-23 18:30:00 UTC` (the correct underlying UTC instant for that IST moment, confirming the database still stores true UTC, not corrupted local-as-UTC data).
+- Verified live in the browser: the tournament create form now shows "Registration opens at (IST)" / "Registration closes at (IST)" labels; a tournament created with that same registration_opens_at value displays "24 Sep 2026, 12:00 AM IST" on its show page — exactly matching what was typed. Deleted the test tournaments created during verification afterward.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-24 (cont.) - Made the IST Fix Deployment-Safe Regardless of the Production Container's OS Time Zone Data
+
+### Reference
+- User asked, reasonably, whether `config.time_zone = "Kolkata"` would actually work on the real production server, not just locally.
+
+### Change Log
+- It was a valid concern: `TZInfo` (which Rails uses to resolve `"Kolkata"`) reads time zone data either from the OS's `/usr/share/zoneinfo` or from a bundled pure-Ruby copy via the `tzinfo-data` gem. The app's `Dockerfile` (`ruby:3.3.8-slim-bookworm`) only `apt-get install`s `build-essential git libpq-dev libyaml-dev pkg-config` (build stage) and `curl libpq5` (runtime stage) — it never installs the `tzdata` apt package, and Debian slim images don't guarantee `tzdata` is pulled in transitively. My local verification only worked because macOS happens to ship `/usr/share/zoneinfo/Asia/Kolkata` — that says nothing about the actual production container, which could plausibly have raised `TZInfo::DataSourceNotFound` on boot (or worse, resolved zone data inconsistently) with no way to verify from this environment (no Docker available here to build and test the real image).
+- Fixed by adding `gem "tzinfo-data"` to the `Gemfile` (outside any group, so it installs in production too — confirmed the Dockerfile's `BUNDLE_WITHOUT="development:test"` doesn't exclude it). This bundles the full IANA time zone database in pure Ruby, so `TZInfo` no longer depends on the OS having zoneinfo files at all. Verified via `rails runner` that `TZInfo::DataSource.get` now returns `TZInfo::DataSources::RubyDataSource` (the gem-bundled source) rather than falling back to the OS's zoneinfo — confirmed this is true even in this local environment where OS zoneinfo also exists, meaning dev and production now resolve time zones identically instead of dev accidentally working for a different reason than production would.
+
+### Verification Log
+- Ran `bundle install`: added `tzinfo-data (1.2026.4)` cleanly to `Gemfile.lock`, no dependency conflicts.
+- Ran full suite `mise exec -- bin/rails test`: 526 runs, 3713 assertions, 0 failures, 0 errors, 0 skips.
+- Confirmed via `rails runner`: `TZInfo::DataSource.get.class` is `TZInfo::DataSources::RubyDataSource`, and `Time.zone.name`/`Time.current` still resolve correctly to Kolkata/+05:30.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session. **This change (along with the rest of this session's uncommitted work) needs an actual deploy to production before it takes effect there** — none of this has been deployed.
+
+## 2026-09-24 (cont.) - Fixed Super Admins Seeing "No Athletes Registered" for Tournaments They Don't Own
+
+### Reference
+- User reported (on production, `podiumcircle.com/organizer/registrations?tournament_id=1`) that the organizer registration-approvals page showed "No athletes registered yet" for a tournament, even though the tournament's own page clearly showed registered athletes.
+
+### Change Log
+- Root cause: `Organizer::RegistrationsController#managed_tournament_ids` only matched tournaments the current user directly owns (`organizer_id`) or is an explicit `tournament_organizers` collaborator on — unlike literally every other permission check in the app, which treats a super admin as able to manage *any* tournament (`ApplicationController#can_manage_tournament?`, used by the tournament's own "Tournament athletes"/weight-check/draws/venue-setup links, and independently re-implemented the same way in `Organizer::WeightChecksController`, `Organizer::WeightCheckDecisionsController`, `Organizer::MatchesController`, and `Organizer::DrawsController`). So a super admin not personally added as a collaborator would click "Tournament athletes" from a tournament's own page (which is only shown to them because `can_manage_tournament?` says yes) and land on a page whose narrower, inconsistent scoping said no — showing an empty list for a tournament that in this case actually had 83 real registrations.
+- Fixed `managed_tournament_ids` (`app/controllers/organizer/registrations_controller.rb`) to return every tournament for a super admin, matching `can_manage_tournament?` and every sibling organizer sub-controller. This affects both the tournament-scoped list (the reported bug) and the unscoped "all my tournaments" list, and — since `set_registration` shares the same scope — also approve/reject/receipt actions, so a super admin who can now see a registration can also act on it rather than seeing a row whose buttons silently 404.
+- This is a deliberate widening of an existing, narrower access rule that an existing test had locked in (`"unassigned super admin is not the approval recipient..."`) — decided in favor of consistency with the rest of the app (every other tournament-management surface already grants super admins full access) rather than preserving what turned out to be a one-off inconsistency. Renamed and rewrote that test to assert the corrected behavior instead.
+
+### Verification Log
+- Rewrote the affected test in `test/controllers/organizer_registrations_controller_test.rb` to assert an unassigned super admin can view a tournament-scoped registration list and successfully approve a registration on it, instead of asserting both are blocked. The other three tests in that file (organizer-only scoping, tournament_id scoping, unrecognized-id fallback) were unaffected — none involve a super admin.
+- Ran `mise exec -- bin/rails test test/controllers/organizer_registrations_controller_test.rb`: 13 runs, 0 failures. Ran full suite: 526 runs, 3715 assertions, 0 failures, 0 errors, 0 skips.
+- Reproduced the exact report locally first: confirmed tournament 1 (seeded data) has 83 decided registrations and its organizer/collaborators don't include the local super admin account, then loaded `/organizer/registrations?tournament_id=1` as that super admin and confirmed it showed "No athletes registered yet." Applied the fix and reloaded the same URL — now correctly lists all 83 athletes with their statuses, categories, and receipts.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session. This fix has not been deployed; the production bug the user reported is still live until this is deployed.
+
+## 2026-09-24 (cont.) - Restructured Default Poomsae Age Divisions (Pee Wee Through Over 65)
+
+### Reference
+- User gave a specific Poomsae age-division scheme (Pee Wee under 8, Sub-Junior 8-12, Cadet 12-14, Junior 14-17, Senior 17-30, then Under 40/50/60/65, Over 65 — Individual for all, Pair/Team for every division except Pee Wee and Over 65) and asked for it to become the default category set generated for every new tournament.
+
+### Change Log
+- `TournamentCategory::INDIVIDUAL_POOMSAE_AGE_DIVISIONS` (`app/models/tournament_category.rb`): renamed/restructured the youngest two tiers from the previous unlabeled `under-9` (≤9) / `under-11` (10-11) split into `pee-wee` (≤7) / `sub-junior` (8-11), and renamed `under-30` to `senior` (still 18-30, unchanged range) — everything from Cadet onward already matched the user's intent exactly (Cadet 12-14, Junior 15-17, Senior 18-30, Under 40/50/60/65, Over 65) so those ranges were left as-is.
+- `TournamentCategory::PAIR_TEAM_POOMSAE_AGE_DIVISIONS`: previously two broad tiers (12-17 / 18+), independent of the individual list. Replaced with `INDIVIDUAL_POOMSAE_AGE_DIVISIONS.reject { |division| %w[pee-wee over-65].include?(division[:key]) }` — Pair/Team now automatically track whatever the individual list contains, minus the two individual-only tiers, rather than being a second hand-maintained list that can drift out of sync.
+- The overlapping boundaries in the user's original phrasing (e.g. "Cadet 12-14" then "Junior 14-17") were resolved to clean, non-overlapping ranges (Junior starts at 15, Senior at 18) in the prior message before this change was made — confirmed with the user before implementing, and this matches both the app's pre-existing Cadet/Junior/Senior boundaries and standard WT/Kukkiwon Poomsae age-division conventions.
+- No route/controller/view changes needed — `Tournament#assign_default_categories` and `DEFAULT_CATEGORY_TEMPLATES` already derive everything from these two constants.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/models/tournament_category_test.rb test/models/tournament_test.rb test/controllers/tournaments_controller_test.rb`: 107 runs, 0 failures (none of these hardcode Poomsae category names/counts — they check `DEFAULT_CATEGORY_TEMPLATES.size` dynamically and only assert specific Kyorugi names). Ran full suite: 526 runs, 3715 assertions, 0 failures, 0 errors, 0 skips.
+- Verified via `rails runner`: `build_individual_poomsae_templates` produces exactly the 20 expected names (10 divisions × 2 genders, e.g. "Individual Poomsae Male Age U7" through "...Age 66+"); `build_pair_poomsae_templates`/`build_team_poomsae_templates` each produce the expected 8 names (Sub-Junior through Under 65, no gender). Created a real tournament and confirmed all 138 default categories (102 Kyorugi + 20 Individual Poomsae + 8 Pair + 8 Team) persist with no `category_key` collisions, then deleted it.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
