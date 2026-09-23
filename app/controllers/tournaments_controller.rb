@@ -183,7 +183,7 @@ class TournamentsController < ApplicationController
       :eligibility_summary, :registration_capacity,
       :registration_fee, :group_registration_fee, :allow_category_change_at_weigh_in, :currency, :required_documents, :refund_policy,
       :payment_account_name, :payment_bank_name, :payment_account_number,
-      :payment_ifsc, :payment_upi_id, :payment_qr_image, :payment_instructions,
+      :payment_ifsc, :payment_upi_id, :payment_instructions,
       :logo_image, :banner_image, :terms_accepted, :data_sharing_consent,
       competition_format_options: [], competition_format_other: [],
       eligibility_options: [], eligibility_other: [],

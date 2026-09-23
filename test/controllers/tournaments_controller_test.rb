@@ -139,7 +139,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal TournamentCategory::DEFAULT_CATEGORY_TEMPLATES.size, tournament.tournament_categories.count
   end
 
-  test "creates a tournament with a UPI ID and payment QR code instead of bank details" do
+  test "creates a tournament with a UPI ID instead of bank details, and a QR code is generated automatically" do
     assert_difference("Tournament.count", 1) do
       post tournaments_path, params: {
         tournament: {
@@ -148,7 +148,6 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
           end_date: "2026-12-06",
           registration_fee: "500.00",
           payment_upi_id: "organizer@okhdfcbank",
-          payment_qr_image: identity_image_upload,
           status: "draft"
         }.merge(consent_params)
       }
@@ -157,7 +156,7 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     tournament = Tournament.order(:created_at).last
     assert_redirected_to tournament_path(tournament)
     assert_equal "organizer@okhdfcbank", tournament.payment_upi_id
-    assert_predicate tournament.payment_qr_image, :attached?
+    assert tournament.payment_upi_qr_svg.present?
   end
 
   test "rejects an invalid UPI ID on create" do

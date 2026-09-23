@@ -25,14 +25,14 @@
   <% grouped = @draft_registrations.group_by(&:submission_batch_id) %>
   <% total = @draft_registrations.sum { |r| r.tournament_category.free? ? 0 : r.fee_amount.to_d } %>
 
+  <div class="form-card">
+    <label>In this batch &middot; <%= grouped.size %> <%= "entry".pluralize(grouped.size) %>, <%= @draft_registrations.map(&:athlete_id).uniq.size %> <%= "athlete".pluralize(@draft_registrations.map(&:athlete_id).uniq.size) %></label>
+    <%= render "registrations/draft_cart_rows", grouped_rows: grouped %>
+    <p class="field-hint"><%= link_to "+ Add another athlete or entry", new_tournament_registration_path(@tournament), class: "text-link" %></p>
+  </div>
+
   <%= form_with url: payment_tournament_registrations_path(@tournament), method: :post, class: "form-card", multipart: true do |form| %>
     <div class="form-grid two-col">
-      <div class="full">
-        <label>In this batch &middot; <%= grouped.size %> <%= "entry".pluralize(grouped.size) %>, <%= @draft_registrations.map(&:athlete_id).uniq.size %> <%= "athlete".pluralize(@draft_registrations.map(&:athlete_id).uniq.size) %></label>
-        <%= render "registrations/draft_cart_rows", grouped_rows: grouped %>
-        <p class="field-hint"><%= link_to "+ Add another athlete or entry", new_tournament_registration_path(@tournament), class: "text-link" %></p>
-      </div>
-
       <div class="registration-total full">
         <strong>Total amount to pay</strong>
         <span><%= @tournament.currency.presence || "INR" %> <%= number_with_delimiter(total.to_i) %></span>
@@ -62,10 +62,10 @@
             <button type="button" class="secondary-button button-reset" data-toggle-payment-details>Show full payment details</button>
           <% end %>
 
-          <% if @tournament.payment_qr_image.attached? %>
+          <% if @tournament.payment_upi_qr_svg.present? %>
             <div class="payment-qr">
-              <%= image_tag @tournament.payment_qr_image, alt: "Payment QR code for #{@tournament.name}", class: "payment-qr-image" %>
-              <p class="field-hint">Scan with any UPI or payment app to pay.</p>
+              <%= @tournament.payment_upi_qr_svg %>
+              <p class="field-hint">Scan with any UPI app to pay.</p>
             </div>
           <% end %>
 

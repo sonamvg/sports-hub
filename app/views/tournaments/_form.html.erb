@@ -73,13 +73,7 @@
       <%= field_error(tournament, :venue) %>
     </div>
 
-    <%= render "shared/city_state_fields", form: form, record: tournament, city_required: true, state_required: true %>
-
-    <div>
-      <%= form.label :country %>
-      <%= form.text_field :country, value: tournament.country.presence || "India", required: true %>
-      <%= field_error(tournament, :country) %>
-    </div>
+    <%= render "shared/city_state_fields", form: form, record: tournament, city_required: true, state_required: true, country_required: true %>
 
     <div>
       <%= form.label :start_date %>
@@ -200,15 +194,13 @@
       <%= field_error(tournament, :payment_upi_id) %>
     </div>
 
-    <div class="full">
-      <%= form.label :payment_qr_image, "Payment QR code" %>
-      <%= form.file_field :payment_qr_image, accept: "image/png,image/jpeg,image/webp" %>
-      <%= field_error(tournament, :payment_qr_image) %>
-      <p class="field-hint">Optional. A UPI or other payment QR code image — JPG, PNG, or WebP up to 5 MB.</p>
-      <% if tournament.payment_qr_image.attached? %>
-        <p class="field-hint">Current upload: <%= tournament.payment_qr_image.filename %></p>
-      <% end %>
-    </div>
+    <% if tournament.payment_upi_qr_svg.present? %>
+      <div class="full">
+        <label>Payment QR code</label>
+        <div class="payment-qr"><%= tournament.payment_upi_qr_svg %></div>
+        <p class="field-hint">Generated automatically from the UPI ID above &mdash; registrants can scan it to pay. Save with a different UPI ID to update it.</p>
+      </div>
+    <% end %>
 
     <div class="full">
       <%= form.label :payment_instructions, "Payment instructions" %>

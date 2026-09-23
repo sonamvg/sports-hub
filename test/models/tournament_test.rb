@@ -52,7 +52,7 @@ class TournamentTest < ActiveSupport::TestCase
 
     tournament.valid?
 
-    assert_includes tournament.errors[:base], "add at least one payment method (bank account details, a UPI ID, or a payment QR code image) before a tournament that charges a fee can be published"
+    assert_includes tournament.errors[:base], "add at least one payment method (bank account details or a UPI ID) before a tournament that charges a fee can be published"
   end
 
   test "end date cannot be before start date" do
@@ -195,16 +195,6 @@ class TournamentTest < ActiveSupport::TestCase
     assert tournament.valid?
   end
 
-  test "a payment QR code alone satisfies the payment method requirement" do
-    organizer = User.create!(name: "Organizer", email: "qr-only-organizer@example.test", password: "password123", role: :organizer)
-    tournament = Tournament.new(
-      name: "QR Only Open", organizer: organizer, status: :registration_open, registration_fee: 500,
-      start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19), payment_qr_image: identity_image_upload
-    )
-
-    assert tournament.valid?
-  end
-
   test "starting to fill in bank details without finishing them still shows the missing bank fields" do
     organizer = User.create!(name: "Organizer", email: "partial-bank-organizer@example.test", password: "password123", role: :organizer)
     tournament = Tournament.new(
@@ -230,15 +220,26 @@ class TournamentTest < ActiveSupport::TestCase
     assert_empty tournament.errors[:payment_upi_id]
   end
 
-  test "rejects an oversized or unsupported payment QR image" do
-    organizer = User.create!(name: "Organizer", email: "bad-qr-organizer@example.test", password: "password123", role: :organizer)
-    tournament = Tournament.new(
-      name: "Bad QR Open", organizer: organizer, start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19),
-      payment_qr_image: invalid_text_upload
-    )
+  test "generates a UPI QR code automatically from a valid UPI ID" do
+    tournament = Tournament.new(name: "QR Auto Open", payment_upi_id: "organizer@okhdfcbank")
 
-    assert_not tournament.valid?
-    assert_includes tournament.errors[:payment_qr_image], "must be a JPG, PNG, or WebP file"
+    svg = tournament.payment_upi_qr_svg
+    assert svg.present?
+    assert_predicate svg, :html_safe?
+    assert_includes svg, "<svg"
+
+    tournament.payment_upi_id = nil
+    assert_nil tournament.payment_upi_qr_svg
+  end
+
+  test "the UPI QR code payload percent-encodes free-text fields to prevent deep-link injection" do
+    tournament = Tournament.new(name: "Injection & Test", payment_upi_id: "organizer@okhdfcbank", payment_account_name: "Club & Co")
+
+    uri = tournament.send(:payment_upi_uri)
+    assert_includes uri, "pa=organizer%40okhdfcbank"
+    assert_includes uri, "pn=Club+%26+Co"
+    assert_includes uri, "tn=Payment+for+Injection+%26+Test"
+    assert_equal 1, uri.scan("pa=").size
   end
 
   test "masks the UPI ID, keeping only the last four characters visible" do
@@ -247,17 +248,16 @@ class TournamentTest < ActiveSupport::TestCase
     assert_equal "•••••••••••••••••axis", tournament.masked_payment_upi_id
   end
 
-  test "logs an audit entry when the UPI ID or payment QR code changes" do
+  test "logs an audit entry when the UPI ID changes" do
     organizer = User.create!(name: "Organizer", email: "upi-qr-audit-organizer@example.test", password: "password123", role: :organizer)
     tournament = Tournament.create!(
       name: "UPI QR Audit Open", organizer: organizer, updated_by: organizer,
       start_date: Date.new(2026, 10, 18), end_date: Date.new(2026, 10, 19),
-      payment_upi_id: "organizer@okhdfcbank", payment_qr_image: identity_image_upload
+      payment_upi_id: "organizer@okhdfcbank"
     )
 
     log = tournament.payment_detail_audit_logs.sole
     assert_includes log.changed_fields, "payment_upi_id"
-    assert_includes log.changed_fields, "payment_qr_image"
 
     tournament.update!(updated_by: organizer, payment_upi_id: "organizer@okaxis")
 
