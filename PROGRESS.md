@@ -3240,3 +3240,314 @@ This file is the long-lived implementation journal for PodiumCircle. Keep it cur
 - Targeted fixes were made only in test setup; no production behavior was changed by this stabilization.
 - Ran `mise exec -- bin/rails test test/controllers/tournaments_controller_test.rb`; result: 59 runs, 551 assertions, 0 failures, 0 errors, 0 skips.
 - Ran `mise exec -- bin/rails test`; result: 476 runs, 3420 assertions, 0 failures, 0 errors, 0 skips.
+
+## 2026-09-23 - Academy Registration Flow, QA Defect Fixes, and Full-Codebase Review
+
+### Reference
+- User asked for a UX mockup and then implementation of a multi-screen "cart" registration flow for academy owners (select individual categories or a Pair/Team Poomsae entry across multiple screens, one combined payment at the end).
+- User then reported 8 QA-found defects across signup, academy roster visibility, organizer navigation, address forms, document upload, and registration status display, and asked to fix them.
+- User then asked for a full-codebase code review (not just the diff), which surfaced 10 correctness/authorization findings; user asked to fix all of them.
+
+### Change Log — Academy registration flow
+- Replaced the single-page `registrations#create` form with a draft-based cart: `RegistrationsController#individual`/`#group`/`#payment`/`#submit`/`#destroy`. Reuses the existing but previously-unused `Registration#status` `draft` value as the in-progress cart state, grouped by `submission_batch_id`.
+- Added `TournamentCategory.suggested_individual_categories`/`.closest_by_weight` for gender/age-filtered category suggestions with the closest Kyorugi weight bracket recommended.
+- New views `registrations/individual.html.erb`, `group.html.erb`, `payment.html.erb`; roster picker is radio-based (not checkbox) per explicit direction, since a checkbox multi-select roster was tried first and rejected as unworkable with many athletes.
+- Renamed "Add athlete" to "Register new athlete" in the registration flow only (not the academy roster page, which keeps its original wording by explicit instruction).
+
+### Change Log — QA defect fixes
+- `Registration#athlete_status_detail`: removed the `pending` branch ("Waiting for organiser review.") since it duplicated the adjacent status pill ("Submitted") — now one clear status per registration instead of two overlapping ones.
+- `RegistrationsController#create_individual_draft`/`#create_group_draft`: a duplicate/already-decided registration now redirects with a clear alert instead of silently doing nothing.
+- `AthletesController`: split `visible_athletes` (authorization scope, still includes pending-request athletes so their profile can be opened) from a new `roster_athletes` (the index listing, excludes pending-request-only athletes). Added a "Pending academy requests" section to the Athletes index with inline Accept/Reject, so a pending join request no longer looks like it's "mapped to another academy" with no way to act on it.
+- Added a top-level "Registration approvals" sidebar link with a live pending-count badge (`ApplicationHelper#organizer_pending_registration_count`) — the approvals dashboard already existed but was two clicks deep.
+- Added `IndianLocation` module (`app/models/concerns/indian_location.rb`): 36 states/UTs with curated major cities per state, plus a `pincode` column (Academy, Athlete, Tournament) with 6-digit format validation. New shared partial `shared/_city_state_fields.html.erb` makes city a state-dependent dropdown (with an "Other" free-text fallback) instead of unlinked free text, used by the academy, athlete, and tournament forms.
+- Could not reproduce the reported "duplicate email → 404" or "Geovernment typo / false size rejection" — traced both code paths live and they behave correctly today; added a regression test for the duplicate-email case. Flagged to the user as possibly tested against a different/older build.
+
+### Change Log — Code review fixes (all 10 findings from the full-codebase review)
+- `can_register_for_tournament?`: the organizer/academy-owner carve-out was unreachable (role is a single-value enum, so the condition as written always blocked every verified organizer). Now checks actual academy ownership (`owned_academies.approved.exists?`) instead of the role enum.
+- `Tournament#managed_by?` granted a plain `collaborator` the same rights as a `super_organizer`. Added `managed_by_super_organizer?` / `can_manage_tournament_finances?`; tournament edit/update and organizer invitations now require the owner or a `super_organizer`, not any collaborator.
+- Academy approval (`AcademiesController#approve`) unconditionally called `academy_owner!`, overwriting an existing role like `organizer`. Now only promotes an owner whose current role is the default `parent`.
+- `can_manage_academy?(nil)` crashed with `NoMethodError` when an academy owner deleted an athlete who only had a pending join request (`academy_id` still nil). Added a nil guard.
+- Draft (cart) registrations leaked into three views that never excluded `status: :draft`: the tournament page's category/registration counts, the athlete profile's upcoming/previous tournaments, and the academy roster's tournament-status table. Added `Registration.decided` scope (`where.not(status: :draft)`) and applied it at every relevant call site, replacing the ad-hoc `.where.not(status: :draft)` duplicates too.
+- `RegistrationsController#draft_registrations` bundles every outstanding draft for a tournament, not just the current visit's — a stale draft from a prior abandoned session could get silently submitted alongside a new one. Kept the intentional cross-visit persistence (resuming a cart later is a feature) but added a visible "Added X ago" timestamp per cart row (flagged red past 24h) via a new shared partial `registrations/_draft_cart_rows.html.erb`, so a stale entry is now clearly flagged instead of blending in.
+- `TournamentCategory#free?` didn't honor `Tournament#free?`'s documented "blank group fee = free" semantics, wrongly demanding a payment receipt for free group entries. Fixed to special-case group event types.
+- `visible_tournament_registrations` omitted academy-owned athletes from the tournament page's "your registered athletes" section (only matched `user_id`, not academy ownership). Extracted `User#manageable_athletes` as the single source of truth, reused by both `RegistrationsController` and `TournamentsController`.
+- `RegistrationWeightCheck#apply_registration_result` ignored `review!`'s boolean return, so a failed review (e.g. tournament closes out mid-request) still recorded a "passed" weight check with no error while the registration silently never transitioned. Now checks the return value and `throw :abort`s with a clear error if it fails.
+- `TournamentsController#show` / `AcademiesController#show` applied no draft/approval-status scoping (unlike their `index` actions), so an unapproved academy or a draft tournament was fully visible to anyone with a direct link. Both now 404 for non-managers when the record isn't public yet.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test` after the academy registration flow: 464 runs, 0 failures.
+- Ran `mise exec -- bin/rails test` after the QA defect fixes: 470 runs, 0 failures.
+- Ran `mise exec -- bin/rails test` after all 10 code-review fixes (including 3 pre-existing tests that were unknowingly relying on the draft-tournament visibility bug, and one test asserting the now-corrected collaborator-permission behavior): 476 runs, 3420 assertions, 0 failures, 0 errors, 0 skips.
+- Manually verified the academy registration flow end-to-end against the local dev server (individual entry → suggested categories → group entry → combined payment screen with real payment details) using seeded test data, then cleaned up the seeded data afterward.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Separate Athlete Direct-Registration Flow + Nested-Form Bug Fix
+
+### Reference
+- User clarified that the multi-screen "cart" registration flow was intended only for academy owners. Athletes must never see Pair/Team Poomsae and should get a single-page direct registration (profile summary, optional weight, suggested categories, payment summary, receipt upload, submit) per the originally-specified "Athlete Registration Flow" — with an explicit instruction not to change the academy owner flow.
+- User then reported the academy owner flow itself was broken: clicking "Remove" on a cart entry errored, and "Submit" didn't submit.
+
+### Change Log
+- Added a separate, single-page athlete self-registration path, entirely independent of the academy owner's draft-cart flow: `RegistrationsController#new` now renders a dedicated `athlete_new.html.erb` template for athlete-role users (instead of redirecting into the academy `individual` screen), and a new `create` action (`POST /tournaments/:id/registrations`, athlete-only, 404s for anyone else) creates real `pending` registrations directly — no draft/cart, no batch. Reuses existing suggestion/eligibility/payment-receipt helper methods but has its own controller logic, so the academy owner's `individual`/`group`/`payment`/`submit`/`destroy` actions and views were not touched by this change.
+- Fixed a real bug found while building this: `RegistrationsController#new`/`create_athlete_registration` had a dead nil-check-and-redirect for "athlete has no profile yet" — `ApplicationController#require_athlete_profile_completion` already handles that globally for every controller. Removed the redundant unreachable code.
+- **Found and fixed a real bug in the academy owner flow** (introduced by an earlier code-review fix that extracted the draft-cart display into a shared partial): `registrations/payment.html.erb` rendered the `_draft_cart_rows` partial — which itself contains a `button_to` "Remove" form — *inside* the page's own payment `<form>`, producing invalid nested `<form>` elements. Browsers silently mis-parse nested forms (the inner form's fields get absorbed into the outer one), which is exactly what caused "Remove" to error and "Submit" to not work for academy owners. Moved the cart display outside the payment form, matching the (already-correct) pattern in `individual.html.erb`/`group.html.erb`. Reproduced and confirmed the fix against the running dev server via direct HTTP requests replaying the exact form data a browser would send, before and after the fix.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/registrations_controller_test.rb`: 31 runs, 0 failures (includes new tests for the athlete direct flow — successful submission, multiple categories in one go, Pair/Team Poomsae rejected, receipt-required, duplicate-category alert, non-athlete blocked from the new `create` action — and a new regression test asserting the payment screen's "Remove" form fully closes before the payment form opens, guarding against the nested-form bug recurring).
+- Ran `mise exec -- bin/rails test`: 484 runs, 3466 assertions, 0 failures, 0 errors, 0 skips.
+- Manually reproduced both reported symptoms against the local dev server with real seeded data and real form payloads (POST with `_method=delete` and the exact CSRF token from the rendered page, matching what a browser's generated form actually sends) — confirmed the "Remove" action 500/422'd before the fix due to the nested-form parse issue, and both "Remove" and "Submit" work correctly after moving the cart rows outside the form.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Show/Hide Password Toggle, Required-Field Hint Placement, Address Field Revert
+
+### Reference
+- User asked for three fixes, applied consistently everywhere the same pattern occurs (not just the one place each was first noticed): (1) a show/hide toggle on password fields, starting with login; (2) the "* indicates a required field." hint moved to the end of the form, just above the submit button, on the athlete/academy/signup forms; (3) reverting the address block's city field back to free text (no dependent city dropdown), keeping state and country as dropdowns.
+
+### Change Log
+- Added a reusable `password_field_with_toggle(form, method, **options)` helper (`app/helpers/application_helper.rb`) that wraps `form.password_field` in a `.password-field-wrapper` with an eye/eye-off toggle button, plus a new `"eye-off"` entry in `ICON_PATHS`. Added a delegated click handler (`togglePasswordVisibility`, `app/assets/javascripts/application.js`) that flips the input's `type` between `password`/`text` and swaps the icon/aria-label — no per-page JS needed. Added matching CSS (`.password-field-wrapper`, `.password-toggle-button`).
+- Applied the helper to all 8 password fields in the app: login (`sessions/new.html.erb`), signup (`users/new.html.erb`, both fields), password reset (`password_resets/edit.html.erb`, both fields), and the profile change-password section (`profiles/show.html.erb`, all 3 fields).
+- Verified in the browser against the running dev server: typing into the login password field and clicking the toggle reveals the plain-text value and swaps to the eye-off icon; the signup form shows the same toggle on both password fields.
+- The required-field hint reposition and the address city/state/country revert (dropdown state/country, free-text city, `IndianLocation` concern trimmed of the now-unused `STATE_CITIES`/`cities_for`/`OTHER_CITY`, dead dependent-dropdown JS removed) were completed earlier in this session; this entry closes out the batch alongside the password-toggle work.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/sessions_controller_test.rb test/controllers/users_controller_test.rb test/controllers/password_resets_controller_test.rb test/controllers/profiles_controller_test.rb`: 53 runs, 0 failures.
+- Ran full suite `mise exec -- bin/rails test`: 484 runs, 3466 assertions, 0 failures, 0 errors, 0 skips.
+- Manually verified the login and signup pages against the local dev server: password toggle reveals/hides text correctly, required-field hint appears immediately above the submit button.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Athlete Profile Navigation & Edit-Profile Tab Consolidation
+
+### Reference
+- User reported that for the athlete flow, the "edit" button on `/athletes/:id` correctly opens the full editable form at `/athletes/:id/edit`, but the left-nav account pill (the athlete's name) was inconsistent — it went to `/profile` instead of the athlete's own profile page. User asked for the pill to be consistent with the athlete page, and separately asked that clicking "Edit profile" on `/athletes/:id` take the athlete to `/profile`, where an "Edit profile" tab shows the same full set of editable fields as `/athletes/:id/edit`.
+
+### Change Log
+- `app/views/layouts/application.html.erb`: the sidebar account pill now links athlete-role users to `athlete_home_path` (their own `/athletes/:id`) instead of `profile_path`, matching the existing "Athletes" nav item's behavior. Other roles (organizer, academy owner, parent, admin) are unchanged and still link to `/profile`.
+- `app/views/athletes/show.html.erb`: the "Edit profile" button, when the viewer is the athlete viewing their own profile, now links to `profile_path(tab: "edit")` instead of `edit_athlete_path`. Super admin / academy-owner-on-another-user's-athlete cases are unchanged (still `edit_athlete_path` — `/profile` is only meaningful for the signed-in user's own account).
+- `app/controllers/profiles_controller.rb`: added a `set_athlete_tab_data` `before_action` that loads `@athlete` (the current athlete-role user's own athlete record), `@available_academies`, and `@return_to = profile_path(tab: "edit")` — reused by `show`, `update`, and `update_password` so the edit tab's data survives a validation-failure re-render of `:show`, not just the initial GET.
+- `app/views/profiles/show.html.erb`: restructured into two tabs behind a small `data-tabs`/`data-tab-button`/`data-tab-panel` pattern (only shown when the user has an athlete profile): "Profile" (the existing account details, name/phone form, password form, delete-account section — the inline "Edit profile" heading was renamed to "Account details" to avoid clashing with the new tab name) and "Edit profile" (renders the existing `athletes/form` partial unchanged, submitting to the same `AthletesController#update` action as `/athletes/:id/edit` always has). `?tab=edit` selects the edit tab server-side on load; a new delegated click handler (`activateTab`, `app/assets/javascripts/application.js`) switches tabs client-side afterward, no page reload.
+- No changes to `AthletesController` — the standalone `/athletes/:id/edit` page (used by academy owners/super admins editing another athlete, and by the "Complete profile" links in the registration flow) is untouched and behaves exactly as before, which the user confirmed was already correct.
+- Added `.tab-strip`/`.tab-strip-button` CSS.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/profiles_controller_test.rb test/controllers/athletes_controller_test.rb`: 55 runs, 0 failures.
+- Ran full suite `mise exec -- bin/rails test`: 484 runs, 3466 assertions, 0 failures, 0 errors, 0 skips.
+- Manually verified against the local dev server signed in as a seeded athlete (`athlete@podiumcircle.test`): the sidebar name pill now opens `/athletes/3` (previously `/profile`); "Edit profile" on `/athletes/3` opens `/profile?tab=edit` with the Edit profile tab active and the full athlete form pre-filled; clicking the "Profile" tab switches instantly without a page reload; editing a field (weight) and submitting saves the change and redirects back to `/profile?tab=edit` with the new value visible.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Mobile Nav Drawer: Sign Out Cut Off / Not Scrollable
+
+### Reference
+- User reported (with a phone screenshot) that on real phones the athlete's mobile nav drawer showed the "RIYA" account pill and "Athlete" label but no "Sign out" button below it, and that in landscape orientation the drawer wasn't scrollable to reach it either.
+
+### Change Log
+- Root cause: `.side-menu` (`app/assets/stylesheets/application.css`) was sized with `height:100vh`. On mobile browsers, `100vh` is based on the *largest* possible viewport (browser chrome collapsed), not the viewport actually visible with the address bar/toolbar showing — so the fixed-position drawer's real height on screen exceeded what was visible, and its bottom content (the account pill, role label, and Sign out button, pinned via `margin-top:auto`) rendered below the visible fold. Since nothing inside the drawer overflowed the (oversized) box itself, `overflow-y:auto` never had anything to scroll — the box was simply taller than the screen. This got worse in landscape, where the visible height is much smaller relative to `100vh`.
+- Fix: added `height:100dvh` (dynamic viewport height, layered after the `100vh` fallback so unsupported browsers keep the old behavior) so the drawer's actual box height always matches the currently-visible viewport. `overflow-y:auto` now has real overflow to scroll when it does, and in the common case (drawer content fits the visible viewport) the "Sign out" button is simply on-screen without needing to scroll at all. Also added `-webkit-overflow-scrolling:touch` for smooth momentum scrolling on older iOS Safari.
+
+### Verification Log
+- Verified in the browser at several emulated mobile sizes (375×812 portrait, 390×560, and 812×375 to simulate landscape with browser chrome eating vertical space): at normal portrait heights "Sign out" is fully visible with no scrolling needed; at the short/landscape size the drawer now scrolls internally and "Sign out" is reachable, where before the fix it would have been clipped with no way to reach it.
+- CSS-only change; no Ruby/controller/view logic touched, so the existing Minitest suite is unaffected (not re-run for this change).
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Profile Page Overhaul, Event-Row/Profile-Summary Layout Bugs, Match-History-Safe Account Deletion
+
+### Reference
+- User sent screenshots of `/profile` (as athlete "Sonam Test") and an athlete's "Upcoming tournaments"/"Previous competitions" sections, plus a tournament registration page, and asked for: renaming the "Profile" tab to "Account settings" and swapping tab order (profile fields first, account settings second); fixing uneven spacing and making the page mobile-friendly; removing the redundant "Account details" (name/phone) form from the athlete's account-settings tab; fixing uneven Delete-account spacing and confirming the delete flow asks for confirmation; handling account deletion for an athlete who has actually fought a match (their name must survive in the draw sheet and any opponent's own history); confirming that switching academies correctly moves the pending-approval notification from the old academy owner to the new one; fixing visibly broken/clipped badges in the Upcoming/Previous tournament lists on both web and mobile; and fixing a broken "Your profile" summary on the tournament registration page, adding the athlete's age next to their date of birth.
+
+### Change Log
+- **Profile page tabs** (`app/views/profiles/show.html.erb`): reordered so the athlete-fields tab is now first and labeled "Profile" (was "Edit profile", was second); the account/email/password/delete tab is now second and labeled "Account settings" (was "Profile", was first). `profile_path` with no query param now defaults to the Profile tab; `?tab=account` selects the other one. The "Edit profile" button on `app/views/athletes/show.html.erb` now links to plain `profile_path` (no param needed since it's the default).
+- **Removed the redundant "Account details" (User#name/#phone) form** from the Account settings tab, but only when the signed-in user has an athlete profile (i.e. only for athlete-role users, who already edit their name via the Profile tab's athlete form). Non-athlete roles (organizer, academy owner, parent) have no separate Profile tab, so they keep this form as their only way to edit their name/phone — removing it there would have been a real loss of functionality, not a fix.
+- **Spacing**: added a `.profile-section` wrapper class (`app/assets/stylesheets/application.css`) giving every heading+card section on the profile page a consistent 36px gap from the previous section (previously as little as 8px in places, because `.form-section-heading`'s small intra-form margin was being used between *separate* cards, which is a different context than where that class is normally used). Added `.delete-account-panel` (flex column, 16px gap) so the Delete-account warning text and button are evenly spaced instead of touching. `.tab-strip` now wraps (`flex-wrap:wrap`) so it doesn't overflow on narrow screens.
+- **Account deletion, made match-history-safe**: `Athlete#registrations` is `dependent: :destroy`, but `Match.registration_one_id/registration_two_id/winner_registration_id` reference `registrations` with no `on_delete` cascade — so an athlete who had ever been placed into a draw/bracket would hit an unhandled `ActiveRecord::InvalidForeignKey` (a 500 error) the moment they tried to delete their account, since destroying their registrations would violate that foreign key. Fixed by adding `Athlete#has_match_history?` (true if any of the athlete's registrations are referenced by a `Match`), `Athlete#anonymize!` (clears contact/address/documents/academy but keeps the name, mirroring the existing `User#deactivate!` "keep the name, clear everything else" pattern used for organizers), and `Athlete#delete_or_anonymize!` (destroys outright when there's no match history, anonymizes instead when there is). Wired into both `ProfilesController#destroy` (the "Delete account" button — now deactivates the *user* account too when any of their athletes had to be anonymized, so the anonymized-but-surviving athlete row isn't left attached to a live, usable login) and `AthletesController#destroy` (super admin's "Delete athlete", and the otherwise-unreachable self-service branch), so neither path can crash on a match-history athlete anymore, and both now leave the athlete's name intact wherever a draw sheet or an opponent's own history references it.
+- **Delete-account confirmation**: already implemented via `button_to ... data: { turbo_confirm: "..." }` (Turbo's built-in native confirm() dialog, Yes/Cancel) — confirmed this already works as the user described (deletes only on confirmation) and left it as-is; only the surrounding spacing needed a fix.
+- **Academy-switch notification handling**: verified — no code change was needed. `AthletesController#create_academy_request_if_needed` already rejects the athlete's previous pending request to any other academy and creates a fresh pending one for the newly-selected academy in the same update. Since `Athlete#pending_academy_request` and the academy owner's Notifications page (`AcademiesController#notifications`) both query live `AcademyMembershipRequest` state (`pending` scope) rather than a separate stored notification, the old academy stops seeing the request the moment it's rejected, and the new academy sees it the moment it's created — confirmed with a scripted reproduction of exactly this switch (old academy's request flips to `rejected`, new academy gets a fresh `pending` one).
+- **Fixed a real CSS overflow/clipping bug** in the athlete's "Upcoming tournaments"/"Previous competitions" rows (`app/views/athletes/show.html.erb`, styled via `.athlete-event-row`): the row's grid columns had hard `px` minimums (`minmax(230px,...) minmax(150px,...) minmax(220px,...) auto`) whose combined minimum width, plus gaps and padding, exceeded the width of the page's `.narrow` (`max-width:780px`) container — this happens on *any* screen size, not just mobile, since the container is capped regardless of viewport width. The status pill (the `auto` 4th column) was consequently pushed past the row's right edge and silently clipped by `.athlete-event-table`'s `overflow:hidden`, exactly matching the cut-off "WEIGHT VERIF…" / partially-cut "WITHDRAWN" badges in the screenshot. Fixed by changing the three fixed-px minimums to `minmax(0, …fr)`, letting those columns shrink to fit instead of forcing overflow (the existing `overflow-wrap:anywhere` on their text already handles the tighter wrapping). Verified via direct DOM measurement in the browser (pill's right edge vs. row's right edge) that the badge now always fits, and confirmed visually on both a wide desktop viewport and an emulated 375px mobile viewport.
+- **Fixed the tournament registration page's "Your profile" card** (`app/views/registrations/athlete_new.html.erb`): the `.profile-summary` class it used had no CSS rule defined at all, so each `<span>Label</span><strong>Value</strong>` pair rendered with no spacing or line break (e.g. "GenderFemale", "Date of birth12 May 2012" all run together) — exactly the "broken" layout in the screenshot. Added a real `.profile-summary` rule: a responsive `repeat(auto-fit, minmax(160px,1fr))` grid with the label stacked above the value, so it also reflows to a single column on mobile with no extra media query needed.
+- **Added age next to date of birth** so it doesn't need to be calculated by hand: new `Athlete#age` method (handles the "hasn't had this year's birthday yet" case), used on the registration page's profile card ("19 Jul 2012 (14 yrs)") and on the athlete's own show page's Date of birth row.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/profiles_controller_test.rb test/controllers/athletes_controller_test.rb test/models/athlete_test.rb test/controllers/registrations_controller_test.rb`: 110 runs, 0 failures — includes new tests for `Athlete#age`/`#has_match_history?`/`#anonymize!`/`#delete_or_anonymize!`, an athlete-with-match-history self-delete via `ProfilesController#destroy` (deactivated + anonymized, Match row untouched), and a super-admin `AthletesController#destroy` of a match-history athlete (anonymized, not destroyed); updated two pre-existing tests whose asserted behavior intentionally changed (the removed Account-details section, the new deactivation flash wording).
+- Ran full suite `mise exec -- bin/rails test`: 491 runs, 3512 assertions, 0 failures, 0 errors, 0 skips.
+- Manually verified against the local dev server: tab order/labels, even spacing, and the mobile layout (375px) all look correct on `/profile`; clicked "Delete account" as a seeded athlete with real match history (Aarohi Shah) and confirmed via the DB afterward that the account was deactivated and the athlete row anonymized (name kept, academy/contact/weight cleared, `Match` row untouched) rather than raising an error or destroying match history; confirmed the "Upcoming"/"Previous" status pills now fit inside their card on both a wide desktop viewport and an emulated 375px mobile one (measured via DOM rects, not just visually); confirmed the registration page's profile card now shows properly spaced fields with age next to date of birth, on both desktop and mobile.
+- Note for the user: this verification pass used real local dev/seed accounts already in your database (`athlete@podiumcircle.test` / Aarohi Shah, and the `sonam+1@saeloun.com` account from your screenshots) — Aarohi Shah's account is now deactivated as a direct result of testing the delete flow (expected, matches the new behavior), and `sonam+1@saeloun.com`'s password was temporarily reset to `password123` to sign in and inspect the academy-pending-request display. Let me know if you'd like these reset.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Auto-Generated UPI Payment QR Codes, Athlete Middle Name
+
+### Reference
+- User asked whether a UPI payment QR code could be generated automatically from an organizer's UPI ID instead of requiring a manual image upload, then asked to implement it: remove the QR image upload and auto-generate the QR from the UPI ID, "with all required security around it."
+- Separately, user asked for an optional `middle_name` field on Athlete, with the specific requirement that when pre-filling an athlete's name from the account's single "name" field, "Riya" → first name only, "Riya Goyal" → first + last, "Riya Vinit Goyal" → first + middle + last.
+
+### Change Log — Auto-generated UPI QR
+- Added the `rqrcode` gem (pure Ruby, no network calls, no external QR-generation service — important since the alternative of using a third-party API would leak the organizer's UPI ID to that third party). No schema/asset dependency beyond the gem itself; QR is rendered as inline SVG, generated fresh on every request from the stored UPI ID rather than stored anywhere.
+- **Removed** `has_one_attached :payment_qr_image` (and its size/type validation, its audit-log change-tracking, and its "at least one payment method" contribution) from `Tournament` — replaced by `Tournament#payment_upi_qr_svg`, which builds a `upi://pay?pa=...&pn=...&cu=INR&tn=...` deep link from the organizer's existing `payment_upi_id` (and `payment_account_name`, falling back to the tournament name) and renders it as an SVG QR code. Removed the file upload field from the tournament form (`app/views/tournaments/_form.html.erb`) — the organizer now just sees a live preview of the generated QR under the UPI ID field once one is saved.
+- **Security**: every value interpolated into the `upi://pay` deep link is run through `URI.encode_www_form_component` before being placed in the query string (new private `Tournament#payment_upi_uri`) — `payment_upi_id` is already constrained to a safe character set by the existing `UPI_ID_FORMAT` validation, but `payment_account_name`/the tournament name are free text the organizer controls, and without encoding, a value containing `&` or `=` could inject extra params (e.g. a bogus amount) into the deep link a payer's UPI app opens. `#payment_upi_qr_svg` also re-checks the UPI ID against `UPI_ID_FORMAT` itself before generating anything, as defense in depth. Removing the upload entirely is itself a security improvement: it eliminates a whole class of image-upload risk (content-type spoofing, decompression/parsing issues, storage abuse) for this field, on top of no longer requiring the manual step at all. The QR's own SVG markup is generated entirely by the `rqrcode` gem from the computed module matrix (never by interpolating our strings into markup), so marking it `html_safe` doesn't introduce an XSS risk. Existing protections were left as-is and are unaffected: `payment_upi_id` stays encrypted at rest (`encrypts :payment_upi_id`) and the QR — like the UPI ID and bank details already did — is only ever rendered inside the signed-in registration/payment flow, never on the public tournament page (verified by an existing regression test).
+- Data note: the two local dev tournaments that had a manually-uploaded QR image already also had a UPI ID saved, so switching to auto-generation is a clean, lossless swap for existing data (confirmed by querying before making the change) — no tournament in this database relied on a QR without a UPI ID behind it.
+- **Requires a Rails server restart to take effect** — `rqrcode` was added to the Gemfile after your dev server process had already booted, and Bundler only loads gems at boot. Your currently-running server (port 3000) will raise `uninitialized constant Tournament::RQRCode` on any page touching a tournament's payment details until it's restarted; I don't have a way to restart a server that's running in a terminal outside this session, so this needs to be done manually (stop it and re-run your usual start command, or `mise exec -- bin/rails server`).
+
+### Change Log — Athlete middle name
+- Migration `db/migrate/20260923060721_add_middle_name_to_athletes.rb` adds an optional `middle_name` string column to `athletes` (nullable, no presence validation — matches "optional").
+- `Athlete`: `middle_name` gets the same normalization (`squish.presence`), length (2..60, allow_blank), and format (`User::NAME_FORMAT` — letters/spaces/hyphens/apostrophes, allow_blank) treatment as first/last name. `full_name` now joins `[first_name, middle_name, last_name].compact_blank` — every place that already calls `full_name` (draw sheets, registrations, notifications, mailers) picks up the middle name automatically with no further changes.
+- Added a "Middle name" field to the athlete form (`app/views/athletes/_form.html.erb`), between first and last name, optional (no required-field marker), permitted in `AthletesController#athlete_params`.
+- **Name-splitting logic** (`AthletesController#assign_name_from_user`, used to pre-fill the athlete form from the signed-in user's single `name` field during profile setup): fixed to handle any word count, not just 1 or 2 (3+ words previously fell through and assigned nothing at all — a real, previously-unhandled gap). Now: 1 word → first name only; 2 words → first + last; 3 or more words → first word is the first name, last word is the last name, and everything in between (however many words) becomes the middle name — so "Riya" → first only, "Riya Goyal" → first + last, "Riya Vinit Goyal" → first + middle "Vinit" + last, and e.g. "Riya Vinit Kumar Goyal" → middle "Vinit Kumar".
+- Extended the athlete name-search `LIKE` queries in `AthletesController`, `Organizer::WeightChecksController`, and `Super_admin::AthletesController` (three separate copies of the same search pattern) to also match against `middle_name` and a `CONCAT_WS`-joined full name, so searching by an athlete's middle name (or their full three-part name) now finds them — without this, adding the field would have created athletes that couldn't be found by part of their own name.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/models/tournament_test.rb test/controllers/tournaments_controller_test.rb test/controllers/athlete_flow_security_test.rb test/controllers/registrations_controller_test.rb test/models/athlete_test.rb test/controllers/athletes_controller_test.rb`: all green — includes new tests for `payment_upi_qr_svg` (generated for a valid UPI ID, nil without one), the deep-link percent-encoding/injection-resistance test, an updated payment-method-requirement test (QR alone is no longer a standalone method), an updated payment-detail-audit-log test, new middle-name normalization/validation tests, and new profile-setup tests for 3-word and 4-word account names.
+- Ran full suite `mise exec -- bin/rails test`: 495 runs, 3540 assertions, 0 failures, 0 errors, 0 skips.
+- Manually verified the middle name field end-to-end against the local dev server (as a signed-in athlete): the "Middle name" field appears on the edit form between first and last name, saving "Vinit" produces "Rhea Vinit Kulkarni" as the athlete's full name on their profile page (breadcrumb, page title, and — via the shared `full_name` method — everywhere else full_name is used).
+- Could not verify the QR rendering in the browser this session — the running dev server needs a restart to load the new gem (see note above); confirmed `RQRCode::QRCode.new(...).as_svg(...)` produces valid SVG output via `bin/rails runner` (a fresh process with the current bundle), and reasoned through the view/model code carefully given the inability to load-test it live.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Fixed the Real "Delete Athlete" Crash (Production Error on Fly)
+
+### Reference
+- User reported "delete athlete raises error" and asked for a general fix: don't hard-delete users once they have any operational/audit references — deactivate/anonymize instead. They then asked whether the same email can be reused after a deactivation (yes — already true, see below). Partway through the investigation they pasted the actual Fly production error:
+  ```
+  Processing by ProfilesController#destroy as HTML
+  Completed 500 Internal Server Error
+  ActiveRecord::InvalidForeignKey (PG::ForeignKeyViolation:
+  ERROR: update or delete on table "users" violates foreign key constraint
+  "fk_rails_c2dfb38a50" on table "super_admin_notifications"
+  ```
+
+### Change Log
+- Confirmed `fk_rails_c2dfb38a50` is `super_admin_notifications.actor_id → users.id` (no cascade). Traced it to `AthletesController#sync_super_admin_unregistered_academy_notification`, which raises a `SuperAdminNotification` with `actor: current_user` whenever a self-service athlete lists an academy that isn't registered in the system (`external_academy_name` set) — so **any athlete who ever did that, then later deleted their own account via "Delete account" on `/profile`, hit exactly this crash.** This was a real, easily-reachable production bug, not a hypothetical.
+- Added `User#has_operational_references?` (`app/models/user.rb`): true if the user is still referenced, with no cascade, by a `RegistrationActionLog` (`actor_id` — an organizer's approve/reject/weight-verify/disqualify action), a `RegistrationWeightCheck` (`checked_by_id`), a `PaymentDetailAuditLog` (`actor_id`), a `SuperAdminNotification` (`actor_id` or `reviewed_by_id` — the exact one that crashed), or a `TournamentOrganizerInvitation`/`TournamentOrganizer` they created (`invited_by_id`/`added_by_id`). Wired into `ProfilesController#delete_account!` alongside the existing preserved-tournament and athlete-match-history checks — if any of these is true, the account is deactivated (same as the existing "organizer with a completed tournament" case) instead of attempting a hard delete that would crash.
+- Found and fixed a **second, independently-reachable copy of the athlete-match-history crash bug** (the one fixed earlier this session for `AthletesController#destroy` and `ProfilesController#destroy`): `SuperAdmin::AthletesController#destroy` — the "All athletes" super-admin page's delete action — called `@athlete.destroy` directly with no protection at all. Fixed it to use the same `Athlete#delete_or_anonymize!` used by the other two delete paths.
+- **Investigated and explicitly ruled out** a fourth path: `TournamentsController#destroy` (super admin deleting a tournament directly). Initially assumed it had the same gap and added a guard — but a regression test caught that this was wrong: `TournamentCategory` declares `has_many :matches, dependent: :destroy` *before* `has_many :registrations, dependent: :destroy`, so Rails already destroys a category's `Match` rows before it destroys the registrations they'd otherwise block — deleting a tournament with a generated draw has always been safe. Reverted that guard immediately (confirmed via `git diff` there's no trace of it left) rather than leave in a speculative, untested change. This is exactly why `Athlete` needed the fix and `Tournament` didn't: `Athlete` has no sibling `has_many :matches` association to destroy its athlete's matches first.
+- Answered the reuse question directly: yes — `User#deactivate!` already renames the deactivated account's email to `deleted-user-<id>@deleted.podiumcircle.internal` specifically so the real address is freed up for a brand new signup. No change needed there.
+
+### Verification Log
+- Ran the exact production scenario locally (`bin/rails runner`, then walked through the UI as that athlete): created an athlete with `external_academy_name` set (which raises the `SuperAdminNotification` with the athlete as actor, exactly like production), signed in, clicked "Delete account" — confirmed the account is now deactivated with the correct message instead of a 500 error, and confirmed via the DB afterward (`deactivated: true`, email replaced) that the notification row survives untouched.
+- Ran `mise exec -- bin/rails test test/controllers/profiles_controller_test.rb test/controllers/tournaments_controller_test.rb test/models/tournament_test.rb test/controllers/super_admin_athletes_controller_test.rb test/controllers/athletes_controller_test.rb test/models/athlete_test.rb`: 183 runs, 0 failures — includes a new regression test reproducing the exact `SuperAdminNotification`-actor crash, a new regression test for `SuperAdmin::AthletesController#destroy` with match history (anonymized, not crashed), and a corrected test proving an organizer's non-preserved tournament with a generated draw is destroyed cleanly (not deactivated) on account deletion, matching the actual safe cascade behavior.
+- Ran full suite `mise exec -- bin/rails test`: 498 runs, 3572 assertions, 0 failures, 0 errors, 0 skips.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session. This fix has not yet been deployed to Fly; the production error will keep happening for any athlete in that state until this is deployed.
+
+## 2026-09-23 (cont.) - Academy Owner "Remove Athlete": Redirect Fix (Confirmation Already Existed)
+
+### Reference
+- User asked for a confirmation popup before an academy owner removes an athlete from their roster, and for the redirect afterward to land back on the roster page (`/academies/:id/athletes`) instead of what they described as "profile page."
+
+### Change Log
+- The confirmation popup already existed — `academies/athletes.html.erb`'s "Remove athlete" kebab-menu action is a `button_to` with `data: { turbo_confirm: "Are you sure you want to remove #{athlete.full_name} from #{@academy.name}?" }`, Turbo's built-in native confirm dialog (Yes/Cancel; declining leaves the athlete on the roster). No change needed there.
+- Fixed the actual issue: `AthletesController#destroy`'s academy-owner branch redirected to `academy_path(academy)` (`/academies/:id`, the academy's own general profile page) after removing an athlete — not the roster page the owner was actually on. Changed it to `athletes_academy_path(academy)` (`/academies/:id/athletes`), so the owner lands back exactly where they started.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb test/controllers/athletes_controller_test.rb`: 74 runs, 0 failures — updated the two existing tests asserting the old redirect target.
+- Ran full suite `mise exec -- bin/rails test`: 498 runs, 3572 assertions, 0 failures, 0 errors, 0 skips.
+- Manually verified against the local dev server as the academy owner (`academy@podiumcircle.test`): opened the kebab menu for an athlete on `/academies/1/athletes`, clicked "Remove athlete," confirmed the dialog, and landed back on `/academies/1/athletes` with the athlete gone from the list and the "Athlete removed from academy." flash shown.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Local Seed Data Cleanup
+
+### Reference
+- User asked to clean up all local data and set local seed data properly with 2-3 proper tournaments, 6-7 academies, and about 200 athletes.
+
+### Change Log
+- Replaced `db/seeds.rb` with a deterministic local dataset designed for ongoing QA:
+  - 1 super admin account.
+  - 3 verified organizer accounts.
+  - 7 approved academies with owners, contact details, and logos.
+  - 200 athlete accounts distributed across those academies, genders, ages, belts, and weights.
+  - 3 tournaments covering open registration, closed registration/weight-check, and completed-history scenarios.
+  - Seeded tournament organizer collaborators, referees, payment details, default categories, registrations, weight-check attempts, and super-admin notifications.
+- Kept the seed file local-development focused and removed older ad hoc/demo/test-style seed records from the intended reset output.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:reset` locally. The first run was blocked by active local Rails/database sessions, so the local Puma server, Rails console, and stale test process were stopped/cleared; reran successfully.
+- Final seed output:
+  - Academies: 7
+  - Athletes: 200
+  - Tournaments: 3
+  - Registrations: 180
+- Verified distribution with `bin/rails runner`:
+  - Users: 200 athletes, 7 academy owners, 3 organizers, 1 super admin.
+  - Academies: 7 approved.
+  - Tournaments: 1 registration open, 1 registration closed, 1 completed.
+  - Registrations: 32 pending, 54 approved, 62 weight verified, 16 disqualified, 16 rejected.
+  - Referees: 5.
+  - Categories: 378 default tournament categories across the 3 tournaments.
+
+## 2026-09-23 (cont.) - Local QA Round After Seed Reset
+
+### Reference
+- User asked to perform a round of testing on local after the local data cleanup and seed reset.
+
+### Verification Log
+- Ran full automated Rails test suite: `mise exec -- bin/rails test`.
+  - Result: 502 runs, 3609 assertions, 0 failures, 0 errors, 0 skips.
+- Started the local Rails server on `http://127.0.0.1:3000` and ran a Playwright smoke test against seeded role accounts.
+- Browser-smoked public pages: home, tournaments index, tournament details, academies index, academy details, terms page, and mobile views for home/tournaments/academies.
+- Browser-smoked athlete flow with `athlete001@podiumcircle.test`: profile, tournament listing, public tournament details, and tournament registration entry page. Confirmed athlete tournament page did not show organizer-only registered-athlete management.
+- Browser-smoked academy-owner flow with `pune.champions@podiumcircle.test`: academies index, academy details, academy athletes page, academy notifications page, and tournament registration entry page.
+- Browser-smoked organizer flow with `organizer@podiumcircle.test`: organizer profile, registration approvals, tournament edit, venue setup, weight checks, and draw page for a seeded draw-ready category.
+- Browser-smoked super-admin flow with `admin@podiumcircle.test`: notifications, all athletes, tournaments, academies, and organizers pages.
+- Checked the Rails development log after the browser pass for server-side exceptions/500s; none were found.
+- Two initial Playwright text expectations were false alarms, not app failures: the organizer page heading is "Registration approvals" rather than "Registrations", and the organizers page renders the heading uppercase as "ORGANIZERS".
+
+## 2026-09-23 (cont.) - Group Registration Fixes (Academy Flow) + Clearer Eligibility Errors + Hid Forgot-Password Link
+
+### Reference
+- User reported several academy-flow bugs on the Pair/Team Poomsae ("group") registration screen from a screenshot: clicking "Add individual athlete" (meaning to bail out of an unfinished team) threw a "Choose a Pair or Team Poomsae category" error instead of navigating; teammate dropdowns needed to be scoped to the academy and prevent picking the same athlete twice; a "must all belong to the same academy" error appeared even when picking athletes who looked like they were from the same academy; and a request to support registering multiple teams. Mid-investigation the user also reported "Proceed to payment" had the same forced-team bug, and separately that a batch submit failed with an unclear "athlete's age does not match this category" error with no indication of which athlete or category. Finally, the user asked to hide the "Forgot password" link until email sending is configured.
+
+### Change Log
+- **Root-caused the false "different academy" error**: it traced back to my own earlier testing this session — I'd used "Kabir Patil" to test the academy-owner "Remove athlete" flow, which correctly unlinked him from his academy (`academy_id: nil`) as part of that test, but I never restored it. Restored `academy_id` back to Academy 1 for that athlete. This wasn't a product bug at all, but real product bugs made it easy to hit by accident (see next two points) — hardened both so it can't happen again the way the user described.
+- **Fixed `RegistrationsController#create_group_draft`** (`app/controllers/registrations_controller.rb`): when nothing was actually filled in on the group form (no category chosen, no teammates picked), any submit button — "+ Add individual athlete" *and* "Proceed to payment" — now just navigates to the requested screen instead of running (and failing) group-entry validation for a form the user never meant to submit. A genuinely incomplete attempt (e.g. a category chosen but teammates missing) still shows the real validation error, since that reflects real intent to build a team.
+- **Scoped the teammate dropdowns to only academy-affiliated athletes** (`RegistrationsController#group`): athletes with no academy at all (self-registered, not on any roster) can never satisfy "same academy," so they're excluded from the picker entirely rather than being selectable and then rejected.
+- **Added client-side exclusion of already-picked teammates**: a small script (`app/views/registrations/group.html.erb`) disables an athlete's `<option>` in the other teammate dropdowns once they're chosen in one, so the same athlete can't be picked twice for a pair/team entry. (The backend was already safe against this — duplicate submitted ids get deduplicated, which would just fail the "select exactly N" count check — this is purely a UX improvement so the mistake can't happen in the first place.)
+- **Added a "+ Add another team" button** to the group screen (submits the current team, same as "Proceed to payment" would, then loops back to a fresh group form instead of leaving to individual/payment) — multiple teams were already fully supported by the data model (the uniqueness constraint is per athlete+category, not per "team"), this just makes registering several teams in one sitting a direct in-page loop instead of a round-trip through the individual/payment screens.
+- **Made eligibility errors name the specific athlete and category** (`TournamentCategory#eligibility_errors_for`, `app/models/tournament_category.rb`): every message ("athlete's age does not match this category", "athlete's gender does not match this category", etc.) was generic and gave no indication of which athlete or which category out of a whole batch submission. Rewrote all four checks (gender, age, belt, weight) to read like "Kabir Patil is 17 years old, which is outside the age range for Kyorugi Male Age 12-14" — since this is the single method backing every registration eligibility check in the app (individual, group, and the final submit), the fix applies everywhere at once with no per-call-site changes needed.
+- **Hid the "Forgot your password?" link** on the login page (`app/views/sessions/new.html.erb`) — the user doesn't have an email-sending service configured yet (explained in plain terms: the reset-password feature is fully built in the app, there's just no mail carrier wired up to actually deliver the email), so a password reset request would currently go nowhere. The underlying `password_resets` routes/controller/views are untouched and still fully functional — only the visible entry point on the login page is hidden, ready to re-enable once an email service (Postmark/Resend/SendGrid/Mailgun) is set up.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/models/registration_test.rb test/controllers/registrations_controller_test.rb test/controllers/sessions_controller_test.rb test/controllers/password_resets_controller_test.rb`: all green — includes new tests for the "nothing filled in → navigate" fix, the academy-only teammate dropdown scoping, the "add another team" flow, a combined individual-entry-plus-team-submitted-together end-to-end test (mirroring the exact scenario manually tested below), and updated tests for the new clearer eligibility messages and the hidden forgot-password link.
+- Ran full suite `mise exec -- bin/rails test`: 502 runs, 3607 assertions, 0 failures, 0 errors, 0 skips.
+- Manually walked the full flow against the local dev server as the academy owner: added an individual Kyorugi entry for Ishaan Deshmukh, clicked "+ Add Pair/Team Poomsae entry," built a Pair Poomsae team (Kabir Patil & Rehan Shaikh), confirmed the teammate-exclusion JS via direct DOM inspection (picking one athlete disables them in the other dropdown), clicked "+ Add individual athlete" with an empty group form and confirmed it navigates cleanly with no error, clicked "Proceed to payment" with an empty group form and confirmed it goes straight to the (correctly empty) payment page, then completed the flow to the real payment page — total INR 3,800 across both entries, the auto-generated UPI QR rendered correctly, and the "Payment receipt must be uploaded" validation fired correctly when submitting without one. (Restarted the local Rails server mid-session, since it was still running on the pre-`rqrcode` bundle from the UPI QR work earlier and crashed on the payment page — same underlying restart-needed issue flagged earlier, now resolved locally.) Couldn't complete the literal file-upload click through browser automation (no way to drive a native OS file picker), so the receipt-upload-and-final-submit step is covered instead by a new automated test reproducing the exact same individual+team combined batch.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
+
+## 2026-09-23 (cont.) - Telangana Screenshot-Ready Local Seed Data
+
+### Reference
+- User asked to make local data good for screenshots to coaches and parents, test it with the latest migrations, keep names and academies Telangana-style, and use generated images for athlete photos plus academy logos/banners.
+
+### Change Log
+- Reworked `db/seeds.rb` into a deterministic Telangana-focused local dataset:
+  - 7 approved academies in Hyderabad, Warangal, Karimnagar, Nizamabad, Khammam, Secunderabad, and Nalgonda.
+  - 200 athletes with Telangana-style names, realistic ages, weights, belts, blood groups, contacts, emergency contacts, addresses, and a mix of registered-academy and independent-academy profiles.
+  - 3 tournaments covering open registration, closed registration/weight-check, and completed-history flows.
+  - 180 registrations across pending, approved, rejected, weight-verified, and disqualified states.
+  - Referees, organizer collaborators, payment details, receipts, identity documents, categories, weight checks, and super-admin notifications for local flow testing.
+- Added seed-time PNG generation for fictional local media assets: athlete portrait illustrations, academy logo-style graphics, tournament logos, tournament banners, and payment receipts. These generated files are intentionally fictional and do not use real people or real academy branding.
+- Added `/db/seed_assets/` to `.gitignore` because the media files are generated by `db/seeds.rb` and do not need to be committed.
+- Fixed the seed attachment helper to use in-memory streams (`StringIO`) so Active Storage validations can read files reliably during model validation.
+
+### Verification Log
+- Ran `mise exec -- bin/rails db:reset` locally against the latest migrations and new seed data. Final output:
+  - Academies: 7
+  - Athletes: 200
+  - Tournaments: 3
+  - Registrations: 180
+- Verified seeded data with `bin/rails runner`:
+  - Users: 211
+  - Academy logos attached: 7
+  - Athlete photos attached: 200
+  - Tournament banners attached: 3
+  - Academy states: Telangana only
+  - Tournament names: Karimnagar Invitational Taekwondo League, Warangal District Taekwondo Cup, Hyderabad Open Taekwondo Championship 2026
+- Ran full automated Rails test suite: `mise exec -- bin/rails test`.
+  - Result: 502 runs, 3607 assertions, 0 failures, 0 errors, 0 skips.
+- No production deploy was performed for this local-data request.
+
+## 2026-09-23 (cont.) - Academy Page: Replaced "Owner" Field with "City"
+
+### Reference
+- User asked to rename the "Owner" field label on an academy's page (visible even when signed out) to "Contact person." Flagged that the page already has a separate "Contact person" row (shows `contact_name`, falling back to the owner's name) right above it, so renaming would create two rows with the same label. User decided instead to remove the "Owner" row and show "City" in its place.
+
+### Change Log
+- `app/views/academies/show.html.erb`: the "Contact details" panel's fourth row changed from `Owner` (`@academy.owner&.name`) to `City` (`@academy.city`). The existing "Contact person" row (line 80, unchanged) remains the one place a contact name/owner fallback is shown.
+
+### Verification Log
+- Ran `mise exec -- bin/rails test test/controllers/academies_controller_test.rb`: 35 runs, 0 failures.
+- Ran full suite `mise exec -- bin/rails test`: 502 runs, 3607 assertions, 0 failures, 0 errors, 0 skips.
+- Verified visually against the local dev server while signed out, viewing an academy's public page: "Owner" no longer appears; "City" shows correctly (e.g. "Hyderabad"); "Contact person" still shows the contact/owner name as before.
+- Nothing pushed or committed — all changes remain local per standing instruction from earlier in this session.
