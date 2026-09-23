@@ -48,9 +48,9 @@ class AthletesController < ApplicationController
     requested_academy_id = academy_request_id
 
     if @athlete.save
-      create_academy_request_if_needed(@athlete, requested_academy_id)
+      academy_request_sent = create_academy_request_if_needed(@athlete, requested_academy_id)
       sync_super_admin_unregistered_academy_notification(@athlete)
-      redirect_to(@return_to.presence || @athlete, notice: athlete_saved_notice(requested_academy_id, created: true))
+      redirect_to(@return_to.presence || @athlete, notice: athlete_saved_notice(academy_request_sent, created: true))
     else
       render :new, status: :unprocessable_entity
     end
@@ -65,9 +65,9 @@ class AthletesController < ApplicationController
     requested_academy_id = academy_request_id
 
     if @athlete.update(athlete_params)
-      create_academy_request_if_needed(@athlete, requested_academy_id)
+      academy_request_sent = create_academy_request_if_needed(@athlete, requested_academy_id)
       sync_super_admin_unregistered_academy_notification(@athlete)
-      redirect_to(@return_to.presence || @athlete, notice: athlete_saved_notice(requested_academy_id, created: false))
+      redirect_to(@return_to.presence || @athlete, notice: athlete_saved_notice(academy_request_sent, created: false))
     else
       render :edit, status: :unprocessable_entity
     end
@@ -295,18 +295,35 @@ class AthletesController < ApplicationController
     current_user.athlete?
   end
 
+  # Returns true only when a genuinely NEW (or reopened) academy join
+  # request was sent — i.e. the selected academy differs from the
+  # athlete's already-confirmed academy, or there wasn't already an
+  # active pending request for it. The academy select field on the
+  # self-service form defaults to whichever academy has a pending request
+  # (see selected_academy_choice in the form partial), so it gets
+  # resubmitted on every save regardless of what the athlete actually
+  # changed. Without the already-pending check below, saving any unrelated
+  # field (e.g. their name) would re-send/re-save that same request and
+  # show "join request sent" on every single edit. A *dismissed* pending
+  # request is deliberately not treated as "already active" here — an
+  # athlete resubmitting the same academy choice after the owner dismissed
+  # it is expected to reopen it (see the "reopens dismissed join
+  # notification" test), which is also a genuinely new notification worth
+  # announcing.
   def create_academy_request_if_needed(athlete, academy_id)
-    return if academy_id.blank?
+    return false if academy_id.blank?
 
     academy = Academy.approved.find_by(id: academy_id)
-    return unless academy
-    return if athlete.academy_id == academy.id
+    return false unless academy
+    return false if athlete.academy_id == academy.id
+    return false if athlete.academy_membership_requests.pending.where(academy: academy, dismissed_at: nil).exists?
 
     athlete.academy_membership_requests.pending.where.not(academy: academy).update_all(status: AcademyMembershipRequest.statuses[:rejected], reviewed_at: Time.current, updated_at: Time.current)
     membership_request = athlete.academy_membership_requests.find_or_initialize_by(academy: academy, status: :pending)
     membership_request.requested_by ||= current_user
     membership_request.dismissed_at = nil
     membership_request.save!
+    true
   end
 
   def sync_super_admin_unregistered_academy_notification(athlete)
@@ -325,8 +342,8 @@ class AthletesController < ApplicationController
     )
   end
 
-  def athlete_saved_notice(academy_id, created:)
-    return "Academy join request sent to the academy owner." if academy_id.present?
+  def athlete_saved_notice(academy_request_sent, created:)
+    return "Academy join request sent to the academy owner." if academy_request_sent
 
     created ? "Athlete profile created." : "Athlete profile updated."
   end
