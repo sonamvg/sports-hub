@@ -41,18 +41,46 @@
     </div>
 
     <% required_count = @team_type == "team_poomsae" ? 3 : 2 %>
-    <div>
+    <div data-team-athlete-picker>
       <label>Teammates (<%= required_count %> required, same academy)</label>
       <% (1..required_count).each do |slot| %>
-        <%= select_tag "athlete_ids[]", options_from_collection_for_select(@athletes, :id, :full_name), include_blank: "Choose team member #{slot}", style: "margin-bottom:8px;" %>
+        <%= select_tag "athlete_ids[]", options_from_collection_for_select(@athletes, :id, :full_name), include_blank: "Choose team member #{slot}", style: "margin-bottom:8px;", data: { team_member_select: true } %>
       <% end %>
       <p class="field-hint"><%= link_to "+ Register new athlete", new_athlete_path(return_to: request.fullpath), class: "text-link" %></p>
     </div>
 
     <div class="form-actions full" style="justify-content:space-between;">
-      <%= button_tag "+ Add individual athlete", type: "submit", name: "next", value: "individual", class: "secondary-button button-reset" %>
+      <div style="display:flex; gap:12px;">
+        <%= button_tag "+ Add individual athlete", type: "submit", name: "next", value: "individual", class: "secondary-button button-reset" %>
+        <%= button_tag "+ Add another team", type: "submit", name: "next", value: "group", class: "secondary-button button-reset" %>
+      </div>
       <%= button_tag "Proceed to payment", type: "submit", name: "next", value: "payment", class: "primary-button button-reset" %>
     </div>
   <% end %>
 </div>
 </div></section>
+
+<script>
+  document.addEventListener("change", function(event) {
+    if (!event.target.closest("[data-team-member-select]")) return;
+    updateTeamMemberOptions(event.target.closest("[data-team-athlete-picker]"));
+  });
+
+  document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll("[data-team-athlete-picker]").forEach(updateTeamMemberOptions);
+  });
+
+  function updateTeamMemberOptions(picker) {
+    if (!picker) return;
+
+    const selects = Array.from(picker.querySelectorAll("[data-team-member-select]"));
+    const chosen = selects.map(function(select) { return select.value; }).filter(Boolean);
+
+    selects.forEach(function(select) {
+      Array.from(select.options).forEach(function(option) {
+        if (!option.value) return;
+        option.disabled = chosen.includes(option.value) && select.value !== option.value;
+      });
+    });
+  }
+</script>

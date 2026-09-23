@@ -1,0 +1,220 @@
+<section class="page-shell"><div class="container narrow">
+<%= render "shared/breadcrumbs", items: [
+  { label: "Home", path: root_path },
+  { label: "Tournaments", path: tournaments_path },
+  { label: @tournament.name, path: tournament_path(@tournament) },
+  { label: "Register" }
+] %>
+
+<p class="eyebrow">REGISTER FOR THIS TOURNAMENT</p>
+<h1 class="page-title"><%= @tournament.name %></h1>
+<p class="page-copy">Review your profile, choose your categories, and submit &mdash; Pair and Team Poomsae aren't available for self-registration.</p>
+
+<% if @error %>
+  <div class="inline-notice inline-notice-warning"><%= @error %></div>
+<% end %>
+
+<%= form_with url: tournament_registrations_path(@tournament), method: :post, class: "form-card", multipart: true do |form| %>
+  <div class="form-grid two-col">
+    <div class="full">
+      <label>Your profile</label>
+      <div class="detail-card" style="padding: 18px;">
+        <div class="profile-summary">
+          <div><span>Gender</span><strong><%= @athlete.gender&.titleize || "--" %></strong></div>
+          <div><span>Date of birth</span><strong><%= @athlete.date_of_birth&.strftime("%d %b %Y") || "--" %><%= " (#{@athlete.age} yrs)" if @athlete.age %></strong></div>
+          <div><span>Weight on file</span><strong><%= @athlete.weight.present? ? "#{@athlete.weight} kg" : "--" %></strong></div>
+          <div><span>Belt</span><strong><%= @athlete.belt&.titleize || "--" %></strong></div>
+        </div>
+      </div>
+      <% unless @athlete.profile_complete_for_registration? %>
+        <div class="inline-notice inline-notice-warning" style="margin-top: 12px;">
+          <strong>Your profile is incomplete.</strong>
+          <span>Add a contact number to your profile before registering.</span>
+          <%= link_to "Complete profile", edit_athlete_path(@athlete, return_to: request.fullpath), class: "primary-button" %>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="full">
+      <label for="registered_weight">Registration weight (optional)</label>
+      <%= number_field_tag :registered_weight, params[:registered_weight], step: 0.1, min: 1, max: 300, placeholder: @athlete.weight.present? ? "e.g. #{@athlete.weight}" : "e.g. 33.8" %>
+      <p class="field-hint">Leave blank to use the profile weight<%= " (#{@athlete.weight} kg)" if @athlete.weight.present? %>. The categories below update to match what you enter.</p>
+    </div>
+
+    <div class="full">
+      <label>Suggested categories</label>
+      <div class="category-picker <%= "category-picker-invalid" if @error %>" data-category-picker>
+        <% kyorugi_options = @suggestions[:kyorugi].map { |category| ["#{category.name} - #{category.fee_label}#{" (closest)" if category == @suggestions[:recommended]}", category.id, { data: { fee: category.free? ? "0" : category.effective_registration_fee.to_s } }] } %>
+        <% poomsae_options = @suggestions[:individual_poomsae].map { |category| ["#{category.name} - #{category.fee_label}", category.id, { data: { fee: category.free? ? "0" : category.effective_registration_fee.to_s } }] } %>
+        <% grouped_choices = { "Kyorugi" => kyorugi_options, "Individual Poomsae" => poomsae_options } %>
+        <% selected_rows = @selected_category_ids.presence || [@suggestions[:recommended]&.id&.to_s].compact.presence || [""] %>
+        <% selected_rows.each do |category_id| %>
+          <div class="category-picker-row" data-category-row>
+            <select name="tournament_category_ids[]" class="category-picker-select" data-athlete-category-select>
+              <option value="">Choose category</option>
+              <%= grouped_options_for_select(grouped_choices, category_id) %>
+            </select>
+            <button type="button" class="secondary-button button-reset category-remove-button" data-remove-category <%= "hidden" if category_id.blank? && selected_rows.one? %>>Delete</button>
+          </div>
+        <% end %>
+        <template data-category-template>
+          <div class="category-picker-row" data-category-row>
+            <select name="tournament_category_ids[]" class="category-picker-select" data-athlete-category-select>
+              <option value="">Choose category</option>
+              <%= grouped_options_for_select(grouped_choices) %>
+            </select>
+            <button type="button" class="secondary-button button-reset category-remove-button" data-remove-category>Delete</button>
+          </div>
+        </template>
+        <label class="checkbox-option add-more-category-option" data-add-more-wrapper>
+          <input type="checkbox" data-add-more-category>
+          <span>Do you want to add another category?</span>
+        </label>
+      </div>
+      <% if @suggestions[:kyorugi].empty? && @suggestions[:individual_poomsae].empty? %>
+        <p class="field-hint">No individual categories match your gender and age in this tournament yet.</p>
+      <% else %>
+        <p class="field-hint">Every individual category for your gender and age is listed, with the closest Kyorugi bracket pre-selected.</p>
+      <% end %>
+    </div>
+
+    <div class="registration-total full" data-registration-total data-currency="<%= @tournament.currency.presence || "INR" %>">
+      <strong>Total amount to pay</strong>
+      <span data-total-amount><%= @tournament.currency.presence || "INR" %> 0</span>
+      <p class="field-hint">The total is the tournament fee added up across the categories you've selected above.</p>
+    </div>
+
+    <% unless @tournament.free? %>
+      <div class="full payment-instructions" data-payment-details>
+        <h2>Secure payment details</h2>
+        <p class="field-hint">These payment details are shown only in this signed-in registration flow and are not displayed on public tournament pages.</p>
+
+        <% if @tournament.payment_account_number.present? || @tournament.payment_bank_name.present? %>
+          <dl>
+            <div><dt>Account holder</dt><dd><%= @tournament.payment_account_name || "--" %></dd></div>
+            <div><dt>Bank</dt><dd><%= @tournament.payment_bank_name || "--" %></dd></div>
+            <div><dt>Account number</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_account_number || "--" %>" data-full="<%= @tournament.payment_account_number %>"><%= @tournament.masked_payment_account_number || "--" %></dd></div>
+            <div><dt>IFSC</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_ifsc || "--" %>" data-full="<%= @tournament.payment_ifsc %>"><%= @tournament.masked_payment_ifsc || "--" %></dd></div>
+          </dl>
+        <% end %>
+
+        <% if @tournament.payment_upi_id.present? %>
+          <dl>
+            <div><dt>UPI ID</dt><dd data-masked-field data-masked="<%= @tournament.masked_payment_upi_id %>" data-full="<%= @tournament.payment_upi_id %>"><%= @tournament.masked_payment_upi_id %></dd></div>
+          </dl>
+        <% end %>
+
+        <% if @tournament.payment_account_number.present? || @tournament.payment_upi_id.present? %>
+          <button type="button" class="secondary-button button-reset" data-toggle-payment-details>Show full payment details</button>
+        <% end %>
+
+        <% if @tournament.payment_upi_qr_svg.present? %>
+          <div class="payment-qr">
+            <%= @tournament.payment_upi_qr_svg %>
+            <p class="field-hint">Scan with any UPI app to pay.</p>
+          </div>
+        <% end %>
+
+        <p><%= @tournament.payment_instructions.presence || "Make the payment using the organizer's shared instructions, then upload the receipt before submitting." %></p>
+        <p class="field-hint">Use payment description: <strong><%= "#{@tournament.name} - #{@athlete.full_name}" %></strong></p>
+      </div>
+      <div class="full">
+        <label for="payment_receipt">Payment receipt</label>
+        <%= file_field_tag :payment_receipt, accept: "image/png,image/jpeg,image/webp,application/pdf" %>
+        <p class="field-hint">Upload a JPG, PNG, WebP, or PDF receipt up to 5 MB so organizers can verify payment before accepting the registration.</p>
+      </div>
+    <% else %>
+      <div class="full inline-notice">Every suggested category here is free to enter. No payment or receipt is required.</div>
+    <% end %>
+  </div>
+
+  <div class="form-actions">
+    <%= form.submit "Submit registration", class: "primary-button button-reset" %>
+    <%= link_to "Cancel", tournament_path(@tournament), class: "secondary-button" %>
+  </div>
+<% end %>
+</div></section>
+
+<script>
+  document.addEventListener("change", function(event) {
+    if (!event.target.closest("[data-athlete-category-select]")) return;
+    const picker = event.target.closest("[data-category-picker]");
+    updateAthleteAddMoreVisibility(picker);
+    updateAthleteRegistrationTotal(picker);
+  });
+
+  document.addEventListener("change", function(event) {
+    const checkbox = event.target.closest("[data-add-more-category]");
+    if (!checkbox || !checkbox.checked) return;
+
+    const picker = checkbox.closest("[data-category-picker]");
+    const template = picker.querySelector("[data-category-template]");
+    picker.insertBefore(template.content.cloneNode(true), checkbox.closest("[data-add-more-wrapper]"));
+    checkbox.checked = false;
+    updateAthleteAddMoreVisibility(picker);
+    updateAthleteRegistrationTotal(picker);
+  });
+
+  document.addEventListener("click", function(event) {
+    const button = event.target.closest("[data-remove-category]");
+    if (!button) return;
+
+    const picker = button.closest("[data-category-picker]");
+    const rows = picker.querySelectorAll("[data-category-row]");
+    if (rows.length === 1) {
+      rows[0].querySelector("select").value = "";
+      button.hidden = true;
+    } else {
+      button.closest("[data-category-row]").remove();
+    }
+    updateAthleteAddMoreVisibility(picker);
+    updateAthleteRegistrationTotal(picker);
+  });
+
+  document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll("[data-category-picker]").forEach(function(picker) {
+      updateAthleteAddMoreVisibility(picker);
+      updateAthleteRegistrationTotal(picker);
+    });
+  });
+
+  function updateAthleteRegistrationTotal(picker) {
+    if (!picker) return;
+
+    const totalBox = document.querySelector("[data-registration-total]");
+    const totalAmount = document.querySelector("[data-total-amount]");
+    if (!totalBox || !totalAmount) return;
+
+    const currency = totalBox.dataset.currency || "INR";
+    const total = Array.from(picker.querySelectorAll("[data-athlete-category-select]")).reduce(function(sum, select) {
+      const option = select.selectedOptions[0];
+      return sum + Number(option && option.dataset.fee ? option.dataset.fee : 0);
+    }, 0);
+
+    totalAmount.textContent = currency + " " + new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(total);
+  }
+
+  document.addEventListener("click", function(event) {
+    const button = event.target.closest("[data-toggle-payment-details]");
+    if (!button) return;
+
+    const container = button.closest("[data-payment-details]");
+    const revealed = container.dataset.revealed === "true";
+    container.querySelectorAll("[data-masked-field]").forEach(function(field) {
+      field.textContent = revealed ? field.dataset.masked : field.dataset.full;
+    });
+    container.dataset.revealed = revealed ? "false" : "true";
+    button.textContent = revealed ? "Show full payment details" : "Hide full payment details";
+  });
+
+  function updateAthleteAddMoreVisibility(picker) {
+    if (!picker) return;
+    const addMoreWrapper = picker.querySelector("[data-add-more-wrapper]");
+    if (!addMoreWrapper) return;
+
+    const selects = Array.from(picker.querySelectorAll("[data-athlete-category-select]"));
+    const hasSelection = selects.some(function(select) { return select.value !== ""; });
+    const hasBlankRow = selects.some(function(select) { return select.value === ""; });
+    addMoreWrapper.hidden = !hasSelection || hasBlankRow;
+  }
+</script>

@@ -52,7 +52,7 @@ Rails.application.routes.draw do
     resources :tournament_categories, path: "categories", only: %i[index show]
     resources :tournament_organizer_invitations, path: "organizer-invitations", only: %i[create]
     resources :tournament_referees, path: "referees"
-    resources :registrations, only: %i[index new destroy] do
+    resources :registrations, only: %i[index new create destroy] do
       collection do
         match "individual", action: :individual, via: %i[get post]
         match "group", action: :group, via: %i[get post]

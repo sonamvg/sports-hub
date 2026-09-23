@@ -31,15 +31,32 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Registration is not open for this tournament.", flash[:alert]
   end
 
-  test "new redirects an athlete-role user straight to the individual screen" do
+  test "new renders the direct self-registration form for an athlete-role user, with no Pair/Team Poomsae option" do
     athlete_user = User.create!(name: "Aarohi Shah", email: "athlete-new@example.test", password: "password123", role: :athlete)
-    athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2013, 5, 12), gender: "female", weight: 34.2)
+    tournament = open_tournament
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    pair = tournament.tournament_categories.find_or_create_by!(event_type: "pair_poomsae", gender: nil, age_min: 12, age_max: 17)
+    sign_in_as athlete_user
+
+    get new_tournament_registration_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, "Aarohi Shah"
+    assert_includes response.body, category.name
+    assert_not_includes response.body, pair.name
+    assert_not_includes response.body, "Register a Pair or Team Poomsae entry"
+  end
+
+  test "new redirects an athlete with no profile yet to profile setup" do
+    athlete_user = User.create!(name: "Aarohi Shah", email: "athlete-noprofile@example.test", password: "password123", role: :athlete)
     tournament = open_tournament
     sign_in_as athlete_user
 
     get new_tournament_registration_path(tournament)
 
-    assert_redirected_to individual_tournament_registrations_path(tournament)
+    # Handled globally by ApplicationController#require_athlete_profile_completion.
+    assert_redirected_to new_athlete_path(profile_setup: true)
   end
 
   test "new shows both entry options for an academy owner" do
@@ -54,6 +71,103 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Register for individual categories"
     assert_includes response.body, "Register a Pair or Team Poomsae entry"
+  end
+
+  test "athlete direct registration creates pending registrations immediately, no draft/cart involved" do
+    athlete_user = User.create!(name: "Aarohi Shah", email: "athlete-create@example.test", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2013, 5, 12), gender: "female", contact_number: "9876543210")
+    tournament = open_tournament(registration_fee: 0)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37, registration_fee: 0)
+    sign_in_as athlete_user
+
+    assert_difference("Registration.count", 1) do
+      post tournament_registrations_path(tournament), params: {
+        tournament_category_ids: [category.id],
+        registered_weight: 34
+      }
+    end
+
+    assert_redirected_to tournament_registrations_path(tournament)
+    registration = Registration.last
+    assert_predicate registration, :pending?
+    assert_equal athlete, registration.athlete
+    assert_equal category, registration.tournament_category
+  end
+
+  test "athlete direct registration supports selecting multiple individual categories at once" do
+    athlete_user = User.create!(name: "Aarohi Shah", email: "athlete-multi@example.test", password: "password123", role: :athlete)
+    athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2013, 5, 12), gender: "female", contact_number: "9876543210")
+    tournament = open_tournament(registration_fee: 0)
+    kyorugi = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    poomsae = tournament.tournament_categories.find_or_create_by!(event_type: "individual_poomsae", gender: "female", age_min: 12, age_max: 14)
+    sign_in_as athlete_user
+
+    assert_difference("Registration.count", 2) do
+      post tournament_registrations_path(tournament), params: { tournament_category_ids: [kyorugi.id, poomsae.id] }
+    end
+
+    assert_redirected_to tournament_registrations_path(tournament)
+    assert Registration.last(2).all?(&:pending?)
+  end
+
+  test "athlete direct registration cannot be used to register a pair or team poomsae category" do
+    athlete_user = User.create!(name: "Aarohi Shah", email: "athlete-nogroup@example.test", password: "password123", role: :athlete)
+    athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2013, 5, 12), gender: "female", contact_number: "9876543210")
+    tournament = open_tournament
+    pair = tournament.tournament_categories.find_or_create_by!(event_type: "pair_poomsae", gender: nil, age_min: 12, age_max: 17)
+    sign_in_as athlete_user
+
+    assert_no_difference("Registration.count") do
+      post tournament_registrations_path(tournament), params: { tournament_category_ids: [pair.id] }
+    end
+
+    assert_response :unprocessable_entity
+  end
+
+  test "athlete direct registration requires a receipt for a paid category" do
+    athlete_user = User.create!(name: "Aarohi Shah", email: "athlete-receipt@example.test", password: "password123", role: :athlete)
+    athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2013, 5, 12), gender: "female", contact_number: "9876543210")
+    tournament = open_tournament(registration_fee: 500)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37, registration_fee: 500)
+    sign_in_as athlete_user
+
+    assert_no_difference("Registration.count") do
+      post tournament_registrations_path(tournament), params: { tournament_category_ids: [category.id] }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "receipt"
+  end
+
+  test "athlete direct registration for an already-decided category shows a clear message instead of doing nothing" do
+    athlete_user = User.create!(name: "Aarohi Shah", email: "athlete-dup@example.test", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2013, 5, 12), gender: "female", contact_number: "9876543210")
+    tournament = open_tournament
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :approved, payment_receipt: payment_receipt_upload)
+    sign_in_as athlete_user
+
+    assert_no_difference("Registration.count") do
+      post tournament_registrations_path(tournament), params: { tournament_category_ids: [category.id] }
+    end
+
+    assert_redirected_to new_tournament_registration_path(tournament)
+    assert_includes flash[:alert], "already have a registration decision"
+  end
+
+  test "academy owner cannot use the athlete-only direct registration action" do
+    owner = User.create!(name: "Owner", email: "owner-nocreate@example.test", password: "password123", role: :academy_owner)
+    academy = owner.owned_academies.create!(name: "Pune Champions", city: "Pune", status: :approved)
+    owner.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = open_tournament
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    sign_in_as owner
+
+    assert_no_difference("Registration.count") do
+      post tournament_registrations_path(tournament), params: { tournament_category_ids: [category.id] }
+    end
+
+    assert_response :not_found
   end
 
   test "individual screen suggests categories matching the athlete's gender and age with the closest kyorugi bracket recommended" do
@@ -248,6 +362,58 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "exactly 2 team members"
   end
 
+  test "clicking add individual athlete with nothing filled in navigates instead of erroring" do
+    owner = User.create!(name: "Owner", email: "owner-empty-group@example.test", password: "password123", role: :academy_owner)
+    owner.owned_academies.create!(name: "Pune Champions", city: "Pune", status: :approved)
+    tournament = open_tournament
+    sign_in_as owner
+
+    assert_no_difference("Registration.count") do
+      post group_tournament_registrations_path(tournament), params: { team_type: "pair_poomsae", next: "individual" }
+    end
+
+    assert_redirected_to individual_tournament_registrations_path(tournament)
+  end
+
+  test "group screen's teammate dropdown excludes athletes with no academy" do
+    owner = User.create!(name: "Owner", email: "owner-no-academy-athlete@example.test", password: "password123", role: :academy_owner)
+    academy = owner.owned_academies.create!(name: "Pune Champions", city: "Pune", status: :approved)
+    on_roster = owner.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    unaffiliated = owner.athletes.create!(first_name: "Riya", last_name: "Solo", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    tournament = open_tournament
+    sign_in_as owner
+
+    get group_tournament_registrations_path(tournament)
+
+    assert_response :success
+    assert_includes response.body, on_roster.full_name
+    assert_not_includes response.body, unaffiliated.full_name
+  end
+
+  test "add another team submits the current team and returns to a fresh group form" do
+    owner = User.create!(name: "Owner", email: "owner-another-team@example.test", password: "password123", role: :academy_owner)
+    academy = owner.owned_academies.create!(name: "Pune Champions", city: "Pune", status: :approved)
+    athlete_one = owner.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", contact_number: "9876543210")
+    athlete_two = owner.athletes.create!(academy: academy, first_name: "Ishaani", last_name: "Patel", date_of_birth: Date.new(2013, 3, 1), gender: "female", contact_number: "9876543211")
+    tournament = open_tournament
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "pair_poomsae", gender: nil, age_min: 12, age_max: 17)
+    sign_in_as owner
+
+    assert_difference("Registration.count", 2) do
+      post group_tournament_registrations_path(tournament), params: {
+        team_type: "pair_poomsae",
+        tournament_category_id: category.id,
+        athlete_ids: [athlete_one.id, athlete_two.id],
+        next: "group"
+      }
+    end
+
+    assert_redirected_to group_tournament_registrations_path(tournament, team_type: "pair_poomsae")
+    follow_redirect!
+    assert_response :success
+    assert_includes response.body, "Already in this registration"
+  end
+
   test "payment screen lists the current draft cart with an itemized total" do
     athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", contact_number: "9876543210")
     tournament = open_tournament(registration_fee: 1000)
@@ -259,6 +425,28 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Aarohi Shah"
     assert_includes response.body, "1,000"
+  end
+
+  test "payment screen never nests the remove-entry form inside the main payment form" do
+    athlete = @parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", contact_number: "9876543210")
+    tournament = open_tournament(registration_fee: 1000)
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14, weight_min: 33, weight_max: 37)
+    registration = tournament.registrations.create!(athlete: athlete, tournament_category: category, status: :draft, submission_batch_id: SecureRandom.uuid, fee_amount: 1000, fee_currency: "INR")
+
+    get payment_tournament_registrations_path(tournament)
+
+    assert_response :success
+    # Nested <form> elements are invalid HTML and get silently mis-parsed by
+    # browsers (the inner form's fields bleed into the outer one) — the
+    # "Remove" form for this draft row must fully close before the payment
+    # form opens, not be rendered inside it.
+    remove_form_open = response.body.index("action=\"#{tournament_registration_path(tournament, registration)}\"")
+    remove_form_close = response.body.index("</form>", remove_form_open)
+    payment_form_open = response.body.index("action=\"#{payment_tournament_registrations_path(tournament)}\"")
+
+    assert remove_form_open, "expected a remove form for the draft registration"
+    assert payment_form_open, "expected the payment form"
+    assert remove_form_close < payment_form_open, "the remove form must close before the payment form opens (no nested <form> tags)"
   end
 
   test "submit requires a receipt when the cart includes a paid category" do
@@ -273,6 +461,45 @@ class RegistrationsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_includes response.body, "receipt"
+  end
+
+  test "academy owner can build an individual entry plus a pair poomsae team in one cart and submit both together" do
+    owner = User.create!(name: "Owner", email: "owner-combined-submit@example.test", password: "password123", role: :academy_owner)
+    academy = owner.owned_academies.create!(name: "Pune Champions", city: "Pune", status: :approved)
+    solo_athlete = owner.athletes.create!(academy: academy, first_name: "Ishaan", last_name: "Deshmukh", date_of_birth: Date.new(2012, 6, 1), gender: "male", contact_number: "9876543210")
+    team_athlete_one = owner.athletes.create!(academy: academy, first_name: "Kabir", last_name: "Patil", date_of_birth: Date.new(2012, 1, 1), gender: "male", contact_number: "9876543211")
+    team_athlete_two = owner.athletes.create!(academy: academy, first_name: "Rehan", last_name: "Shaikh", date_of_birth: Date.new(2013, 1, 1), gender: "male", contact_number: "9876543212")
+    tournament = open_tournament(registration_fee: 800, group_registration_fee: 1500)
+    solo_category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "male", age_min: 12, age_max: 15, weight_min: 30, weight_max: 45)
+    team_category = tournament.tournament_categories.find_or_create_by!(event_type: "pair_poomsae", gender: nil, age_min: 12, age_max: 17)
+    sign_in_as owner
+
+    assert_difference("Registration.count", 1) do
+      post individual_tournament_registrations_path(tournament), params: {
+        athlete_id: solo_athlete.id, tournament_category_ids: [solo_category.id], next: "group"
+      }
+    end
+    assert_redirected_to group_tournament_registrations_path(tournament)
+
+    assert_difference("Registration.count", 2) do
+      post group_tournament_registrations_path(tournament), params: {
+        team_type: "pair_poomsae", tournament_category_id: team_category.id,
+        athlete_ids: [team_athlete_one.id, team_athlete_two.id], next: "payment"
+      }
+    end
+    assert_redirected_to payment_tournament_registrations_path(tournament)
+
+    assert_equal 3, tournament.registrations.draft.count
+
+    assert_difference("Registration.pending.count", 3) do
+      post payment_tournament_registrations_path(tournament), params: { payment_receipt: payment_receipt_upload }
+    end
+
+    assert_redirected_to tournament_registrations_path(tournament)
+    registrations = tournament.registrations.reload
+    assert registrations.all?(&:pending?)
+    assert registrations.all? { |registration| registration.payment_receipt.attached? }
+    assert_equal [solo_athlete.id, team_athlete_one.id, team_athlete_two.id].sort, registrations.map(&:athlete_id).sort
   end
 
   test "submit finalizes every draft registration in the cart and attaches one shared receipt" do

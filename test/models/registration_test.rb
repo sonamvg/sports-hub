@@ -131,7 +131,7 @@ class RegistrationTest < ActiveSupport::TestCase
     registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, payment_receipt: payment_receipt_upload)
 
     assert_not registration.valid?
-    assert_includes registration.errors[:base], "athlete's gender does not match this category"
+    assert_includes registration.errors[:base], "Aarohi Shah doesn't match #{category.name} (open to Male athletes only)"
   end
 
   test "rejects registration when athlete age does not match category" do
@@ -143,7 +143,7 @@ class RegistrationTest < ActiveSupport::TestCase
     registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, payment_receipt: payment_receipt_upload)
 
     assert_not registration.valid?
-    assert_includes registration.errors[:base], "athlete's age does not match this category"
+    assert_includes registration.errors[:base], "Aarohi Shah is 16 years old, which is outside the age range for #{category.name}"
   end
 
   test "rejects registration when athlete belt does not match category" do
@@ -155,7 +155,7 @@ class RegistrationTest < ActiveSupport::TestCase
     registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, payment_receipt: payment_receipt_upload)
 
     assert_not registration.valid?
-    assert_includes registration.errors[:base], "athlete's belt rank does not match this category"
+    assert_includes registration.errors[:base], "Aarohi Shah's White belt doesn't qualify for #{category.name}"
   end
 
   test "rejects registration when declared weight does not match category" do
@@ -167,7 +167,7 @@ class RegistrationTest < ActiveSupport::TestCase
     registration = Registration.new(tournament: tournament, athlete: athlete, tournament_category: category, registered_weight: 50, payment_receipt: payment_receipt_upload)
 
     assert_not registration.valid?
-    assert_includes registration.errors[:base], "athlete's weight does not match this category"
+    assert_includes registration.errors[:base], "Aarohi Shah's weight (50 kg) is outside the range for #{category.name}"
   end
 
   test "allows registration without a declared weight even when category has a weight range" do

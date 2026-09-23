@@ -258,36 +258,48 @@ class TournamentCategory < ApplicationRecord
     end
   end
 
+  # Every message names both the athlete and the category, since these
+  # surface directly to whoever's registering — often for a batch of several
+  # athletes/categories at once — and "athlete's age does not match this
+  # category" leaves them guessing which athlete and which category out of
+  # everything they just submitted.
   def eligibility_errors_for(athlete, as_of: Date.current, weight: nil)
     errors = []
+    athlete_name = athlete.full_name.presence || "This athlete"
 
     if gender.present? && athlete.gender.present? && athlete.gender != gender
-      errors << "athlete's gender does not match this category"
+      errors << "#{athlete_name} doesn't match #{name} (open to #{gender.titleize} athletes only)"
     end
 
     if age_min.present? || age_max.present?
       if athlete.date_of_birth.blank?
-        errors << "athlete's date of birth is required for this category"
+        errors << "#{athlete_name}'s date of birth must be set before they can register for #{name}"
       else
         athlete_age = age_on(athlete.date_of_birth, as_of || Date.current)
-        errors << "athlete's age does not match this category" if (age_min.present? && athlete_age < age_min) || (age_max.present? && athlete_age > age_max)
+        if (age_min.present? && athlete_age < age_min) || (age_max.present? && athlete_age > age_max)
+          errors << "#{athlete_name} is #{athlete_age} years old, which is outside the age range for #{name}"
+        end
       end
     end
 
     if belt_min.present? || belt_max.present?
       if athlete.belt.blank?
-        errors << "athlete's belt rank is required for this category"
+        errors << "#{athlete_name}'s belt rank must be set before they can register for #{name}"
       else
         belt_index = Athlete::BELTS.index(athlete.belt)
         min_index = belt_min.present? ? Athlete::BELTS.index(belt_min) : nil
         max_index = belt_max.present? ? Athlete::BELTS.index(belt_max) : nil
-        errors << "athlete's belt rank does not match this category" if belt_index.nil? || (min_index && belt_index < min_index) || (max_index && belt_index > max_index)
+        if belt_index.nil? || (min_index && belt_index < min_index) || (max_index && belt_index > max_index)
+          errors << "#{athlete_name}'s #{athlete.belt.titleize} belt doesn't qualify for #{name}"
+        end
       end
     end
 
     if weight.present? && (weight_min.present? || weight_max.present?)
       measured_weight = weight.to_d
-      errors << "athlete's weight does not match this category" if (weight_min.present? && measured_weight < weight_min) || (weight_max.present? && measured_weight > weight_max)
+      if (weight_min.present? && measured_weight < weight_min) || (weight_max.present? && measured_weight > weight_max)
+        errors << "#{athlete_name}'s weight (#{format_number(measured_weight)} kg) is outside the range for #{name}"
+      end
     end
 
     errors
