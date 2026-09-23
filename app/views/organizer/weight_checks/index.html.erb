@@ -130,7 +130,18 @@
 
     var row = document.querySelector('[data-weight-check-row][data-registration-id="' + highlightId + '"]');
     if (row) {
-      row.scrollIntoView({ behavior: "smooth", block: "center" });
+      // This page can run to dozens of rows and many thousands of pixels
+      // tall, so an animated "smooth" scroll back to the just-saved row is
+      // slow and janky — and the global `html { scroll-behavior: smooth }`
+      // rule can make a plain scrollIntoView() call silently fail to move
+      // at all in some browsers/tab states. Force an instant jump instead by
+      // temporarily overriding that CSS rule for this one call.
+      var htmlElement = document.documentElement;
+      var previousScrollBehavior = htmlElement.style.scrollBehavior;
+      htmlElement.style.scrollBehavior = "auto";
+      row.scrollIntoView({ block: "center" });
+      htmlElement.style.scrollBehavior = previousScrollBehavior;
+
       row.classList.add("weight-check-row-highlighted");
       setTimeout(function() { row.classList.remove("weight-check-row-highlighted"); }, 2600);
     }
