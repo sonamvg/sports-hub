@@ -18,7 +18,7 @@
       <% @membership_requests.each do |membership_request| %>
         <% athlete = membership_request.athlete %>
         <article class="notification-card">
-          <%= button_to dismiss_academy_academy_membership_request_path(@academy, membership_request), method: :patch, class: "notification-dismiss button-reset", aria: { label: "Dismiss notification for #{athlete.full_name}" } do %>
+          <%= button_to dismiss_academy_academy_membership_request_path(@academy, membership_request), method: :patch, class: "notification-dismiss button-reset", form: { class: "notification-dismiss-form" }, aria: { label: "Dismiss notification for #{athlete.full_name}" } do %>
             <%= ui_icon("x") %>
           <% end %>
           <div>
