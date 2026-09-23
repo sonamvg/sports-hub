@@ -12,9 +12,10 @@ module Organizer
         .order(status_sort_sql, created_at: :desc)
 
       batch_ids = @registrations.filter_map(&:submission_batch_id).uniq
-      grouped = Registration.where(submission_batch_id: batch_ids).group(:submission_batch_id)
-      @batch_totals = grouped.sum(:fee_amount)
-      @batch_counts = grouped.count
+      batch_registrations = Registration.where(submission_batch_id: batch_ids).includes(:tournament_category).group_by(&:submission_batch_id)
+      @batch_totals = batch_registrations.transform_values { |rows| Registration.total_fee(rows) }
+      @batch_counts = batch_registrations.transform_values(&:count)
+      @batch_category_counts = batch_registrations.transform_values { |rows| rows.map(&:tournament_category_id).uniq.size }
     end
 
     def show
@@ -69,7 +70,15 @@ module Organizer
       Tournament.where(id: managed_tournament_ids).find_by(id: params[:tournament_id])
     end
 
+    # A super admin can manage every tournament (same as can_manage_tournament?
+    # and every other "who can see/manage this tournament" scope in the app,
+    # e.g. TournamentsController#visible_tournaments) — without this, a super
+    # admin filtering this page to a tournament they don't personally own or
+    # collaborate on would see "no athletes registered" even though real,
+    # pending registrations exist and are visible on the tournament's own page.
     def managed_tournament_ids
+      return Tournament.select(:id) if super_admin?
+
       Tournament
         .left_joins(:tournament_organizers)
         .where("tournaments.organizer_id = :user_id OR tournament_organizers.user_id = :user_id", user_id: current_user.id)

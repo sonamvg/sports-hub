@@ -182,7 +182,7 @@ class OrganizerRegistrationsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Pending → Rejected"
   end
 
-  test "unassigned super admin is not the approval recipient for tournament registrations" do
+  test "unassigned super admin can still view and approve tournament registrations, like every other organizer sub-controller" do
     organizer = User.create!(name: "Organizer", email: "approval-owner@example.test", password: "password123", role: :organizer)
     super_admin = User.create!(name: "Super Admin", email: "approval-admin@example.test", password: "password123", role: :super_admin)
     athlete_user = User.create!(name: "Athlete User", email: "approval-athlete@example.test", password: "password123", role: :parent)
@@ -192,13 +192,20 @@ class OrganizerRegistrationsControllerTest < ActionDispatch::IntegrationTest
     registration = tournament.registrations.create!(athlete: athlete, tournament_category: category, payment_receipt: payment_receipt_upload)
     sign_in_as super_admin
 
-    get organizer_registrations_path
+    # A super admin can already manage this tournament without being
+    # explicitly assigned as a collaborator (can_manage_tournament?, used by
+    # every other organizer sub-controller — weight checks, draws, matches —
+    # and by the tournament's own "Tournament athletes" link). Registrations
+    # must be consistent with that, not a narrower one-off exception, or a
+    # super admin following that very link would land on a page claiming
+    # nothing is registered.
+    get organizer_registrations_path(tournament_id: tournament.id)
     assert_response :success
-    assert_not_includes response.body, "Aarohi Shah"
+    assert_includes response.body, "Aarohi Shah"
 
     patch approve_organizer_registration_path(registration)
-    assert_response :not_found
-    assert_predicate registration.reload, :pending?
+    assert_redirected_to organizer_registrations_path
+    assert_predicate registration.reload, :approved?
   end
 
   test "organizer can view a receipt through the authenticated controller action" do
