@@ -18,7 +18,6 @@
       <%= render "shared/errors", record: @user %>
       <%= hidden_field_tag :account_type, @account_type %>
       <%= hidden_field_tag :return_to, params[:return_to] if params[:return_to].present? %>
-      <p class="field-hint"><span class="required-marker">*</span> indicates a required field.</p>
       <div class="form-grid two-col">
         <div>
           <%= form.label :name do %><%= academy_owner_account ? "Your name" : "Name" %><span class="required-marker">*</span><% end %>
@@ -55,9 +54,10 @@
           </div>
         <% end %>
         <div class="full"><%= form.label :email do %>Email<span class="required-marker">*</span><% end %><%= form.email_field :email, required: true, autocomplete: "email" %><%= field_error(@user, :email) %></div>
-        <div><%= form.label :password do %>Password<span class="required-marker">*</span><% end %><%= form.password_field :password, required: true, autocomplete: "new-password", minlength: 8, pattern: "(?=.*[A-Za-z])(?=.*\\d)\\S{8,}", title: "At least 8 characters, with a letter and a number, and no spaces" %><%= field_error(@user, :password) %></div>
-        <div><%= form.label :password_confirmation do %>Confirm password<span class="required-marker">*</span><% end %><%= form.password_field :password_confirmation, required: true, autocomplete: "new-password" %><%= field_error(@user, :password_confirmation) %></div>
+        <div><%= form.label :password do %>Password<span class="required-marker">*</span><% end %><%= password_field_with_toggle(form, :password, required: true, autocomplete: "new-password", minlength: 8, pattern: "(?=.*[A-Za-z])(?=.*\\d)\\S{8,}", title: "At least 8 characters, with a letter and a number, and no spaces") %><%= field_error(@user, :password) %></div>
+        <div><%= form.label :password_confirmation do %>Confirm password<span class="required-marker">*</span><% end %><%= password_field_with_toggle(form, :password_confirmation, required: true, autocomplete: "new-password") %><%= field_error(@user, :password_confirmation) %></div>
       </div>
+      <p class="field-hint"><span class="required-marker">*</span> indicates a required field.</p>
       <div class="form-actions">
         <%= form.submit organizer_account ? "Create organizer account" : (academy_owner_account ? "Register academy" : "Create athlete account"), class: "primary-button button-reset" %>
         <%= link_to "Sign in", login_path(return_to: params[:return_to]), class: "secondary-button" %>

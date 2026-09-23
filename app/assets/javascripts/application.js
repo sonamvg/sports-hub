@@ -27,6 +27,20 @@ document.addEventListener("click", (event) => {
   copyText(copyButton)
 })
 
+document.addEventListener("click", (event) => {
+  const toggleButton = event.target.closest("[data-password-toggle-button]")
+  if (!toggleButton) return
+
+  togglePasswordVisibility(toggleButton)
+})
+
+document.addEventListener("click", (event) => {
+  const tabButton = event.target.closest("[data-tab-button]")
+  if (!tabButton) return
+
+  activateTab(tabButton)
+})
+
 document.addEventListener("turbo:load", updateAcademyOtherFields)
 document.addEventListener("turbo:load", scheduleAutoDismiss)
 document.addEventListener("turbo:load", initMatchDecisionFields)
@@ -271,6 +285,37 @@ function copyText(button) {
   })
 }
 
+const PASSWORD_TOGGLE_ICONS = {
+  eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  hidden: '<path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6.5 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 11s3.5 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="M2 2l20 20"/><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/>'
+}
+
+function togglePasswordVisibility(button) {
+  const wrapper = button.closest("[data-password-toggle-wrapper]")
+  const input = wrapper?.querySelector("input")
+  const icon = button.querySelector("[data-password-toggle-icon]")
+  if (!input) return
+
+  const nowVisible = input.type === "password"
+  input.type = nowVisible ? "text" : "password"
+  button.setAttribute("aria-label", nowVisible ? "Hide password" : "Show password")
+  if (icon) icon.innerHTML = PASSWORD_TOGGLE_ICONS[nowVisible ? "hidden" : "eye"]
+}
+
+function activateTab(tabButton) {
+  const container = tabButton.closest("[data-tabs]")
+  if (!container) return
+
+  container.querySelectorAll("[data-tab-button]").forEach((button) => {
+    button.classList.toggle("is-active", button === tabButton)
+  })
+
+  const target = tabButton.dataset.tabTarget
+  container.querySelectorAll("[data-tab-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.tabPanel !== target
+  })
+}
+
 function clearResolvedFieldError(event) {
   const field = event.target
   if (!field.matches("input, select, textarea")) return
@@ -332,64 +377,3 @@ document.addEventListener("toggle", (event) => {
 window.addEventListener("scroll", repositionOpenKebabMenus, true)
 window.addEventListener("resize", repositionOpenKebabMenus)
 
-// City choices are scoped to the selected state (Academy/Athlete/Tournament
-// address forms) so combinations like "Hyderabad" + "Karnataka" can't be
-// picked — an "Other" option in the city select reveals a free-text field
-// for any city not in the curated list, so this never blocks a legitimate
-// address.
-function rebuildLocationCityOptions(citySelect, cities, selectedCity) {
-  citySelect.innerHTML = ""
-
-  const blank = document.createElement("option")
-  blank.value = ""
-  blank.textContent = "Select city"
-  citySelect.appendChild(blank)
-
-  cities.forEach(function (city) {
-    const option = document.createElement("option")
-    option.value = city
-    option.textContent = city
-    if (city === selectedCity) option.selected = true
-    citySelect.appendChild(option)
-  })
-
-  const other = document.createElement("option")
-  other.value = "Other"
-  other.textContent = "Other"
-  if (selectedCity === "Other") other.selected = true
-  citySelect.appendChild(other)
-}
-
-document.addEventListener("change", function (event) {
-  const stateSelect = event.target.closest("[data-location-state-select]")
-  if (!stateSelect) return
-
-  const scope = stateSelect.closest("form") || document
-  const citySelect = scope.querySelector("[data-location-city-select]")
-  const cityOther = scope.querySelector("[data-location-city-other]")
-  const dataScript = scope.querySelector("[data-location-state-cities]")
-  if (!citySelect || !cityOther || !dataScript) return
-
-  const stateCities = JSON.parse(dataScript.textContent || "{}")
-  rebuildLocationCityOptions(citySelect, stateCities[stateSelect.value] || [], "")
-  cityOther.hidden = true
-  cityOther.value = ""
-})
-
-document.addEventListener("change", function (event) {
-  const citySelect = event.target.closest("[data-location-city-select]")
-  if (!citySelect) return
-
-  const scope = citySelect.closest("form") || document
-  const cityOther = scope.querySelector("[data-location-city-other]")
-  if (!cityOther) return
-
-  if (citySelect.value === "Other") {
-    cityOther.hidden = false
-    cityOther.value = ""
-    cityOther.focus()
-  } else {
-    cityOther.hidden = true
-    cityOther.value = citySelect.value
-  }
-})

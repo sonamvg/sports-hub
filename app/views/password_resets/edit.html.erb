@@ -7,8 +7,8 @@
       <%= render "shared/errors", record: @user %>
       <%= hidden_field_tag :token, params[:token] %>
       <div class="form-grid">
-        <div><%= form.label :password, "New password" %><%= form.password_field :password, required: true, autofocus: true, autocomplete: "new-password" %></div>
-        <div><%= form.label :password_confirmation, "Confirm new password" %><%= form.password_field :password_confirmation, required: true, autocomplete: "new-password" %></div>
+        <div><%= form.label :password, "New password" %><%= password_field_with_toggle(form, :password, required: true, autofocus: true, autocomplete: "new-password") %></div>
+        <div><%= form.label :password_confirmation, "Confirm new password" %><%= password_field_with_toggle(form, :password_confirmation, required: true, autocomplete: "new-password") %></div>
       </div>
       <div class="form-actions">
         <%= form.submit "Update password", class: "primary-button button-reset" %>

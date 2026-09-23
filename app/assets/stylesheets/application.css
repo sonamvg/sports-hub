@@ -7,7 +7,7 @@ h1,h2,h3,h4,.brand { font-family:"Source Serif 4", Georgia, serif; }
 a { color:inherit; text-decoration:none; }
 .container { width:min(1120px, calc(100% - 40px)); margin:0 auto; }
 .app-frame { min-height:100vh; display:grid; grid-template-columns:248px minmax(0,1fr); background:white; }
-.side-menu { position:sticky; top:0; height:100vh; overflow-y:auto; border-right:1px solid var(--line); background:rgba(255,255,255,.98); padding:28px 22px; display:flex; flex-direction:column; gap:34px; z-index:10; }
+.side-menu { position:sticky; top:0; height:100vh; height:100dvh; overflow-y:auto; -webkit-overflow-scrolling:touch; border-right:1px solid var(--line); background:rgba(255,255,255,.98); padding:28px 22px; display:flex; flex-direction:column; gap:34px; z-index:10; }
 .brand { font-weight:700; letter-spacing:0; font-size:19px; } .brand span { color:var(--gold); }
 .side-nav,.side-account { display:flex; flex-direction:column; gap:8px; }
 .side-nav-link { display:flex; align-items:center; min-height:42px; padding:11px 12px; color:var(--muted); font-size:14px; font-weight:800; }
@@ -654,7 +654,25 @@ select:disabled { cursor:not-allowed; opacity:.6; }
 .checkbox-option .option-hint { display:block; font-weight:500; color:var(--muted); font-size:12.5px; margin-top:3px; }
 .other-options { grid-column:1/-1; display:grid; gap:10px; }
 .other-row input { width:100%; }
+.tab-strip { display:flex; flex-wrap:wrap; gap:8px 24px; border-bottom:1px solid var(--line); margin:28px 0 0; }
+.tab-strip-button { border:0; background:none; padding:0 0 14px; font:inherit; font-size:12px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; }
+.tab-strip-button:hover { color:var(--ink); }
+.tab-strip-button.is-active { color:var(--ink); border-bottom-color:var(--gold); }
+.profile-section { margin-top:36px; }
+.profile-section:first-child { margin-top:0; }
+.profile-section .form-section-heading { margin-top:0; padding-top:0; border-top:0; }
+.profile-section .form-card,.profile-section .detail-card { margin-top:20px; }
+.delete-account-panel { display:flex; flex-direction:column; align-items:flex-start; gap:16px; }
+.profile-summary { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:16px 24px; }
+.profile-summary > div { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.profile-summary span { font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); }
+.profile-summary strong { font-size:15px; overflow-wrap:anywhere; }
 .field-hint { margin:8px 0 0; color:var(--muted); font-size:13px; }
+.password-field-wrapper { position:relative; }
+.password-field-wrapper input { padding-right:48px; }
+.password-toggle-button { position:absolute; top:0; right:0; height:48px; width:44px; display:flex; align-items:center; justify-content:center; background:none; border:0; padding:0; cursor:pointer; color:var(--muted); }
+.password-toggle-button:hover { color:var(--ink); }
+.password-toggle-button .ui-icon { width:19px; height:19px; }
 .organizer-picker { background:white; border:1px solid #d8d9dc; border-radius:6px; padding:16px; display:grid; gap:12px; }
 .organizer-picker-search { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; }
 .organizer-picker-search input { min-height:48px; }
@@ -726,7 +744,7 @@ select:disabled { cursor:not-allowed; opacity:.6; }
 .payment-instructions dt { color:var(--muted); text-transform:uppercase; letter-spacing:.08em; font-size:10px; }
 .payment-instructions dd { margin:3px 0 0; font-weight:800; }
 .payment-qr { margin:14px 0; }
-.payment-qr-image { display:block; width:200px; max-width:100%; height:auto; border:1px solid var(--line); background:white; padding:10px; }
+.payment-qr svg { display:block; width:200px; max-width:100%; height:auto; border:1px solid var(--line); background:white; padding:10px; }
 .payment-qr .field-hint { margin-top:8px; }
 .athlete-photo { width:160px; height:160px; border:1px solid var(--line); overflow:hidden; background:white; margin-top:22px; }
 .athlete-photo img,.athlete-photo .image-fallback,.athlete-photo .fallback-placeholder { width:100%; height:100%; object-fit:cover; display:flex; }
@@ -815,8 +833,8 @@ select:disabled { cursor:not-allowed; opacity:.6; }
   align-items:center;
   border-bottom:1px solid var(--line);
   display:grid;
-  gap:22px;
-  grid-template-columns:minmax(230px,1.35fr) minmax(150px,.7fr) minmax(220px,1.15fr) auto;
+  gap:14px 22px;
+  grid-template-columns:minmax(0,1.35fr) minmax(0,.7fr) minmax(0,1.15fr) auto;
   min-height:92px;
   padding:20px 24px;
 }
