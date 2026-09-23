@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
@@ -15,7 +16,7 @@
   </head>
   <body<%= " #{tag.attributes(data: { session_timeout_seconds: session_timeout_seconds })}".html_safe if current_user %>>
     <div class="mobile-topbar">
-      <%= link_to root_path, class: "brand" do %>PODIUM<span>CIRCLE</span><% end %>
+      <%= link_to root_path, class: "brand" do %><%= image_tag "logo-icon.png", alt: "", class: "brand-icon" %>PODIUM<span>CIRCLE</span><% end %>
       <div class="mobile-topbar-actions">
         <% if current_user %>
           <%= button_to logout_path, method: :delete, class: "mobile-topbar-logout", form: { title: "Sign out" } do %>
@@ -33,7 +34,7 @@
     <div class="app-frame">
       <aside class="side-menu" aria-label="Primary navigation">
         <div class="side-menu-head">
-          <%= link_to root_path, class: "brand" do %>PODIUM<span>CIRCLE</span><% end %>
+          <%= link_to root_path, class: "brand" do %><%= image_tag "logo-icon.png", alt: "", class: "brand-icon" %>PODIUM<span>CIRCLE</span><% end %>
           <button type="button" class="mobile-nav-close" data-mobile-nav-close aria-label="Close menu">
             <%= ui_icon("x") %>
           </button>
