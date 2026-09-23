@@ -159,6 +159,26 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
     assert tournament.payment_upi_qr_svg.present?
   end
 
+  test "creates a tournament with cash payment also allowed alongside a UPI ID" do
+    assert_difference("Tournament.count", 1) do
+      post tournaments_path, params: {
+        tournament: {
+          name: "Cash Allowed Cup",
+          start_date: "2026-12-05",
+          end_date: "2026-12-06",
+          registration_fee: "500.00",
+          payment_upi_id: "organizer@okhdfcbank",
+          allow_cash_payment: "1",
+          status: "draft"
+        }.merge(consent_params)
+      }
+    end
+
+    tournament = Tournament.order(:created_at).last
+    assert_redirected_to tournament_path(tournament)
+    assert tournament.allow_cash_payment?
+  end
+
   test "rejects an invalid UPI ID on create" do
     assert_no_difference("Tournament.count") do
       post tournaments_path, params: {
@@ -1291,5 +1311,44 @@ class TournamentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :not_found
     assert Tournament.exists?(tournament.id)
+  end
+
+  test "super admin can export all tournaments as csv, including decrypted payment details" do
+    super_admin = User.create!(name: "Super Admin", email: "tournament-export-admin@example.test", password: "password123", role: :super_admin)
+    tournament = Tournament.create!(
+      name: "Export Test Open", organizer: @organizer, registration_fee: 500,
+      payment_upi_id: "organizer@okhdfcbank", start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6)
+    )
+    sign_in_as super_admin
+
+    get export_tournaments_path
+
+    assert_response :success
+    assert_equal "text/csv", response.media_type
+    assert_includes response.body, "Export Test Open"
+    assert_includes response.body, "organizer@okhdfcbank"
+    assert_includes response.body, @organizer.email
+  end
+
+  test "super admin can export all tournament categories as csv" do
+    super_admin = User.create!(name: "Super Admin", email: "category-export-admin@example.test", password: "password123", role: :super_admin)
+    tournament = Tournament.create!(name: "Category Export Open", organizer: @organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    category = tournament.tournament_categories.find_or_create_by!(event_type: "kyorugi", gender: "female", age_min: 12, age_max: 14)
+    sign_in_as super_admin
+
+    get export_categories_tournaments_path
+
+    assert_response :success
+    assert_equal "text/csv", response.media_type
+    assert_includes response.body, category.name
+    assert_includes response.body, "Category Export Open"
+  end
+
+  test "non-super-admin cannot export tournaments or categories" do
+    get export_tournaments_path
+    assert_response :not_found
+
+    get export_categories_tournaments_path
+    assert_response :not_found
   end
 end

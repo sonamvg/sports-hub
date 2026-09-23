@@ -741,4 +741,27 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
     assert Academy.exists?(academy.id)
   end
+
+  test "super admin can export all academies as csv" do
+    super_admin = User.create!(name: "Super Admin", email: "academy-export-admin@example.test", password: "password123", role: :super_admin)
+    owner = User.create!(name: "Academy Owner", email: "academy-export-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Export Test Academy", city: "Pune", status: :approved, owner: owner)
+    sign_in_as super_admin
+
+    get export_academies_path
+
+    assert_response :success
+    assert_equal "text/csv", response.media_type
+    assert_includes response.body, "Export Test Academy"
+    assert_includes response.body, owner.email
+  end
+
+  test "non-super-admin cannot export academies" do
+    owner = User.create!(name: "Academy Owner", email: "no-export-academy-owner@example.test", password: "password123", role: :academy_owner)
+    sign_in_as owner
+
+    get export_academies_path
+
+    assert_response :not_found
+  end
 end

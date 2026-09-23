@@ -17,6 +17,10 @@ module SuperAdmin
       redirect_to super_admin_athletes_path, notice: notice
     end
 
+    def export
+      send_data Athlete.to_export_csv, filename: "athletes-#{Date.current.iso8601}.csv", type: "text/csv"
+    end
+
     private
 
     def filtered_athletes

@@ -2,7 +2,7 @@ class AcademiesController < ApplicationController
   before_action :require_user, except: %i[index show]
   before_action :set_academy, only: %i[show athletes notifications edit update destroy approve reject]
   before_action :require_academy_manager, only: %i[athletes notifications edit update]
-  before_action :require_super_admin, only: %i[destroy approve reject]
+  before_action :require_super_admin, only: %i[destroy approve reject export]
 
   def index
     if current_user&.academy_owner?
@@ -78,6 +78,10 @@ class AcademiesController < ApplicationController
     @academy.update!(status: :rejected, reviewed_at: Time.current, rejection_reason: params[:rejection_reason].presence)
     sync_academy_submission_notifications(:rejected)
     redirect_to @academy, notice: "Academy rejected."
+  end
+
+  def export
+    send_data Academy.to_export_csv, filename: "academies-#{Date.current.iso8601}.csv", type: "text/csv"
   end
 
   private

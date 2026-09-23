@@ -189,26 +189,22 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_not Athlete.exists?(athlete.id)
   end
 
-  test "athlete deleting their account is deactivated instead of crashing when they raised a super admin notification" do
+  test "athlete deleting their account removes pending super admin notifications for that athlete" do
     user = User.create!(name: "Demo Athlete", email: "delete-athlete-with-notification@example.test", password: "password123", role: :athlete)
     athlete = user.athletes.create!(first_name: "Demo", last_name: "Athlete", date_of_birth: Date.new(2014, 5, 12), gender: "female", external_academy_name: "Neighborhood Dojo")
     notification = SuperAdminNotification.notify!(kind: :unregistered_academy_athlete, notifiable: athlete, actor: user, message: "Demo Athlete listed Neighborhood Dojo as an unregistered academy.")
     sign_in_as user
 
-    # The athlete profile itself has no match history, so it's still
-    # destroyed outright — only the user row must survive, since the
-    # notification's foreign key needs a valid actor_id to point to.
-    assert_no_difference("User.count") do
+    assert_difference("User.count", -1) do
       assert_difference("Athlete.count", -1) do
         delete profile_path
       end
     end
 
     assert_redirected_to root_path
-    assert_equal "Your account has been deactivated instead of deleted, to preserve tournament and match history you're part of.", flash[:notice]
-    assert_predicate user.reload, :deactivated?
-    assert SuperAdminNotification.exists?(notification.id)
-    assert_equal user.id, notification.reload.actor_id
+    assert_equal "Your account has been deleted.", flash[:notice]
+    assert_not User.exists?(user.id)
+    assert_not SuperAdminNotification.exists?(notification.id)
   end
 
   test "athlete deleting their account is deactivated and anonymized instead when they have fought a match" do

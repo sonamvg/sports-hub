@@ -332,6 +332,33 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_equal athlete_user, request.requested_by
   end
 
+  test "saving an unrelated field while an academy request is already pending does not re-send the join request notice" do
+    owner = User.create!(name: "Academy Owner", email: "resubmit-owner@example.test", password: "password123", role: :academy_owner)
+    academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)
+    athlete_user = User.create!(name: "Athlete User", email: "academy-resubmit-athlete@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    athlete = athlete_user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    academy.academy_membership_requests.create!(athlete: athlete, requested_by: athlete_user, status: :pending)
+
+    sign_in_as athlete_user
+
+    assert_no_difference("AcademyMembershipRequest.count") do
+      patch athlete_path(athlete), params: {
+        athlete: {
+          first_name: "Aarohi",
+          middle_name: "Vinit",
+          last_name: "Shah",
+          date_of_birth: Date.new(2014, 5, 12),
+          gender: "female",
+          academy_id: academy.id
+        }
+      }
+    end
+
+    assert_redirected_to athlete_path(athlete)
+    assert_equal "Athlete profile updated.", flash[:notice]
+    assert_equal "Vinit", athlete.reload.middle_name
+  end
+
   test "athlete selecting registered academy reopens dismissed join notification" do
     owner = User.create!(name: "Academy Owner", email: "request-reopen-owner@example.test", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Approved Academy", city: "Pune", status: :approved, owner: owner)

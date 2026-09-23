@@ -12,6 +12,7 @@ class Academy < ApplicationRecord
   belongs_to :owner, class_name: "User", optional: true
   has_many :athletes, dependent: :nullify
   has_many :academy_membership_requests, dependent: :destroy
+  has_many :super_admin_notifications, as: :notifiable, dependent: :destroy
   has_one_attached :logo_image
 
   enum :status, { pending: 0, approved: 1, rejected: 2 }, default: :pending
@@ -32,6 +33,33 @@ class Academy < ApplicationRecord
 
   def visible_to_public?
     approved?
+  end
+
+  # A full, restorable dump of every academy for a super admin backup/export
+  # — every column plus the owner's name/email for a human-readable link,
+  # since owner_id alone means nothing outside this database.
+  def self.to_export_csv
+    columns = %w[
+      id name registration_number status city state country pincode
+      contact_name phone email owner_id owner_name owner_email
+      terms_accepted_at data_sharing_consent_accepted_at reviewed_at
+      rejection_reason created_at updated_at
+    ]
+
+    CSV.generate(headers: true) do |csv|
+      csv << columns
+      includes(:owner).find_each do |academy|
+        csv << [
+          academy.id, academy.name, academy.registration_number, academy.status,
+          academy.city, academy.state, academy.country, academy.pincode,
+          academy.contact_name, academy.phone, academy.email,
+          academy.owner_id, academy.owner&.name, academy.owner&.email,
+          academy.terms_accepted_at, academy.data_sharing_consent_accepted_at,
+          academy.reviewed_at, academy.rejection_reason,
+          academy.created_at, academy.updated_at
+        ]
+      end
+    end
   end
 
   private

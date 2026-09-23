@@ -36,6 +36,10 @@ Rails.application.routes.draw do
       end
     end
 
+    collection do
+      get :export
+    end
+
     member do
       get :athletes
       get :notifications
@@ -45,6 +49,10 @@ Rails.application.routes.draw do
   end
 
   resources :tournaments, only: %i[index show new create edit update destroy] do
+    collection do
+      get :export
+      get :export_categories
+    end
     member do
       get :venue_setup
       patch :venue_setup, action: :update_venue_setup
@@ -63,7 +71,11 @@ Rails.application.routes.draw do
   end
 
   namespace :super_admin do
-    resources :athletes, only: %i[index destroy]
+    resources :athletes, only: %i[index destroy] do
+      collection do
+        get :export
+      end
+    end
     resources :notifications, only: %i[index] do
       member do
         patch :approve

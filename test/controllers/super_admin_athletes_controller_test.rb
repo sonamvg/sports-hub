@@ -67,6 +67,32 @@ class SuperAdminAthletesControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "super admin can export all athletes as csv" do
+    parent = User.create!(name: "Export Parent", email: "athlete-export-parent@example.test", password: "password123", role: :parent)
+    academy = Academy.create!(name: "Export Athlete Academy", city: "Pune", status: :approved)
+    athlete = parent.athletes.create!(academy: academy, first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    super_admin = User.create!(name: "Super Admin", email: "athlete-export-admin@example.test", password: "password123", role: :super_admin)
+    sign_in_as super_admin
+
+    get export_super_admin_athletes_path
+
+    assert_response :success
+    assert_equal "text/csv", response.media_type
+    assert_includes response.body, athlete.first_name
+    assert_includes response.body, athlete.last_name
+    assert_includes response.body, "Export Athlete Academy"
+    assert_includes response.body, parent.email
+  end
+
+  test "non super admin cannot export athletes" do
+    user = User.create!(name: "Normal User", email: "normal-athlete-export@example.test", password: "password123", role: :parent)
+    sign_in_as user
+
+    get export_super_admin_athletes_path
+
+    assert_response :not_found
+  end
+
   test "super admin can delete athlete from super admin page" do
     first_user = User.create!(name: "First Parent", email: "delete-admin-athlete-first@example.test", password: "password123", role: :parent)
     second_user = User.create!(name: "Second Parent", email: "delete-admin-athlete-second@example.test", password: "password123", role: :parent)

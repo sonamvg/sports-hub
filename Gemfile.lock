@@ -269,6 +269,8 @@ GEM
       railties (>= 7.1.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
+    tzinfo-data (1.2026.4)
+      tzinfo (>= 1.0.0)
     uri (1.1.1)
     useragent (0.16.11)
     web-console (4.3.0)
@@ -307,6 +309,7 @@ DEPENDENCIES
   rqrcode (~> 3.0)
   stimulus-rails
   turbo-rails
+  tzinfo-data
   web-console
 
 BUNDLED WITH

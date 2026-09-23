@@ -11,9 +11,15 @@
         <h1 class="page-title">Upcoming tournaments</h1>
         <p class="page-copy">Find open events, review categories, and register for the right competition.</p>
       </div>
-      <% if current_user&.can_organize_tournaments? %>
-        <%= link_to new_tournament_path, class: "primary-button icon-label" do %><%= ui_icon("plus") %><span>Create tournament</span><% end %>
-      <% end %>
+      <div class="page-actions">
+        <% if super_admin? %>
+          <%= link_to export_tournaments_path, class: "secondary-button icon-label" do %><%= ui_icon("download") %><span>Export tournaments (CSV)</span><% end %>
+          <%= link_to export_categories_tournaments_path, class: "secondary-button icon-label" do %><%= ui_icon("download") %><span>Export categories (CSV)</span><% end %>
+        <% end %>
+        <% if current_user&.can_organize_tournaments? %>
+          <%= link_to new_tournament_path, class: "primary-button icon-label" do %><%= ui_icon("plus") %><span>Create tournament</span><% end %>
+        <% end %>
+      </div>
     </div>
 
     <% active_filters = [params[:q], params[:country], params[:state]].compact_blank.count %>

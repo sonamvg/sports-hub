@@ -4,7 +4,7 @@
     { label: "Academies" }
   ] %>
 
-  <div class="page-heading"><div><p class="eyebrow">ACADEMIES</p><h1 class="page-title">Sports academies</h1><p class="page-copy">Browse approved academies and verified training centres.</p></div><% if current_user.nil? || current_user.academy_owner? || super_admin? %><%= link_to new_academy_path, class: "primary-button icon-label" do %><%= ui_icon("plus") %><span>Register academy</span><% end %><% end %></div>
+  <div class="page-heading"><div><p class="eyebrow">ACADEMIES</p><h1 class="page-title">Sports academies</h1><p class="page-copy">Browse approved academies and verified training centres.</p></div><div class="page-actions"><% if super_admin? %><%= link_to export_academies_path, class: "secondary-button icon-label" do %><%= ui_icon("download") %><span>Export all (CSV)</span><% end %><% end %><% if current_user.nil? || current_user.academy_owner? || super_admin? %><%= link_to new_academy_path, class: "primary-button icon-label" do %><%= ui_icon("plus") %><span>Register academy</span><% end %><% end %></div></div>
   <%= form_with url: academies_path, method: :get, class: "filter-bar compact-filter" do |form| %>
     <div><%= form.label :q do %><%= ui_icon("search") %><span>Search academies</span><% end %><%= form.search_field :q, value: params[:q], placeholder: "Name, city, state, country" %></div>
     <div class="filter-actions"><%= button_tag type: "submit", class: "primary-button button-reset icon-label" do %><%= ui_icon("search") %><span>Search</span><% end %><%= link_to "Clear", academies_path, class: "secondary-button" %></div>

@@ -168,4 +168,19 @@ class SuperAdminNotificationsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_not_includes response.body, "Review Queue Open"
   end
+
+  test "orphaned notification can be viewed and dismissed" do
+    super_admin = User.create!(name: "Super Admin", email: "orphan-notification-admin@example.test", password: "password123", role: :super_admin)
+    organizer = User.create!(name: "Organizer", email: "orphan-notification-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(name: "Deleted Tournament", organizer: organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    notification = SuperAdminNotification.notify!(kind: :tournament_submission, notifiable: tournament, actor: organizer)
+    notification.update_columns(notifiable_id: 99_999)
+    sign_in_as super_admin
+
+    get super_admin_notifications_path
+
+    assert_response :success
+    assert_includes response.body, "Linked record was removed."
+    assert_includes response.body, dismiss_super_admin_notification_path(notification)
+  end
 end

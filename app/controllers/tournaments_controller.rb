@@ -4,7 +4,7 @@ class TournamentsController < ApplicationController
   before_action :set_tournament, only: %i[show edit update destroy venue_setup update_venue_setup]
   before_action :require_tournament_finance_manager, only: %i[edit update]
   before_action :require_tournament_manager, only: %i[venue_setup update_venue_setup]
-  before_action :require_super_admin, only: :destroy
+  before_action :require_super_admin, only: %i[destroy export export_categories]
   before_action :set_available_organizers, only: %i[new create edit update]
 
   def index
@@ -76,6 +76,14 @@ class TournamentsController < ApplicationController
   def destroy
     @tournament.destroy
     redirect_to tournaments_path, notice: "Tournament removed."
+  end
+
+  def export
+    send_data Tournament.to_export_csv, filename: "tournaments-#{Date.current.iso8601}.csv", type: "text/csv"
+  end
+
+  def export_categories
+    send_data TournamentCategory.to_export_csv, filename: "tournament_categories-#{Date.current.iso8601}.csv", type: "text/csv"
   end
 
   private
@@ -183,7 +191,7 @@ class TournamentsController < ApplicationController
       :eligibility_summary, :registration_capacity,
       :registration_fee, :group_registration_fee, :allow_category_change_at_weigh_in, :currency, :required_documents, :refund_policy,
       :payment_account_name, :payment_bank_name, :payment_account_number,
-      :payment_ifsc, :payment_upi_id, :payment_instructions,
+      :payment_ifsc, :payment_upi_id, :payment_instructions, :allow_cash_payment,
       :logo_image, :banner_image, :terms_accepted, :data_sharing_consent,
       competition_format_options: [], competition_format_other: [],
       eligibility_options: [], eligibility_other: [],

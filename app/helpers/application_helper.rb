@@ -6,6 +6,7 @@ module ApplicationHelper
     "calendar" => '<path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/><rect x="3" y="4" width="18" height="18" rx="2"/>',
     "chevron-right" => '<path d="m9 18 6-6-6-6"/>',
     "copy" => '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+    "download" => '<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>',
     "x" => '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
     "edit" => '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
     "eye" => '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
@@ -134,6 +135,7 @@ module ApplicationHelper
 
   def super_admin_notification_message(notification)
     record = notification.notifiable
+    return "The linked record was removed. You can dismiss this notification." if record.blank?
 
     case notification.kind
     when "academy_submission"

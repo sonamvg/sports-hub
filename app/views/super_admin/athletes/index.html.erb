@@ -10,7 +10,10 @@
       <h1 class="page-title">Athletes</h1>
       <p class="page-copy">View every athlete profile and remove records when needed.</p>
     </div>
-    <span class="status-pill"><%= @total_count %> total</span>
+    <div class="page-actions">
+      <span class="status-pill"><%= @total_count %> total</span>
+      <%= link_to export_super_admin_athletes_path, class: "secondary-button icon-label" do %><%= ui_icon("download") %><span>Export all (CSV)</span><% end %>
+    </div>
   </div>
 
   <%= form_with url: super_admin_athletes_path, method: :get, class: "filter-bar" do |form| %>

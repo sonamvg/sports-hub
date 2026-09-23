@@ -31,6 +31,7 @@ class Athlete < ApplicationRecord
   belongs_to :academy, optional: true
   has_many :registrations, dependent: :destroy
   has_many :academy_membership_requests, dependent: :destroy
+  has_many :super_admin_notifications, as: :notifiable, dependent: :destroy
   has_one_attached :profile_photo
   has_many_attached :identity_documents
 
@@ -61,6 +62,38 @@ class Athlete < ApplicationRecord
 
   def full_name
     [first_name, middle_name, last_name].compact_blank.join(" ")
+  end
+
+  # A full, restorable dump of every athlete for a super admin backup/export
+  # — every column plus the parent account's/academy's name for a
+  # human-readable link, since user_id/academy_id alone mean nothing outside
+  # this database.
+  def self.to_export_csv
+    columns = %w[
+      id first_name middle_name last_name gender date_of_birth weight belt
+      blood_group association_id contact_number address city state country
+      pincode emergency_contact_name emergency_contact_phone
+      government_id_document_type academy_id academy_name external_academy_name
+      user_id user_name user_email terms_accepted_at
+      data_sharing_consent_accepted_at created_at updated_at
+    ]
+
+    CSV.generate(headers: true) do |csv|
+      csv << columns
+      includes(:academy, :user).find_each do |athlete|
+        csv << [
+          athlete.id, athlete.first_name, athlete.middle_name, athlete.last_name,
+          athlete.gender, athlete.date_of_birth, athlete.weight, athlete.belt,
+          athlete.blood_group, athlete.association_id, athlete.contact_number,
+          athlete.address, athlete.city, athlete.state, athlete.country, athlete.pincode,
+          athlete.emergency_contact_name, athlete.emergency_contact_phone,
+          athlete.government_id_document_type, athlete.academy_id, athlete.academy&.name,
+          athlete.external_academy_name, athlete.user_id, athlete.user&.name, athlete.user&.email,
+          athlete.terms_accepted_at, athlete.data_sharing_consent_accepted_at,
+          athlete.created_at, athlete.updated_at
+        ]
+      end
+    end
   end
 
   def age

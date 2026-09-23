@@ -32,7 +32,9 @@
           </div>
 
           <div class="notification-actions">
-            <% if notification.academy_submission? %>
+            <% if record.blank? %>
+              <span class="muted-copy">Linked record was removed.</span>
+            <% elsif notification.academy_submission? %>
               <%= link_to "View academy", academy_path(record), class: "text-link" %>
               <%= button_to "Accept", approve_super_admin_notification_path(notification), method: :patch, class: "approve-button" %>
               <%= button_to "Reject", reject_super_admin_notification_path(notification), method: :patch, class: "reject-button" %>
