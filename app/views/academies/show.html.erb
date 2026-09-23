@@ -80,7 +80,7 @@
       <div><span>Contact person</span><strong><%= @academy.contact_name.presence || @academy.owner&.name || "--" %></strong></div>
       <div><span>Email</span><strong><%= @academy.email.present? ? mail_to(@academy.email) : "--" %></strong></div>
       <div><span>Phone</span><strong><%= @academy.phone.presence || "--" %></strong></div>
-      <div><span>Owner</span><strong><%= @academy.owner&.name || "--" %></strong></div>
+      <div><span>City</span><strong><%= @academy.city.presence || "--" %></strong></div>
     </div>
   </section>
   <% if @academy.rejected? && @academy.rejection_reason.present? %>
