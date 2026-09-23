@@ -97,7 +97,7 @@
 
         <div class="side-account">
           <% if current_user %>
-            <%= link_to user_first_name(current_user), profile_path, class: "status-pill" %>
+            <%= link_to user_first_name(current_user), current_user.athlete? ? athlete_home_path : profile_path, class: "status-pill" %>
             <span class="small-label"><%= role_label(current_user) %></span>
             <%= button_to logout_path, method: :delete, class: "link-button account-action" do %><%= ui_icon("log-out") %><span>Sign out</span><% end %>
           <% else %>

@@ -84,12 +84,14 @@ class SessionsControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "Invalid email or password."
   end
 
-  test "new session page includes a forgot password link" do
+  # The forgot-password link is hidden until email sending is configured for
+  # this app — the password_resets flow underneath it still exists and works
+  # (see password_resets_controller_test.rb), it's just not linked to yet.
+  test "new session page hides the forgot password link" do
     get login_path
 
     assert_response :success
-    assert_includes response.body, "Forgot your password?"
-    assert_includes response.body, new_password_reset_path
+    assert_not_includes response.body, "Forgot your password?"
   end
 
   test "new session page hides registration links when signed in" do

@@ -1,5 +1,6 @@
 class ProfilesController < ApplicationController
   before_action :require_user
+  before_action :set_athlete_tab_data
 
   def show; end
 
@@ -39,15 +40,37 @@ class ProfilesController < ApplicationController
     deactivated = delete_account!(current_user)
     reset_session
 
-    notice = deactivated ? "Your account has been deactivated. Your closed tournaments have been preserved." : "Your account has been deleted."
+    notice = deactivated ? "Your account has been deactivated instead of deleted, to preserve tournament and match history you're part of." : "Your account has been deleted."
     redirect_to root_path, notice: notice
   end
 
   private
 
+  def set_athlete_tab_data
+    return unless current_user.athlete?
+
+    @athlete = current_user.athletes.order(:created_at).first
+    return unless @athlete
+
+    @available_academies = Academy.approved.order(:name)
+    @return_to = profile_path
+  end
+
   # Returns true if the account was deactivated instead of removed outright
-  # (only happens when the user organizes at least one tournament that must
-  # be preserved — see Tournament::PRESERVED_ON_ACCOUNT_DELETION_STATUSES).
+  # — because the user organizes at least one tournament that must be
+  # preserved (see Tournament::PRESERVED_ON_ACCOUNT_DELETION_STATUSES),
+  # because their athlete profile has match history that must be preserved
+  # (see Athlete#has_match_history?/#anonymize!), or because they're still
+  # referenced by some other operational/audit record (see
+  # User#has_operational_references?). A hard delete is only attempted once
+  # none of that is true, so it can never hit a foreign key violation.
+  #
+  # Destroying a non-preserved tournament here is safe even with a
+  # generated draw: TournamentCategory declares has_many :matches,
+  # dependent: :destroy ahead of has_many :registrations, so Rails clears
+  # out its Match rows before it destroys the registrations they reference
+  # (Athlete has no such sibling association, which is exactly why it needs
+  # the explicit #has_match_history? check instead).
   def delete_account!(user)
     ActiveRecord::Base.transaction do
       user.owned_academies.find_each(&:destroy!) if user.academy_owner?
@@ -56,7 +79,9 @@ class ProfilesController < ApplicationController
         .where.not(status: Tournament::PRESERVED_ON_ACCOUNT_DELETION_STATUSES)
         .find_each(&:destroy!)
 
-      if user.organized_tournaments.exists?
+      athlete_preserved = user.athletes.to_a.reduce(false) { |preserved, athlete| !athlete.delete_or_anonymize! || preserved }
+
+      if athlete_preserved || user.organized_tournaments.exists? || user.has_operational_references?
         user.deactivate!
         true
       else

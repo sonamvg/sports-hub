@@ -8,6 +8,18 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "shows the signed-in user's own account details" do
+    user = User.create!(name: "Demo Parent", email: "profile-parent@example.test", phone: "9876543210", password: "password123", role: :parent)
+    sign_in_as user
+
+    get profile_path
+
+    assert_response :success
+    assert_includes response.body, "Demo Parent"
+    assert_includes response.body, "profile-parent@example.test"
+    assert_includes response.body, "9876543210"
+  end
+
+  test "an athlete's profile page shows a Profile/Account settings tab pair instead of the redundant account-details form" do
     user = User.create!(name: "Demo Athlete", email: "profile-athlete@example.test", phone: "9876543210", password: "password123", role: :athlete)
     user.athletes.create!(first_name: "Demo", last_name: "Athlete", date_of_birth: Date.new(2014, 5, 12), gender: "female")
     sign_in_as user
@@ -15,9 +27,10 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     get profile_path
 
     assert_response :success
-    assert_includes response.body, "Demo Athlete"
     assert_includes response.body, "profile-athlete@example.test"
-    assert_includes response.body, "9876543210"
+    assert_includes response.body, ">Profile<"
+    assert_includes response.body, ">Account settings<"
+    assert_not_includes response.body, "Account details"
   end
 
   test "updates the account's name and phone" do
@@ -176,6 +189,56 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_not Athlete.exists?(athlete.id)
   end
 
+  test "athlete deleting their account is deactivated instead of crashing when they raised a super admin notification" do
+    user = User.create!(name: "Demo Athlete", email: "delete-athlete-with-notification@example.test", password: "password123", role: :athlete)
+    athlete = user.athletes.create!(first_name: "Demo", last_name: "Athlete", date_of_birth: Date.new(2014, 5, 12), gender: "female", external_academy_name: "Neighborhood Dojo")
+    notification = SuperAdminNotification.notify!(kind: :unregistered_academy_athlete, notifiable: athlete, actor: user, message: "Demo Athlete listed Neighborhood Dojo as an unregistered academy.")
+    sign_in_as user
+
+    # The athlete profile itself has no match history, so it's still
+    # destroyed outright — only the user row must survive, since the
+    # notification's foreign key needs a valid actor_id to point to.
+    assert_no_difference("User.count") do
+      assert_difference("Athlete.count", -1) do
+        delete profile_path
+      end
+    end
+
+    assert_redirected_to root_path
+    assert_equal "Your account has been deactivated instead of deleted, to preserve tournament and match history you're part of.", flash[:notice]
+    assert_predicate user.reload, :deactivated?
+    assert SuperAdminNotification.exists?(notification.id)
+    assert_equal user.id, notification.reload.actor_id
+  end
+
+  test "athlete deleting their account is deactivated and anonymized instead when they have fought a match" do
+    user = User.create!(name: "Demo Athlete", email: "delete-athlete-with-history@example.test", password: "password123", role: :athlete)
+    athlete = user.athletes.create!(first_name: "Demo", last_name: "Athlete", date_of_birth: Date.new(2014, 5, 12), gender: "female", contact_number: "9123456789")
+    organizer = User.create!(name: "Match Organizer", email: "delete-athlete-history-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(name: "History Open", organizer: organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 10, age_max: 16)
+    minimal_png = Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
+    receipt = -> { { io: StringIO.new(minimal_png), filename: "receipt.png", content_type: "image/png" } }
+    registration = Registration.create!(tournament: tournament, athlete: athlete, tournament_category: category, status: :weight_verified, payment_receipt: receipt.call)
+    opponent_user = User.create!(name: "Opponent Parent", email: "delete-athlete-history-opponent@example.test", password: "password123", role: :parent)
+    opponent_athlete = opponent_user.athletes.create!(first_name: "Riya", last_name: "Patil", date_of_birth: Date.new(2014, 3, 3), gender: "female")
+    opponent_registration = Registration.create!(tournament: tournament, athlete: opponent_athlete, tournament_category: category, status: :weight_verified, payment_receipt: receipt.call)
+    Match.create!(tournament_category: category, round_number: 1, slot_position: 1, registration_one: registration, registration_two: opponent_registration)
+    sign_in_as user
+
+    assert_no_difference(["User.count", "Athlete.count"]) do
+      delete profile_path
+    end
+
+    assert_redirected_to root_path
+    assert_equal "Your account has been deactivated instead of deleted, to preserve tournament and match history you're part of.", flash[:notice]
+    assert_predicate user.reload, :deactivated?
+    athlete.reload
+    assert_equal "Demo", athlete.first_name
+    assert_nil athlete.contact_number
+    assert Match.exists?(registration_one_id: registration.id)
+  end
+
   test "academy owner deleting their account removes the academy but keeps its athletes, unlinked" do
     owner = User.create!(name: "Demo Owner", email: "delete-academy-owner@example.test", password: "password123", role: :academy_owner)
     academy = Academy.create!(name: "Delete Test Academy", city: "Pune", status: :approved, owner: owner)
@@ -213,6 +276,34 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     assert_not Tournament.exists?(open_tournament.id)
   end
 
+  test "organizer deleting their account cleanly destroys a non-preserved tournament even with a generated draw" do
+    organizer = User.create!(name: "Demo Organizer", email: "delete-organizer-with-matches@example.test", password: "password123", role: :organizer, organizer_status: :verified)
+    tournament = Tournament.create!(name: "Closed With Draw", organizer: organizer, status: :registration_closed, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 10, age_max: 16)
+    minimal_png = Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
+    receipt = -> { { io: StringIO.new(minimal_png), filename: "receipt.png", content_type: "image/png" } }
+    parent_one = User.create!(name: "Parent One", email: "delete-organizer-match-athlete-one@example.test", password: "password123", role: :parent)
+    athlete_one = parent_one.athletes.create!(first_name: "Riya", last_name: "Shah", date_of_birth: Date.new(2014, 3, 3), gender: "female")
+    registration_one = Registration.create!(tournament: tournament, athlete: athlete_one, tournament_category: category, status: :weight_verified, payment_receipt: receipt.call)
+    parent_two = User.create!(name: "Parent Two", email: "delete-organizer-match-athlete-two@example.test", password: "password123", role: :parent)
+    athlete_two = parent_two.athletes.create!(first_name: "Riya", last_name: "Patil", date_of_birth: Date.new(2014, 3, 3), gender: "female")
+    registration_two = Registration.create!(tournament: tournament, athlete: athlete_two, tournament_category: category, status: :weight_verified, payment_receipt: receipt.call)
+    Match.create!(tournament_category: category, round_number: 1, slot_position: 1, registration_one: registration_one, registration_two: registration_two)
+    sign_in_as organizer
+
+    assert_difference("User.count", -1) do
+      assert_difference("Tournament.count", -1) do
+        delete profile_path
+      end
+    end
+
+    assert_redirected_to root_path
+    assert_equal "Your account has been deleted.", flash[:notice]
+    assert_not User.exists?(organizer.id)
+    assert_not Tournament.exists?(tournament.id)
+    assert_not Match.exists?(registration_one_id: registration_one.id)
+  end
+
   test "organizer deleting their account with a closed tournament is deactivated instead, and the closed tournament is preserved" do
     organizer = User.create!(name: "Demo Organizer", email: "delete-closed-organizer@example.test", password: "password123", role: :organizer, organizer_status: :verified)
     open_tournament = Tournament.create!(name: "Open Event", organizer: organizer, status: :registration_open, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
@@ -226,7 +317,7 @@ class ProfilesControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to root_path
-    assert_equal "Your account has been deactivated. Your closed tournaments have been preserved.", flash[:notice]
+    assert_equal "Your account has been deactivated instead of deleted, to preserve tournament and match history you're part of.", flash[:notice]
     assert_not Tournament.exists?(open_tournament.id)
     assert Tournament.exists?(closed_tournament.id)
     assert_equal "Completed Event", closed_tournament.reload.name

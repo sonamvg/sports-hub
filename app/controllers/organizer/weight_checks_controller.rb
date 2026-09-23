@@ -62,7 +62,7 @@ module Organizer
       return registrations if @query.blank?
 
       registrations.joins(:athlete).where(
-        "LOWER(athletes.first_name) LIKE :query OR LOWER(athletes.last_name) LIKE :query OR LOWER(CONCAT(athletes.first_name, ' ', athletes.last_name)) LIKE :query OR LOWER(COALESCE(athletes.association_id, '')) LIKE :query",
+        "LOWER(athletes.first_name) LIKE :query OR LOWER(COALESCE(athletes.middle_name, '')) LIKE :query OR LOWER(athletes.last_name) LIKE :query OR LOWER(CONCAT_WS(' ', athletes.first_name, athletes.middle_name, athletes.last_name)) LIKE :query OR LOWER(COALESCE(athletes.association_id, '')) LIKE :query",
         query: "%#{@query.downcase}%"
       )
     end

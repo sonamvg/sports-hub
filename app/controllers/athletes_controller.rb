@@ -75,17 +75,15 @@ class AthletesController < ApplicationController
 
   def destroy
     if super_admin?
-      @athlete.destroy
-      redirect_to athletes_path, notice: "Athlete profile removed."
+      redirect_to athletes_path, notice: athlete_removal_notice(@athlete.delete_or_anonymize!)
     elsif current_user.academy_owner? && can_manage_academy?(@athlete.academy)
       academy = @athlete.academy
       @athlete.academy_membership_requests.where(academy: academy, status: %i[pending approved]).update_all(status: AcademyMembershipRequest.statuses[:rejected], reviewed_by_id: current_user.id, reviewed_at: Time.current, updated_at: Time.current)
       @athlete.update!(academy: nil, external_academy_name: nil)
       AthleteAccountMailer.with(athlete: @athlete, academy: academy).academy_removed.deliver_later unless @athlete.user.placeholder_email?
-      redirect_to academy_path(academy), notice: "Athlete removed from academy."
+      redirect_to athletes_academy_path(academy), notice: "Athlete removed from academy."
     elsif @athlete.user_id == current_user.id
-      @athlete.destroy
-      redirect_to athletes_path, notice: "Athlete profile removed."
+      redirect_to athletes_path, notice: athlete_removal_notice(@athlete.delete_or_anonymize!)
     else
       raise ActiveRecord::RecordNotFound
     end
@@ -213,7 +211,7 @@ class AthletesController < ApplicationController
     query = params[:q].to_s.squish.downcase
     if query.present?
       athletes = athletes.left_joins(:academy).where(
-        "LOWER(athletes.first_name) LIKE :query OR LOWER(athletes.last_name) LIKE :query OR LOWER(CONCAT(athletes.first_name, ' ', athletes.last_name)) LIKE :query OR LOWER(COALESCE(athletes.association_id, '')) LIKE :query OR LOWER(COALESCE(academies.name, '')) LIKE :query",
+        "LOWER(athletes.first_name) LIKE :query OR LOWER(COALESCE(athletes.middle_name, '')) LIKE :query OR LOWER(athletes.last_name) LIKE :query OR LOWER(CONCAT_WS(' ', athletes.first_name, athletes.middle_name, athletes.last_name)) LIKE :query OR LOWER(COALESCE(athletes.association_id, '')) LIKE :query OR LOWER(COALESCE(academies.name, '')) LIKE :query",
         query: "%#{query}%"
       )
     end
@@ -228,7 +226,7 @@ class AthletesController < ApplicationController
 
   def athlete_params
     permitted = params.require(:athlete).permit(
-      :academy_id, :first_name, :last_name, :date_of_birth, :gender,
+      :academy_id, :first_name, :middle_name, :last_name, :date_of_birth, :gender,
       :belt, :weight, :association_id, :city, :state, :country, :pincode,
       :contact_number, :blood_group, :emergency_contact_name,
       :emergency_contact_phone, :address, :government_id_document_type,
@@ -253,14 +251,25 @@ class AthletesController < ApplicationController
     permitted
   end
 
+  # Splits the user's single "name" field into the athlete's first/middle/
+  # last name: one word goes entirely to first name, two split evenly
+  # between first and last, and three or more treat the first word as the
+  # first name, the last word as the last name, and everything in between
+  # (however many words) as the middle name.
   def assign_name_from_user(athlete)
-    names = current_user.name.to_s.split
-    case names.size
+    words = current_user.name.to_s.split
+    case words.size
+    when 0
+      nil
     when 1
-      athlete.first_name ||= names.first
+      athlete.first_name ||= words.first
     when 2
-      athlete.first_name ||= names.first
-      athlete.last_name ||= names.last
+      athlete.first_name ||= words.first
+      athlete.last_name ||= words.last
+    else
+      athlete.first_name ||= words.first
+      athlete.middle_name ||= words[1..-2].join(" ")
+      athlete.last_name ||= words.last
     end
     athlete.contact_number ||= current_user.phone
   end
@@ -320,6 +329,10 @@ class AthletesController < ApplicationController
     return "Academy join request sent to the academy owner." if academy_id.present?
 
     created ? "Athlete profile created." : "Athlete profile updated."
+  end
+
+  def athlete_removal_notice(destroyed)
+    destroyed ? "Athlete profile removed." : "This athlete has match history that must be preserved, so their profile was anonymized instead of removed."
   end
 
   def safe_return_path(path)

@@ -95,6 +95,26 @@ class User < ApplicationRecord
     deactivated_at.present?
   end
 
+  # True when this user is referenced by an operational or audit record that
+  # won't cascade away on its own — a registration they reviewed or weighed
+  # in as an organizer, a tournament payment-detail change they made, a
+  # super admin notification they raised or reviewed, or a collaborator
+  # invite they sent. None of those foreign keys cascade or nullify, so
+  # hard-deleting a user who still has any of these would fail with a
+  # foreign key violation rather than actually delete anything. Checked
+  # after any of the user's own records that WOULD be cleaned up first
+  # (their own organized tournaments, their own athlete profile) have
+  # already been destroyed/anonymized, so this only reflects what's left.
+  def has_operational_references?
+    RegistrationActionLog.exists?(actor_id: id) ||
+      RegistrationWeightCheck.exists?(checked_by_id: id) ||
+      PaymentDetailAuditLog.exists?(actor_id: id) ||
+      SuperAdminNotification.exists?(actor_id: id) ||
+      SuperAdminNotification.exists?(reviewed_by_id: id) ||
+      TournamentOrganizerInvitation.exists?(invited_by_id: id) ||
+      TournamentOrganizer.exists?(added_by_id: id)
+  end
+
   # Used instead of a hard delete when the account still has tournaments
   # that must keep a valid organizer reference (e.g. completed/cancelled/
   # archived ones) — the row stays, but sign-in is permanently disabled and

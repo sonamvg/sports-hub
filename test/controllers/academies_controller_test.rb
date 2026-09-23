@@ -626,7 +626,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to academy_path(academy)
+    assert_redirected_to athletes_academy_path(academy)
     assert_equal "Athlete removed from academy.", flash[:notice]
     assert_nil athlete.reload.academy_id
     assert_nil athlete.external_academy_name
@@ -645,7 +645,7 @@ class AcademiesControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to academy_path(academy)
+    assert_redirected_to athletes_academy_path(academy)
     assert_nil athlete.reload.academy_id
     assert Athlete.exists?(athlete.id)
   end

@@ -37,8 +37,8 @@ class Athlete < ApplicationRecord
   before_validation :normalize_profile_fields
 
   validates :first_name, :last_name, :date_of_birth, :gender, presence: true
-  validates :first_name, :last_name, length: { in: 2..60 }, allow_blank: true
-  validates :first_name, :last_name, format: { with: User::NAME_FORMAT, message: "can only contain letters, spaces, hyphens, and apostrophes" }, allow_blank: true
+  validates :first_name, :last_name, :middle_name, length: { in: 2..60 }, allow_blank: true
+  validates :first_name, :last_name, :middle_name, format: { with: User::NAME_FORMAT, message: "can only contain letters, spaces, hyphens, and apostrophes" }, allow_blank: true
   validates :gender, inclusion: { in: GENDERS }, allow_blank: true
   validates :belt, inclusion: { in: BELTS }, allow_blank: true
   validates :blood_group, inclusion: { in: BLOOD_GROUPS }, allow_blank: true
@@ -60,7 +60,16 @@ class Athlete < ApplicationRecord
   validate :emergency_contact_must_differ_from_athlete
 
   def full_name
-    [first_name, last_name].compact_blank.join(" ")
+    [first_name, middle_name, last_name].compact_blank.join(" ")
+  end
+
+  def age
+    return if date_of_birth.blank?
+
+    today = Date.current
+    years = today.year - date_of_birth.year
+    years -= 1 if today < date_of_birth + years.years
+    years
   end
 
   def academy_display_name
@@ -75,6 +84,61 @@ class Athlete < ApplicationRecord
     contact_number.present?
   end
 
+  # True once this athlete has been placed into at least one Match (a draw
+  # sheet slot, a result, or an opponent's own result) — those Match rows,
+  # and any opponent's history, reference this athlete's registrations by
+  # id with no cascade, so the registrations (and this athlete) can't be
+  # hard-deleted without breaking that history.
+  def has_match_history?
+    registration_ids = registrations.select(:id)
+    Match.where(registration_one_id: registration_ids)
+      .or(Match.where(registration_two_id: registration_ids))
+      .or(Match.where(winner_registration_id: registration_ids))
+      .exists?
+  end
+
+  # Used instead of a hard delete when #has_match_history? — clears personal
+  # contact details, documents, and the academy link, but leaves the name
+  # (and registrations) in place so draw sheets and past opponents keep
+  # showing who they fought. Mirrors User#deactivate!'s "keep the name,
+  # clear everything else" approach for organizer accounts.
+  def anonymize!
+    academy_membership_requests.pending.update_all(status: AcademyMembershipRequest.statuses[:rejected], reviewed_at: Time.current, updated_at: Time.current)
+
+    update_columns(
+      academy_id: nil,
+      external_academy_name: nil,
+      association_id: nil,
+      weight: nil,
+      blood_group: nil,
+      contact_number: nil,
+      address: nil,
+      city: nil,
+      state: nil,
+      pincode: nil,
+      emergency_contact_name: nil,
+      emergency_contact_phone: nil,
+      government_id_document_type: nil,
+      profile_photo_url: nil
+    )
+    profile_photo.purge_later if profile_photo.attached?
+    identity_documents.purge_later if identity_documents.attached?
+  end
+
+  # Removes this athlete profile: destroyed outright when there's no match
+  # history to preserve, otherwise #anonymize!d instead. Returns true when
+  # actually destroyed, false when anonymized instead, so callers can show
+  # the right message.
+  def delete_or_anonymize!
+    if has_match_history?
+      anonymize!
+      false
+    else
+      destroy!
+      true
+    end
+  end
+
   # Prefers an uploaded photo (already validated for size/type) and falls
   # back to the optional external URL when no file has been uploaded.
   def profile_photo_source
@@ -87,6 +151,7 @@ class Athlete < ApplicationRecord
 
   def normalize_profile_fields
     self.first_name = first_name.to_s.squish.presence
+    self.middle_name = middle_name.to_s.squish.presence
     self.last_name = last_name.to_s.squish.presence
     self.gender = gender.to_s.downcase.presence
     self.belt = belt.to_s.downcase.presence

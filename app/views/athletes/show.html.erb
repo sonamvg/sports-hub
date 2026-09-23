@@ -20,7 +20,7 @@
       <% if @athlete.pending_academy_request.present? %>
         <div><dt>Academy request</dt><dd>Pending approval from <%= @athlete.pending_academy_request.academy.name %></dd></div>
       <% end %>
-      <div><dt>Date of birth</dt><dd><%= @athlete.date_of_birth.strftime("%d %B %Y") %></dd></div>
+      <div><dt>Date of birth</dt><dd><%= @athlete.date_of_birth.strftime("%d %B %Y") %> (<%= @athlete.age %> yrs)</dd></div>
       <div><dt>Gender</dt><dd><%= @athlete.gender.titleize %></dd></div>
       <div><dt>Belt</dt><dd><%= @athlete.belt&.titleize || "Not set" %></dd></div>
       <div><dt>Weight</dt><dd><%= @athlete.weight ? "#{@athlete.weight} kg" : "Not set" %></dd></div>
@@ -66,7 +66,9 @@
       <% if @return_to.present? %>
         <%= link_to @return_to, class: "secondary-button icon-label" do %><%= ui_icon("arrow-right") %><span>Back</span><% end %>
       <% end %>
-      <% if super_admin? || @athlete.user_id == current_user.id %>
+      <% if current_user.athlete? && @athlete.user_id == current_user.id %>
+        <%= link_to profile_path, class: "primary-button icon-label" do %><%= ui_icon("edit") %><span>Edit profile</span><% end %>
+      <% elsif super_admin? || @athlete.user_id == current_user.id %>
         <%= link_to edit_athlete_path(@athlete), class: "primary-button icon-label" do %><%= ui_icon("edit") %><span>Edit profile</span><% end %>
       <% end %>
       <% if super_admin? %>

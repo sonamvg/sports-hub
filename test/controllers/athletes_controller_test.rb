@@ -189,6 +189,30 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_includes response.body, 'value="Bhavaraju"'
   end
 
+  test "profile setup splits a three-word account name into first, middle, and last name" do
+    athlete_user = User.create!(name: "Riya Vinit Goyal", email: "three-word-name@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    sign_in_as athlete_user
+
+    get new_athlete_path(profile_setup: true)
+
+    assert_response :success
+    assert_includes response.body, 'value="Riya"'
+    assert_includes response.body, 'value="Vinit"'
+    assert_includes response.body, 'value="Goyal"'
+  end
+
+  test "profile setup puts every word between the first and last into the middle name" do
+    athlete_user = User.create!(name: "Riya Vinit Kumar Goyal", email: "four-word-name@example.test", phone: "9876543210", password: "password123", role: :athlete)
+    sign_in_as athlete_user
+
+    get new_athlete_path(profile_setup: true)
+
+    assert_response :success
+    assert_includes response.body, 'value="Riya"'
+    assert_includes response.body, 'value="Vinit Kumar"'
+    assert_includes response.body, 'value="Goyal"'
+  end
+
   test "athlete account without profile is redirected to profile setup" do
     athlete_user = User.create!(name: "New Athlete", email: "new-athlete-profile@example.test", phone: "9876543210", password: "password123", role: :athlete)
     sign_in_as athlete_user
@@ -583,6 +607,34 @@ class AthletesControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Athlete profile removed.", flash[:notice]
     assert_not Athlete.exists?(first_athlete.id)
     assert Athlete.exists?(second_athlete.id)
+  end
+
+  test "super admin deleting an athlete with match history anonymizes instead of destroying" do
+    parent = User.create!(name: "History Parent", email: "history-parent@example.test", password: "password123", role: :parent)
+    athlete = parent.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", contact_number: "9123456789")
+    organizer = User.create!(name: "History Organizer", email: "history-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(name: "History Open", organizer: organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 10, age_max: 16)
+    minimal_png = Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
+    receipt = -> { { io: StringIO.new(minimal_png), filename: "receipt.png", content_type: "image/png" } }
+    registration = Registration.create!(tournament: tournament, athlete: athlete, tournament_category: category, status: :weight_verified, payment_receipt: receipt.call)
+    opponent_user = User.create!(name: "History Opponent", email: "history-opponent@example.test", password: "password123", role: :parent)
+    opponent_athlete = opponent_user.athletes.create!(first_name: "Riya", last_name: "Patil", date_of_birth: Date.new(2014, 3, 3), gender: "female")
+    opponent_registration = Registration.create!(tournament: tournament, athlete: opponent_athlete, tournament_category: category, status: :weight_verified, payment_receipt: receipt.call)
+    Match.create!(tournament_category: category, round_number: 1, slot_position: 1, registration_one: registration, registration_two: opponent_registration)
+    super_admin = User.create!(name: "Super Admin", email: "history-admin@example.test", password: "password123", role: :super_admin)
+    sign_in_as super_admin
+
+    assert_no_difference("Athlete.count") do
+      delete athlete_path(athlete)
+    end
+
+    assert_redirected_to athletes_path
+    assert_equal "This athlete has match history that must be preserved, so their profile was anonymized instead of removed.", flash[:notice]
+    athlete.reload
+    assert_equal "Aarohi", athlete.first_name
+    assert_nil athlete.contact_number
+    assert Match.exists?(registration_one_id: registration.id)
   end
 
   test "index filters athletes by search age weight and belt" do

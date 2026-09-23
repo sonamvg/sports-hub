@@ -29,6 +29,23 @@ class AthleteTest < ActiveSupport::TestCase
     assert_equal "aarohi shah", athlete.full_name
   end
 
+  test "middle name is optional, gets normalized, and is included in the full name" do
+    without_middle = @user.athletes.build(first_name: "Riya", last_name: "Goyal", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    assert_predicate without_middle, :valid?
+    assert_equal "Riya Goyal", without_middle.full_name
+
+    with_middle = @user.athletes.create!(first_name: "Riya", middle_name: "  vinit  ", last_name: "Goyal", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+    assert_equal "vinit", with_middle.middle_name
+    assert_equal "Riya vinit Goyal", with_middle.full_name
+  end
+
+  test "rejects a middle name containing digits" do
+    athlete = @user.athletes.build(first_name: "Riya", middle_name: "Vinit2", last_name: "Goyal", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+
+    assert_not athlete.valid?
+    assert_includes athlete.errors[:middle_name], "can only contain letters, spaces, hyphens, and apostrophes"
+  end
+
   test "rejects an invalid profile photo URL and accepts a valid one" do
     athlete = @user.athletes.build(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female", profile_photo_url: "not-a-url")
 
@@ -214,6 +231,62 @@ class AthleteTest < ActiveSupport::TestCase
 
     assert_not athlete.valid?
     assert_includes athlete.errors[:identity_documents], "cannot include more than #{Athlete::MAX_IDENTITY_DOCUMENTS} files"
+  end
+
+  test "computes age from date of birth, accounting for whether the birthday has passed this year" do
+    travel_to Date.new(2026, 6, 15) do
+      not_yet_birthday = @user.athletes.build(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2010, 12, 1), gender: "female")
+      already_had_birthday = @user.athletes.build(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2010, 1, 1), gender: "female")
+      birthday_today = @user.athletes.build(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2010, 6, 15), gender: "female")
+
+      assert_equal 15, not_yet_birthday.age
+      assert_equal 16, already_had_birthday.age
+      assert_equal 16, birthday_today.age
+    end
+  end
+
+  test "age is nil without a date of birth" do
+    athlete = @user.athletes.build(first_name: "Aarohi", last_name: "Shah", gender: "female")
+    assert_nil athlete.age
+  end
+
+  test "delete_or_anonymize! destroys an athlete with no match history" do
+    athlete = @user.athletes.create!(first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female")
+
+    assert athlete.delete_or_anonymize!
+    assert_not Athlete.exists?(athlete.id)
+  end
+
+  test "delete_or_anonymize! anonymizes instead of destroying an athlete who has fought a match" do
+    organizer = User.create!(name: "Match Organizer", email: "athlete-delete-organizer@example.test", password: "password123", role: :organizer)
+    tournament = Tournament.create!(name: "Delete Test Open", organizer: organizer, start_date: Date.new(2026, 12, 5), end_date: Date.new(2026, 12, 6))
+    category = tournament.tournament_categories.create!(event_type: "kyorugi", gender: "female", age_min: 10, age_max: 16, name: "Kyorugi Female 10-16")
+    academy = Academy.create!(name: "Delete Test Academy", city: "Pune", status: :approved)
+
+    athlete = @user.athletes.create!(
+      first_name: "Aarohi", last_name: "Shah", date_of_birth: Date.new(2014, 5, 12), gender: "female",
+      academy: academy, contact_number: "9123456789", address: "123 Street", city: "Pune", state: "Maharashtra"
+    )
+    minimal_png = Base64.decode64("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=")
+    receipt = -> { { io: StringIO.new(minimal_png), filename: "receipt.png", content_type: "image/png" } }
+    registration = Registration.create!(tournament: tournament, athlete: athlete, tournament_category: category, status: :weight_verified, payment_receipt: receipt.call)
+    opponent_user = User.create!(name: "Opponent Parent", email: "athlete-delete-opponent@example.test", password: "password123", role: :parent)
+    opponent_athlete = opponent_user.athletes.create!(first_name: "Riya", last_name: "Patil", date_of_birth: Date.new(2014, 3, 3), gender: "female")
+    opponent_registration = Registration.create!(tournament: tournament, athlete: opponent_athlete, tournament_category: category, status: :weight_verified, payment_receipt: receipt.call)
+    Match.create!(tournament_category: category, round_number: 1, slot_position: 1, registration_one: registration, registration_two: opponent_registration)
+
+    assert athlete.has_match_history?
+    assert_not athlete.delete_or_anonymize!
+
+    athlete.reload
+    assert Athlete.exists?(athlete.id)
+    assert_equal "Aarohi", athlete.first_name
+    assert_equal "Shah", athlete.last_name
+    assert_nil athlete.academy_id
+    assert_nil athlete.contact_number
+    assert_nil athlete.address
+    assert Registration.exists?(registration.id)
+    assert Match.exists?(registration_one_id: registration.id)
   end
 
   test "accepts jpg and png athlete profile uploads under five megabytes" do
